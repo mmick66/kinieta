@@ -1,0 +1,423 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		BE6568D81F57DE10007E41D2 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE6568D71F57DE10007E41D2 /* AppDelegate.swift */; };
+		BE6568DA1F57DE10007E41D2 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE6568D91F57DE10007E41D2 /* ViewController.swift */; };
+		BE6568DD1F57DE10007E41D2 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = BE6568DB1F57DE10007E41D2 /* Main.storyboard */; };
+		BE6568DF1F57DE10007E41D2 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BE6568DE1F57DE10007E41D2 /* Assets.xcassets */; };
+		BE6568E21F57DE10007E41D2 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = BE6568E01F57DE10007E41D2 /* LaunchScreen.storyboard */; };
+		BE6568ED1F57DE10007E41D2 /* KinietaTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE6568EC1F57DE10007E41D2 /* KinietaTests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		BE6568E91F57DE10007E41D2 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = BE6568CC1F57DE10007E41D2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = BE6568D31F57DE10007E41D2;
+			remoteInfo = Kinieta;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		BE6568D41F57DE10007E41D2 /* Kinieta.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Kinieta.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BE6568D71F57DE10007E41D2 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		BE6568D91F57DE10007E41D2 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
+		BE6568DC1F57DE10007E41D2 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		BE6568DE1F57DE10007E41D2 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		BE6568E11F57DE10007E41D2 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		BE6568E31F57DE10007E41D2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		BE6568E81F57DE10007E41D2 /* KinietaTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = KinietaTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		BE6568EC1F57DE10007E41D2 /* KinietaTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KinietaTests.swift; sourceTree = "<group>"; };
+		BE6568EE1F57DE10007E41D2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		BE6568D11F57DE10007E41D2 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BE6568E51F57DE10007E41D2 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		BE6568CB1F57DE10007E41D2 = {
+			isa = PBXGroup;
+			children = (
+				BE6568D61F57DE10007E41D2 /* Kinieta */,
+				BE6568EB1F57DE10007E41D2 /* KinietaTests */,
+				BE6568D51F57DE10007E41D2 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		BE6568D51F57DE10007E41D2 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				BE6568D41F57DE10007E41D2 /* Kinieta.app */,
+				BE6568E81F57DE10007E41D2 /* KinietaTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		BE6568D61F57DE10007E41D2 /* Kinieta */ = {
+			isa = PBXGroup;
+			children = (
+				BE6568D71F57DE10007E41D2 /* AppDelegate.swift */,
+				BE6568D91F57DE10007E41D2 /* ViewController.swift */,
+				BE6568DB1F57DE10007E41D2 /* Main.storyboard */,
+				BE6568DE1F57DE10007E41D2 /* Assets.xcassets */,
+				BE6568E01F57DE10007E41D2 /* LaunchScreen.storyboard */,
+				BE6568E31F57DE10007E41D2 /* Info.plist */,
+			);
+			path = Kinieta;
+			sourceTree = "<group>";
+		};
+		BE6568EB1F57DE10007E41D2 /* KinietaTests */ = {
+			isa = PBXGroup;
+			children = (
+				BE6568EC1F57DE10007E41D2 /* KinietaTests.swift */,
+				BE6568EE1F57DE10007E41D2 /* Info.plist */,
+			);
+			path = KinietaTests;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		BE6568D31F57DE10007E41D2 /* Kinieta */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BE6568F11F57DE10007E41D2 /* Build configuration list for PBXNativeTarget "Kinieta" */;
+			buildPhases = (
+				BE6568D01F57DE10007E41D2 /* Sources */,
+				BE6568D11F57DE10007E41D2 /* Frameworks */,
+				BE6568D21F57DE10007E41D2 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Kinieta;
+			productName = Kinieta;
+			productReference = BE6568D41F57DE10007E41D2 /* Kinieta.app */;
+			productType = "com.apple.product-type.application";
+		};
+		BE6568E71F57DE10007E41D2 /* KinietaTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BE6568F41F57DE10007E41D2 /* Build configuration list for PBXNativeTarget "KinietaTests" */;
+			buildPhases = (
+				BE6568E41F57DE10007E41D2 /* Sources */,
+				BE6568E51F57DE10007E41D2 /* Frameworks */,
+				BE6568E61F57DE10007E41D2 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				BE6568EA1F57DE10007E41D2 /* PBXTargetDependency */,
+			);
+			name = KinietaTests;
+			productName = KinietaTests;
+			productReference = BE6568E81F57DE10007E41D2 /* KinietaTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		BE6568CC1F57DE10007E41D2 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastSwiftUpdateCheck = 0830;
+				LastUpgradeCheck = 0830;
+				ORGANIZATIONNAME = "Michael Michailidis";
+				TargetAttributes = {
+					BE6568D31F57DE10007E41D2 = {
+						CreatedOnToolsVersion = 8.3.3;
+						ProvisioningStyle = Automatic;
+					};
+					BE6568E71F57DE10007E41D2 = {
+						CreatedOnToolsVersion = 8.3.3;
+						ProvisioningStyle = Automatic;
+						TestTargetID = BE6568D31F57DE10007E41D2;
+					};
+				};
+			};
+			buildConfigurationList = BE6568CF1F57DE10007E41D2 /* Build configuration list for PBXProject "Kinieta" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = BE6568CB1F57DE10007E41D2;
+			productRefGroup = BE6568D51F57DE10007E41D2 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				BE6568D31F57DE10007E41D2 /* Kinieta */,
+				BE6568E71F57DE10007E41D2 /* KinietaTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		BE6568D21F57DE10007E41D2 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BE6568E21F57DE10007E41D2 /* LaunchScreen.storyboard in Resources */,
+				BE6568DF1F57DE10007E41D2 /* Assets.xcassets in Resources */,
+				BE6568DD1F57DE10007E41D2 /* Main.storyboard in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BE6568E61F57DE10007E41D2 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		BE6568D01F57DE10007E41D2 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BE6568DA1F57DE10007E41D2 /* ViewController.swift in Sources */,
+				BE6568D81F57DE10007E41D2 /* AppDelegate.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BE6568E41F57DE10007E41D2 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BE6568ED1F57DE10007E41D2 /* KinietaTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		BE6568EA1F57DE10007E41D2 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = BE6568D31F57DE10007E41D2 /* Kinieta */;
+			targetProxy = BE6568E91F57DE10007E41D2 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		BE6568DB1F57DE10007E41D2 /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				BE6568DC1F57DE10007E41D2 /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+		BE6568E01F57DE10007E41D2 /* LaunchScreen.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				BE6568E11F57DE10007E41D2 /* Base */,
+			);
+			name = LaunchScreen.storyboard;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		BE6568EF1F57DE10007E41D2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 10.3;
+				MTL_ENABLE_DEBUG_INFO = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		BE6568F01F57DE10007E41D2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 10.3;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = iphoneos;
+				SWIFT_OPTIMIZATION_LEVEL = "-Owholemodule";
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		BE6568F21F57DE10007E41D2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				INFOPLIST_FILE = Kinieta/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = com.karmadust.Kinieta;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 3.0;
+			};
+			name = Debug;
+		};
+		BE6568F31F57DE10007E41D2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				INFOPLIST_FILE = Kinieta/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = com.karmadust.Kinieta;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 3.0;
+			};
+			name = Release;
+		};
+		BE6568F51F57DE10007E41D2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				INFOPLIST_FILE = KinietaTests/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = com.karmadust.KinietaTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 3.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Kinieta.app/Kinieta";
+			};
+			name = Debug;
+		};
+		BE6568F61F57DE10007E41D2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				INFOPLIST_FILE = KinietaTests/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = com.karmadust.KinietaTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 3.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Kinieta.app/Kinieta";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		BE6568CF1F57DE10007E41D2 /* Build configuration list for PBXProject "Kinieta" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BE6568EF1F57DE10007E41D2 /* Debug */,
+				BE6568F01F57DE10007E41D2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BE6568F11F57DE10007E41D2 /* Build configuration list for PBXNativeTarget "Kinieta" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BE6568F21F57DE10007E41D2 /* Debug */,
+				BE6568F31F57DE10007E41D2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+		};
+		BE6568F41F57DE10007E41D2 /* Build configuration list for PBXNativeTarget "KinietaTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BE6568F51F57DE10007E41D2 /* Debug */,
+				BE6568F61F57DE10007E41D2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = BE6568CC1F57DE10007E41D2 /* Project object */;
+}
