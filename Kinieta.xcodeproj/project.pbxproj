@@ -16,7 +16,7 @@
 		C772DF781F57F33100A3F690 /* Kinieta.swift in Sources */ = {isa = PBXBuildFile; fileRef = C772DF771F57F33100A3F690 /* Kinieta.swift */; };
 		C772DF7A1F57F9C500A3F690 /* Transformations.swift in Sources */ = {isa = PBXBuildFile; fileRef = C772DF791F57F9C500A3F690 /* Transformations.swift */; };
 		C772DF7C1F58129000A3F690 /* Bezier.swift in Sources */ = {isa = PBXBuildFile; fileRef = C772DF7B1F58129000A3F690 /* Bezier.swift */; };
-		C772DF7E1F581B7B00A3F690 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = C772DF7D1F581B7B00A3F690 /* Extensions.swift */; };
+		C772DF7E1F581B7B00A3F690 /* Easing.swift in Sources */ = {isa = PBXBuildFile; fileRef = C772DF7D1F581B7B00A3F690 /* Easing.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -43,7 +43,7 @@
 		C772DF771F57F33100A3F690 /* Kinieta.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Kinieta.swift; sourceTree = "<group>"; };
 		C772DF791F57F9C500A3F690 /* Transformations.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Transformations.swift; sourceTree = "<group>"; };
 		C772DF7B1F58129000A3F690 /* Bezier.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Bezier.swift; sourceTree = "<group>"; };
-		C772DF7D1F581B7B00A3F690 /* Extensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
+		C772DF7D1F581B7B00A3F690 /* Easing.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Easing.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -111,7 +111,7 @@
 				C772DF771F57F33100A3F690 /* Kinieta.swift */,
 				C772DF791F57F9C500A3F690 /* Transformations.swift */,
 				C772DF7B1F58129000A3F690 /* Bezier.swift */,
-				C772DF7D1F581B7B00A3F690 /* Extensions.swift */,
+				C772DF7D1F581B7B00A3F690 /* Easing.swift */,
 			);
 			name = Kinieta;
 			sourceTree = "<group>";
@@ -220,7 +220,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				C772DF781F57F33100A3F690 /* Kinieta.swift in Sources */,
-				C772DF7E1F581B7B00A3F690 /* Extensions.swift in Sources */,
+				C772DF7E1F581B7B00A3F690 /* Easing.swift in Sources */,
 				C772DF7C1F58129000A3F690 /* Bezier.swift in Sources */,
 				BE6568DA1F57DE10007E41D2 /* ViewController.swift in Sources */,
 				C772DF7A1F57F9C500A3F690 /* Transformations.swift in Sources */,

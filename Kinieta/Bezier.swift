@@ -41,9 +41,15 @@ struct Bezier {
     }
     
     func solve(_ t:Double) -> Double {
+        
         let omt = 1.0 - t
-        let pnt = (3 * t * omt * omt) * p1 + (3 * t * t * omt) * p2 + (t * t * t) * p3
-        return pnt.y
+        let tsq = t * t
+        
+        let tm1 = (3 * t * omt * omt) * p1
+        let tm2 = (3 * tsq * omt) * p2
+        let tm3 = (t * tsq) * p3
+        
+        return (tm1 + tm2 + tm3).y
     }
 }
 

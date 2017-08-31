@@ -9,11 +9,11 @@
 import UIKit
 
 
-
-struct Matrix {
+struct Transformation {
     
-    var raw: CGAffineTransform = CGAffineTransform.identity
-    init(_ dict:Properties) {
+    var cgAffineTransform: CGAffineTransform = CGAffineTransform.identity
+    
+    init(_ dict: Properties) {
         for (k,v) in dict {
             setProperty(p: k, v: v)
         }
@@ -21,12 +21,19 @@ struct Matrix {
     
     private mutating func setProperty(p:String, v:Double) {
         
-        let cgFloatV = CGFloat(v)
+        let cgFloatValue = CGFloat(v)
         switch p.lowercased() {
         case "x":
-            raw.a = cgFloatV
+            cgAffineTransform = cgAffineTransform.translatedBy(x: cgFloatValue, y: 0.0)
         case "y":
-            raw.b = cgFloatV
+            cgAffineTransform = cgAffineTransform.translatedBy(x: 0.0, y: cgFloatValue)
+        case "r":
+            let radiansValue = cgFloatValue * (CGFloat.pi / 180.0)
+            cgAffineTransform = cgAffineTransform.rotated(by: radiansValue)
+        case "w":
+            cgAffineTransform = cgAffineTransform.scaledBy(x: cgFloatValue, y: 0.0)
+        case "h":
+            cgAffineTransform = cgAffineTransform.scaledBy(x: 0.0, y: cgFloatValue)
         default:
             break
         }

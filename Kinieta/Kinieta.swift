@@ -25,13 +25,13 @@ open class Kinieta {
         self.view = view
     }
     
-    var stack   = [Matrix]()
+    var stack   = [Transformation]()
     
     // MARK: API
     
-    func move(_ dict:Properties, time:TimeInterval? = 0.5) -> Kinieta {
+    func move(_ dict:Properties, time: TimeInterval? = 0.5, ease: Easing? = .none) -> Kinieta {
         
-        let m = Matrix(dict)
+        let m = Transformation(dict)
         
         stack.append(m)
         
@@ -39,6 +39,10 @@ open class Kinieta {
     }
     
     func snap(_ dict:Properties) -> Kinieta {
+        
+        let m = Transformation(dict)
+        
+        self.view.transform = m.cgAffineTransform
         
         return self
     }
