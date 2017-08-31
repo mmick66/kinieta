@@ -13,6 +13,10 @@
 		BE6568DF1F57DE10007E41D2 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BE6568DE1F57DE10007E41D2 /* Assets.xcassets */; };
 		BE6568E21F57DE10007E41D2 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = BE6568E01F57DE10007E41D2 /* LaunchScreen.storyboard */; };
 		BE6568ED1F57DE10007E41D2 /* KinietaTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE6568EC1F57DE10007E41D2 /* KinietaTests.swift */; };
+		C772DF781F57F33100A3F690 /* Kinieta.swift in Sources */ = {isa = PBXBuildFile; fileRef = C772DF771F57F33100A3F690 /* Kinieta.swift */; };
+		C772DF7A1F57F9C500A3F690 /* Transformations.swift in Sources */ = {isa = PBXBuildFile; fileRef = C772DF791F57F9C500A3F690 /* Transformations.swift */; };
+		C772DF7C1F58129000A3F690 /* Bezier.swift in Sources */ = {isa = PBXBuildFile; fileRef = C772DF7B1F58129000A3F690 /* Bezier.swift */; };
+		C772DF7E1F581B7B00A3F690 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = C772DF7D1F581B7B00A3F690 /* Extensions.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -36,6 +40,10 @@
 		BE6568E81F57DE10007E41D2 /* KinietaTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = KinietaTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		BE6568EC1F57DE10007E41D2 /* KinietaTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KinietaTests.swift; sourceTree = "<group>"; };
 		BE6568EE1F57DE10007E41D2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		C772DF771F57F33100A3F690 /* Kinieta.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Kinieta.swift; sourceTree = "<group>"; };
+		C772DF791F57F9C500A3F690 /* Transformations.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Transformations.swift; sourceTree = "<group>"; };
+		C772DF7B1F58129000A3F690 /* Bezier.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Bezier.swift; sourceTree = "<group>"; };
+		C772DF7D1F581B7B00A3F690 /* Extensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -77,6 +85,7 @@
 		BE6568D61F57DE10007E41D2 /* Kinieta */ = {
 			isa = PBXGroup;
 			children = (
+				C772DF761F57F32400A3F690 /* Kinieta */,
 				BE6568D71F57DE10007E41D2 /* AppDelegate.swift */,
 				BE6568D91F57DE10007E41D2 /* ViewController.swift */,
 				BE6568DB1F57DE10007E41D2 /* Main.storyboard */,
@@ -94,6 +103,17 @@
 				BE6568EE1F57DE10007E41D2 /* Info.plist */,
 			);
 			path = KinietaTests;
+			sourceTree = "<group>";
+		};
+		C772DF761F57F32400A3F690 /* Kinieta */ = {
+			isa = PBXGroup;
+			children = (
+				C772DF771F57F33100A3F690 /* Kinieta.swift */,
+				C772DF791F57F9C500A3F690 /* Transformations.swift */,
+				C772DF7B1F58129000A3F690 /* Bezier.swift */,
+				C772DF7D1F581B7B00A3F690 /* Extensions.swift */,
+			);
+			name = Kinieta;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -199,7 +219,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C772DF781F57F33100A3F690 /* Kinieta.swift in Sources */,
+				C772DF7E1F581B7B00A3F690 /* Extensions.swift in Sources */,
+				C772DF7C1F58129000A3F690 /* Bezier.swift in Sources */,
 				BE6568DA1F57DE10007E41D2 /* ViewController.swift in Sources */,
+				C772DF7A1F57F9C500A3F690 /* Transformations.swift in Sources */,
 				BE6568D81F57DE10007E41D2 /* AppDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -408,6 +432,7 @@
 				BE6568F31F57DE10007E41D2 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		BE6568F41F57DE10007E41D2 /* Build configuration list for PBXNativeTarget "KinietaTests" */ = {
 			isa = XCConfigurationList;
@@ -416,6 +441,7 @@
 				BE6568F61F57DE10007E41D2 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};

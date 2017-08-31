@@ -1,5 +1,9 @@
 .DS_Store
 
+# If the output folder has been changed by user
+DerivedData/
+
 # User data files
+Kinieta.xcodeproj/project.xcworkspace/xcuserdata/
 Kinieta.xcodeproj/xcuserdata/
 
