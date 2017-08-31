@@ -1,0 +1,5 @@
+.DS_Store
+
+# User data files
+Kinieta.xcodeproj/xcuserdata/
+
