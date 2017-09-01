@@ -9,33 +9,105 @@
 import UIKit
 
 
-struct Transformation {
+open class Transformation {
     
-    var cgAffineTransform: CGAffineTransform = CGAffineTransform.identity
+    typealias TransformationBlock = (Double) -> Void
     
-    init(_ dict: Properties) {
-        for (k,v) in dict {
-            setProperty(p: k, v: v)
+    
+    private let view:UIView
+    
+    private var transformations:[TransformationBlock] = []
+    
+    init(_ view:UIView, for properties: [String:Any]) {
+        
+        self.view = view
+        
+        for (key, value) in properties {
+            let transformation = createTransormation(of: key, for: value)
+            transformations.append(transformation)
         }
     }
     
-    private mutating func setProperty(p:String, v:Double) {
+    func perform(for factor: Double) {
         
-        let cgFloatValue = CGFloat(v)
-        switch p.lowercased() {
+        for transformation in transformations {
+            transformation(factor)
+        }
+    }
+    
+    private func createTransormation(of property:String, for value:Any) -> TransformationBlock {
+        
+        let cgFloatValue: CGFloat = (value as? CGFloat) ?? 1.0
+    
+        switch property {
+            
         case "x":
-            cgAffineTransform = cgAffineTransform.translatedBy(x: cgFloatValue, y: 0.0)
+            return createInterpolation(from: self.view.center.x, to: cgFloatValue) { nValue in
+                self.view.center = CGPoint(x: nValue, y: self.view.center.y)
+            }
+            
         case "y":
-            cgAffineTransform = cgAffineTransform.translatedBy(x: 0.0, y: cgFloatValue)
-        case "r":
-            let radiansValue = cgFloatValue * (CGFloat.pi / 180.0)
-            cgAffineTransform = cgAffineTransform.rotated(by: radiansValue)
-        case "w":
-            cgAffineTransform = cgAffineTransform.scaledBy(x: cgFloatValue, y: 0.0)
-        case "h":
-            cgAffineTransform = cgAffineTransform.scaledBy(x: 0.0, y: cgFloatValue)
+            return createInterpolation(from: self.view.center.x, to: cgFloatValue) { nValue in
+                self.view.center = CGPoint(x: self.view.center.x, y: nValue)
+            }
+            
+        case "w", "width":
+            return createInterpolation(from: self.view.frame.size.width, to: cgFloatValue) { nValue in
+                var oFrame = self.view.frame
+                oFrame.size.width = nValue
+                self.view.frame = oFrame
+            }
+            
+        case "h", "height":
+            return createInterpolation(from: self.view.frame.size.height, to: cgFloatValue) { nValue in
+                var oFrame = self.view.frame
+                oFrame.size.height = nValue
+                self.view.frame = oFrame
+            }
+            
+        case "r", "rotation":
+            return createInterpolation(from: self.view.rotation, to: cgFloatValue) { nValue in
+                self.view.rotation = nValue
+            }
+            
+        case "a", "alpha":
+            return createInterpolation(from: self.view.alpha, to: cgFloatValue) { nValue in
+                self.view.alpha = cgFloatValue
+            }
+            
+        case "b", "background":
+            return createInterpolation(from: 0, to: cgFloatValue) { nValue in
+                
+            }
+            
         default:
-            break
+            return { _ in
+                
+            }
+        }
+
+    }
+    
+    private func createInterpolation(from start:CGFloat, to end:CGFloat, block: @escaping (CGFloat) -> Void) -> TransformationBlock {
+        
+        return { factor in
+            let cgFactor = CGFloat(factor)
+            let iv = (1.0 - cgFactor) * start + cgFactor * end
+            block(iv)
+            
         }
     }
 }
+
+
+extension UIView {
+    var rotation:CGFloat {
+        get {
+            return 0.0
+        }
+        set {
+            
+        }
+    }
+}
+

@@ -26,6 +26,11 @@ class Easing {
     public static let cubicOut:Bezier       = Bezier(0.215, 0.61,   0.355,  1.0)
     public static let cubicInOut:Bezier     = Bezier(0.645, 0.045,  0.355,  1.0)
     
+    // Utility Methods
+    public static let easeIn:Bezier        = cubicIn
+    public static let easeOut:Bezier       = cubicOut
+    public static let easeInOut:Bezier     = cubicInOut
+    
     public static let quartIn:Bezier        = Bezier(0.895, 0.03,   0.685,  0.22)
     public static let quartOut:Bezier       = Bezier(0.165, 0.84,   0.44,   1.0)
     public static let quartInOut:Bezier     = Bezier(0.77,  0,      0.175,  1.0)

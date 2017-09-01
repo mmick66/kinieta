@@ -8,8 +8,6 @@
 
 import UIKit
 
-typealias Properties = [String:Double]
-
 open class Kinieta {
     
     static var associatedKey = "KinietaAssociatedKey"
@@ -25,33 +23,38 @@ open class Kinieta {
         self.view = view
     }
     
-    var stack   = [Transformation]()
+    var transformations = [Transformation]()
     
     // MARK: API
     
-    func move(_ dict:Properties, time: TimeInterval? = 0.5, ease: Easing? = .none) -> Kinieta {
+    func move(_ dict: [String:Any], time: TimeInterval? = 0.5, ease: Easing? = .none) -> Kinieta {
         
-        let m = Transformation(dict)
+        let m = Transformation(self.view, for: dict)
         
-        stack.append(m)
-        
-        return self
-    }
-    
-    func snap(_ dict:Properties) -> Kinieta {
-        
-        let m = Transformation(dict)
-        
-        self.view.transform = m.cgAffineTransform
+        transformations.append(m)
         
         return self
     }
     
-    func wait(_ time:TimeInterval) -> Kinieta {
-        
-        
-        return self
-    }
+//    func snap(_ dict:Properties) -> Kinieta {
+//        
+//        let m = Transformation(self.view, for: dict)
+//        
+//        self.view.transform = m.cgAffineTransform
+//        
+//        return self
+//    }
+//    
+//    func wait(_ time:TimeInterval) -> Kinieta {
+//        
+//        
+//        return self
+//    }
+    
+    
+//    func group() -> Kinieta {
+//        
+//    }
 }
 
 extension UIView {
