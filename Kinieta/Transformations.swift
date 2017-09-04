@@ -76,14 +76,14 @@ open class Transformation {
             }
             
         case "b", "background":
-            return createInterpolation(from: 0.0, to: 1.0) { nValue in
-                
+            let startColor = self.view.backgroundColor ?? UIColor.white
+            let targtColor = value as! UIColor
+            return { factor in
+                self.view.backgroundColor = UIColor.interpolate(from: startColor, to: targtColor, with: CGFloat(factor))
             }
             
         default:
-            return { _ in
-                
-            }
+            return { _ in }
         }
 
     }
@@ -102,6 +102,9 @@ open class Transformation {
 func radians(_ degrees: CGFloat) -> CGFloat {
     return degrees * (CGFloat.pi / 180.0)
 }
+
+
+
 
 extension UIView {
     var rotation:CGFloat {

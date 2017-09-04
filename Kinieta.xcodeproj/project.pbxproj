@@ -22,6 +22,7 @@
 		C772DF811F5D4FA600A3F690 /* Bezier.swift in Sources */ = {isa = PBXBuildFile; fileRef = C772DF7B1F58129000A3F690 /* Bezier.swift */; };
 		C772DF821F5D4FA800A3F690 /* Easing.swift in Sources */ = {isa = PBXBuildFile; fileRef = C772DF7D1F581B7B00A3F690 /* Easing.swift */; };
 		C772DF841F5D51F100A3F690 /* CalculationsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C772DF831F5D51F100A3F690 /* CalculationsTests.swift */; };
+		C772DF861F5D5EA900A3F690 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = C772DF851F5D5EA900A3F690 /* Extensions.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -50,6 +51,7 @@
 		C772DF7B1F58129000A3F690 /* Bezier.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Bezier.swift; sourceTree = "<group>"; };
 		C772DF7D1F581B7B00A3F690 /* Easing.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Easing.swift; sourceTree = "<group>"; };
 		C772DF831F5D51F100A3F690 /* CalculationsTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CalculationsTests.swift; sourceTree = "<group>"; };
+		C772DF851F5D5EA900A3F690 /* Extensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -119,6 +121,7 @@
 				C772DF791F57F9C500A3F690 /* Transformations.swift */,
 				C772DF7B1F58129000A3F690 /* Bezier.swift */,
 				C772DF7D1F581B7B00A3F690 /* Easing.swift */,
+				C772DF851F5D5EA900A3F690 /* Extensions.swift */,
 			);
 			name = Kinieta;
 			sourceTree = "<group>";
@@ -232,6 +235,7 @@
 				BE6568DA1F57DE10007E41D2 /* ViewController.swift in Sources */,
 				C772DF7A1F57F9C500A3F690 /* Transformations.swift in Sources */,
 				BE6568D81F57DE10007E41D2 /* AppDelegate.swift in Sources */,
+				C772DF861F5D5EA900A3F690 /* Extensions.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
