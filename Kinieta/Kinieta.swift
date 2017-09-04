@@ -8,9 +8,6 @@
 
 import UIKit
 
-protocol Kinieta {
-    func move(_ dict: [String:Any], _ time: TimeInterval) -> Kinieta
-}
 
 class KinietaEngine {
     
@@ -19,13 +16,13 @@ class KinietaEngine {
     private var displayLink: CADisplayLink?
     
     
-    private var instances: [KinietaInstance] = []
+    private var instances: [Kinieta] = []
     
     init() {
         
     }
     
-    func add(_ instance: KinietaInstance) {
+    func add(_ instance: Kinieta) {
         
         instances.append(instance)
         
@@ -40,19 +37,14 @@ class KinietaEngine {
     }
 }
 
-class KinietaInstance: Kinieta {
+class Kinieta {
     
     static var associatedKey = "KinietaAssociatedKey"
-    enum State {
-        case stopped
-        case moving(start: TimeInterval)
-        case waiting(time: TimeInterval)
-    }
-    var state: State = .stopped
     
     let view:UIView
     init(_ view:UIView) {
         self.view = view
+        KinietaEngine.shared.add(self)
     }
     
     var transformations = [Transformation]()
@@ -88,10 +80,10 @@ class KinietaInstance: Kinieta {
 //    }
 }
 
-extension UIView: Kinieta {
+extension UIView {
     
     func move(_ dict: [String:Any], _ time: TimeInterval = 0.5) -> Kinieta {
-        return KinietaInstance(self).move(dict, time)
+        return Kinieta(self).move(dict, time)
     }
     
 }
