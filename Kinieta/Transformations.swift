@@ -42,44 +42,52 @@ open class Transformation {
         switch property {
             
         case "x":
-            return createInterpolation(from: self.view.center.x, to: cgFloatValue) { nValue in
+            return createFloatInterpolation(from: self.view.center.x, to: cgFloatValue) { nValue in
                 self.view.center = CGPoint(x: nValue, y: self.view.center.y)
             }
             
         case "y":
-            return createInterpolation(from: self.view.center.x, to: cgFloatValue) { nValue in
+            return createFloatInterpolation(from: self.view.center.x, to: cgFloatValue) { nValue in
                 self.view.center = CGPoint(x: self.view.center.x, y: nValue)
             }
             
         case "w", "width":
-            return createInterpolation(from: self.view.frame.size.width, to: cgFloatValue) { nValue in
+            return createFloatInterpolation(from: self.view.frame.size.width, to: cgFloatValue) { nValue in
                 var oFrame = self.view.frame
                 oFrame.size.width = nValue
                 self.view.frame = oFrame
             }
             
         case "h", "height":
-            return createInterpolation(from: self.view.frame.size.height, to: cgFloatValue) { nValue in
+            return createFloatInterpolation(from: self.view.frame.size.height, to: cgFloatValue) { nValue in
                 var oFrame = self.view.frame
                 oFrame.size.height = nValue
                 self.view.frame = oFrame
             }
             
         case "r", "rotation":
-            return createInterpolation(from: self.view.rotation, to: cgFloatValue) { nValue in
+            return createFloatInterpolation(from: self.view.rotation, to: cgFloatValue) { nValue in
                 self.view.rotation = nValue
             }
             
         case "a", "alpha":
-            return createInterpolation(from: self.view.alpha, to: cgFloatValue) { nValue in
-                self.view.alpha = cgFloatValue
+            return createFloatInterpolation(from: self.view.alpha, to: cgFloatValue) { nValue in
+                self.view.alpha = nValue
             }
             
         case "b", "background":
-            let startColor = self.view.backgroundColor ?? UIColor.white
-            let targtColor = value as! UIColor
-            return { factor in
-                self.view.backgroundColor = UIColor.interpolate(from: startColor, to: targtColor, with: CGFloat(factor))
+            return createColorInterpolation(from: self.view.backgroundColor ?? UIColor.white, to: value as! UIColor) { nColor in
+                self.view.backgroundColor = nColor
+            }
+            
+        case "borderColor":
+            return createColorInterpolation(from: self.view.backgroundColor ?? UIColor.white, to: value as! UIColor) { nColor in
+                self.view.layer.borderColor = nColor.cgColor
+            }
+            
+        case "borderWidth":
+            return createFloatInterpolation(from: self.view.layer.borderWidth, to: cgFloatValue) { nValue in
+                self.view.layer.borderWidth = nValue
             }
             
         default:
@@ -88,12 +96,22 @@ open class Transformation {
 
     }
     
-    private func createInterpolation(from start:CGFloat, to end:CGFloat, block: @escaping (CGFloat) -> Void) -> TransformationBlock {
+    private func createFloatInterpolation(from start:CGFloat, to end:CGFloat, block: @escaping (CGFloat) -> Void) -> TransformationBlock {
         
         return { factor in
             let cgFloatFactor = CGFloat(factor)
-            let iv = (1.0 - cgFloatFactor) * start + cgFloatFactor * end
-            block(iv)
+            let ifloat = (1.0 - cgFloatFactor) * start + cgFloatFactor * end
+            block(ifloat)
+            
+        }
+    }
+    
+    private func createColorInterpolation(from start:UIColor, to end:UIColor, block: @escaping (UIColor) -> Void) -> TransformationBlock {
+        
+        return { factor in
+            let cgFloatFactor = CGFloat(factor)
+            let icolor = UIColor.interpolate(from: start, to: end, with: cgFloatFactor)
+            block(icolor)
             
         }
     }
