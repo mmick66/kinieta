@@ -17,6 +17,11 @@
 		C772DF7A1F57F9C500A3F690 /* Transformations.swift in Sources */ = {isa = PBXBuildFile; fileRef = C772DF791F57F9C500A3F690 /* Transformations.swift */; };
 		C772DF7C1F58129000A3F690 /* Bezier.swift in Sources */ = {isa = PBXBuildFile; fileRef = C772DF7B1F58129000A3F690 /* Bezier.swift */; };
 		C772DF7E1F581B7B00A3F690 /* Easing.swift in Sources */ = {isa = PBXBuildFile; fileRef = C772DF7D1F581B7B00A3F690 /* Easing.swift */; };
+		C772DF7F1F5D4F9C00A3F690 /* Transformations.swift in Sources */ = {isa = PBXBuildFile; fileRef = C772DF791F57F9C500A3F690 /* Transformations.swift */; };
+		C772DF801F5D4FA200A3F690 /* Kinieta.swift in Sources */ = {isa = PBXBuildFile; fileRef = C772DF771F57F33100A3F690 /* Kinieta.swift */; };
+		C772DF811F5D4FA600A3F690 /* Bezier.swift in Sources */ = {isa = PBXBuildFile; fileRef = C772DF7B1F58129000A3F690 /* Bezier.swift */; };
+		C772DF821F5D4FA800A3F690 /* Easing.swift in Sources */ = {isa = PBXBuildFile; fileRef = C772DF7D1F581B7B00A3F690 /* Easing.swift */; };
+		C772DF841F5D51F100A3F690 /* CalculationsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C772DF831F5D51F100A3F690 /* CalculationsTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -44,6 +49,7 @@
 		C772DF791F57F9C500A3F690 /* Transformations.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Transformations.swift; sourceTree = "<group>"; };
 		C772DF7B1F58129000A3F690 /* Bezier.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Bezier.swift; sourceTree = "<group>"; };
 		C772DF7D1F581B7B00A3F690 /* Easing.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Easing.swift; sourceTree = "<group>"; };
+		C772DF831F5D51F100A3F690 /* CalculationsTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CalculationsTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -100,6 +106,7 @@
 			isa = PBXGroup;
 			children = (
 				BE6568EC1F57DE10007E41D2 /* KinietaTests.swift */,
+				C772DF831F5D51F100A3F690 /* CalculationsTests.swift */,
 				BE6568EE1F57DE10007E41D2 /* Info.plist */,
 			);
 			path = KinietaTests;
@@ -232,6 +239,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C772DF821F5D4FA800A3F690 /* Easing.swift in Sources */,
+				C772DF841F5D51F100A3F690 /* CalculationsTests.swift in Sources */,
+				C772DF811F5D4FA600A3F690 /* Bezier.swift in Sources */,
+				C772DF801F5D4FA200A3F690 /* Kinieta.swift in Sources */,
+				C772DF7F1F5D4F9C00A3F690 /* Transformations.swift in Sources */,
 				BE6568ED1F57DE10007E41D2 /* KinietaTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

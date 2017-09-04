@@ -76,7 +76,7 @@ open class Transformation {
             }
             
         case "b", "background":
-            return createInterpolation(from: 0, to: cgFloatValue) { nValue in
+            return createInterpolation(from: 0.0, to: 1.0) { nValue in
                 
             }
             
@@ -91,22 +91,31 @@ open class Transformation {
     private func createInterpolation(from start:CGFloat, to end:CGFloat, block: @escaping (CGFloat) -> Void) -> TransformationBlock {
         
         return { factor in
-            let cgFactor = CGFloat(factor)
-            let iv = (1.0 - cgFactor) * start + cgFactor * end
+            let cgFloatFactor = CGFloat(factor)
+            let iv = (1.0 - cgFloatFactor) * start + cgFloatFactor * end
             block(iv)
             
         }
     }
 }
 
+func radians(_ degrees: CGFloat) -> CGFloat {
+    return degrees * (CGFloat.pi / 180.0)
+}
 
 extension UIView {
     var rotation:CGFloat {
         get {
-            return 0.0
+            return atan2(self.transform.b, self.transform.a);
         }
         set {
-            
+            let rads = radians(newValue)
+            var tr_p = self.transform
+            tr_p.a =  cos(rads)
+            tr_p.b =  sin(rads)
+            tr_p.c = -sin(rads)
+            tr_p.d =  cos(rads)
+            self.transform = tr_p
         }
     }
 }
