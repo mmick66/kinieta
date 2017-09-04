@@ -8,7 +8,41 @@
 
 import UIKit
 
-open class Kinieta {
+protocol Kinieta {
+    func move(_ dict: [String:Any]) -> Kinieta
+    func move(_ dict: [String:Any], _ time: TimeInterval) -> Kinieta
+    func snap(_ dict: [String:Any]) -> Kinieta
+}
+
+class KinietaEngine {
+    
+    static let shared = KinietaEngine()
+    
+    private var displayLink: CADisplayLink?
+    
+    
+    private var instances: [KinietaInstance] = []
+    
+    init() {
+        
+    }
+    
+    func add(_ instance: KinietaInstance) {
+        
+        instances.append(instance)
+        
+        if displayLink == nil {
+            displayLink = CADisplayLink(target: self, selector: #selector(KinietaEngine.update(_:)))
+            displayLink?.add(to: RunLoop.current, forMode: RunLoopMode.commonModes)
+        }
+    }
+    
+    @objc func update(_ displayLink: CADisplayLink) {
+        
+    }
+}
+
+class KinietaInstance: Kinieta {
     
     static var associatedKey = "KinietaAssociatedKey"
     enum State {
@@ -27,7 +61,12 @@ open class Kinieta {
     
     // MARK: API
     
-    func move(_ dict: [String:Any], time: TimeInterval? = 0.5, ease: Easing? = .none) -> Kinieta {
+    static let defaultDuration: TimeInterval = 0.5
+    func move(_ dict: [String:Any]) -> Kinieta {
+        return move(dict, KinietaInstance.defaultDuration)
+    }
+    
+    func move(_ dict: [String:Any], _ time: TimeInterval) -> Kinieta {
         
         let m = Transformation(self.view, for: dict)
         
@@ -36,38 +75,35 @@ open class Kinieta {
         return self
     }
     
-//    func snap(_ dict:Properties) -> Kinieta {
-//        
-//        let m = Transformation(self.view, for: dict)
-//        
-//        self.view.transform = m.cgAffineTransform
-//        
-//        return self
-//    }
-//    
-//    func wait(_ time:TimeInterval) -> Kinieta {
-//        
-//        
-//        return self
-//    }
-    
-    
-//    func group() -> Kinieta {
-//        
-//    }
-}
-
-extension UIView {
-    
-    public var kinieta: Kinieta {
+    func snap(_ dict: [String:Any]) -> Kinieta {
         
-        guard let instance = objc_getAssociatedObject(self, &Kinieta.associatedKey) as? Kinieta else {
-            let instance = Kinieta(self)
-            objc_setAssociatedObject(self, &Kinieta.associatedKey, instance, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
-            return instance
-        }
         
-        return instance
+        return self
+    }
+    
+    func wait(_ time:TimeInterval) -> Kinieta {
+        
+        
+        return self
+    }
+    
+    
+    func group() -> Kinieta {
         
     }
+}
+
+extension UIView: Kinieta {
+    
+    func move(_ dict: [String:Any]) -> Kinieta {
+        return KinietaInstance(self).move(dict)
+    }
+    func move(_ dict: [String:Any], _ time: TimeInterval) -> Kinieta {
+        return KinietaInstance(self).move(dict, time)
+    }
+    func snap(_ dict: [String:Any]) -> Kinieta {
+        return KinietaInstance(self).snap(dict)
+    }
+    
+    
 }
