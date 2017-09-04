@@ -9,9 +9,7 @@
 import UIKit
 
 protocol Kinieta {
-    func move(_ dict: [String:Any]) -> Kinieta
     func move(_ dict: [String:Any], _ time: TimeInterval) -> Kinieta
-    func snap(_ dict: [String:Any]) -> Kinieta
 }
 
 class KinietaEngine {
@@ -61,10 +59,6 @@ class KinietaInstance: Kinieta {
     
     // MARK: API
     
-    static let defaultDuration: TimeInterval = 0.5
-    func move(_ dict: [String:Any]) -> Kinieta {
-        return move(dict, KinietaInstance.defaultDuration)
-    }
     
     func move(_ dict: [String:Any], _ time: TimeInterval) -> Kinieta {
         
@@ -88,22 +82,16 @@ class KinietaInstance: Kinieta {
     }
     
     
-    func group() -> Kinieta {
-        
-    }
+//    func group() -> Kinieta {
+//        
+//        
+//    }
 }
 
 extension UIView: Kinieta {
     
-    func move(_ dict: [String:Any]) -> Kinieta {
-        return KinietaInstance(self).move(dict)
-    }
-    func move(_ dict: [String:Any], _ time: TimeInterval) -> Kinieta {
+    func move(_ dict: [String:Any], _ time: TimeInterval = 0.5) -> Kinieta {
         return KinietaInstance(self).move(dict, time)
     }
-    func snap(_ dict: [String:Any]) -> Kinieta {
-        return KinietaInstance(self).snap(dict)
-    }
-    
     
 }
