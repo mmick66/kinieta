@@ -37,6 +37,7 @@ class KinietaEngine {
     }
     
     func remove(_ instance: Kinieta) {
+        
         if let index = instances.index(where: { $0 === instance }) {
             instances.remove(at: index)
         }
@@ -49,20 +50,37 @@ class KinietaEngine {
     
     @objc func update(_ displayLink: CADisplayLink) {
         
-        for instance in instances {
-            let frame = KinietaEngine.Frame(displayLink.timestamp, displayLink.duration)
-            let finished = instance.update(frame)
-            if finished {
-                self.remove(instance)
-            }
+        guard let current = self.instances.last else {
+            return
+        }
+        
+        let frame = KinietaEngine.Frame(displayLink.timestamp, displayLink.duration)
+        
+        let finished = current.update(frame)
+        
+        if finished {
+            self.remove(current)
         }
     }
     
-    deinit {
+    func pause() {
+        displayLink?.isPaused = true
+    }
+    
+    func resume() {
+        displayLink?.isPaused = false
+    }
+    
+    func stop() {
         displayLink?.invalidate()
     }
     
+    deinit {
+        self.stop()
+    }
+    
 }
+
 
 class Kinieta {
     
@@ -79,15 +97,23 @@ class Kinieta {
     
     @discardableResult func update(_ frame: KinietaEngine.Frame) -> Bool {
         
-        return false
+        var finished = true
+        
+        for transformation in transformations {
+            finished = finished && transformation.execute(for: frame.timestamp)
+        }
+        
+        return finished
     }
     
     // MARK: API
     
     
-    func move(_ dict: [String:Any], _ time: TimeInterval) -> Kinieta {
+    func move(_ dict: [String:Any], _ duration: TimeInterval) -> Kinieta {
         
-        let m = Transformation(self.view, for: dict)
+        let startTime = CACurrentMediaTime()
+        
+        let m = Transformation(self.view, for: dict, from: startTime, to: startTime + duration)
         
         transformations.append(m)
         
@@ -100,23 +126,23 @@ class Kinieta {
         return self
     }
     
-    func wait(_ time:TimeInterval) -> Kinieta {
+    private var waiting: TimeInterval = 0.0
+    func wait(_ time: TimeInterval) -> Kinieta {
         
+        waiting = time
         
         return self
     }
     
-    
-//    func group() -> Kinieta {
-//        
-//        
-//    }
+    func group() -> Kinieta {
+        return Kinieta(self.view)
+    }
 }
 
 extension UIView {
     
-    func move(_ dict: [String:Any], _ time: TimeInterval = 0.5) -> Kinieta {
-        return Kinieta(self).move(dict, time)
+    func move(_ dict: [String:Any], _ duration: TimeInterval = 0.0) -> Kinieta {
+        return Kinieta(self).move(dict, duration)
     }
     
 }

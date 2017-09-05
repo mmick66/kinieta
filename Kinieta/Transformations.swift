@@ -12,14 +12,16 @@ open class Transformation {
     
     typealias TransformationBlock = (Double) -> Void
     
-    
     private let view:UIView
+    
+    private let timeframe:Range<TimeInterval>
     
     private var transformations:[TransformationBlock] = []
     
-    init(_ view:UIView, for properties: [String:Any]) {
+    init(_ view:UIView, for properties: [String:Any], from: Double, to: Double) {
         
         self.view = view
+        self.timeframe = from..<to
         
         for (key, value) in properties {
             let transformation = createTransormation(of: key, for: value)
@@ -27,11 +29,19 @@ open class Transformation {
         }
     }
     
-    func perform(for factor: Double) {
+    @discardableResult func execute(for timestamp: Double) -> Bool {
+        
+        guard timeframe.contains(timestamp) else {
+            return true
+        }
+        
+        let factor = (timestamp - timeframe.lowerBound) / (timeframe.upperBound - timeframe.lowerBound)
         
         for transformation in transformations {
             transformation(factor)
         }
+        
+        return false
     }
     
     private func createTransormation(of property:String, for value:Any) -> TransformationBlock {
