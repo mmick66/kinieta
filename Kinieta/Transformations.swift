@@ -9,6 +9,16 @@
 import UIKit
 
 
+public extension UIColor {
+    var components: (r: CGFloat, g: CGFloat, b: CGFloat, a: CGFloat) {
+        let components = self.cgColor.components!
+        switch components.count == 2 {
+        case true : return (r: components[0], g: components[0], b: components[0], a: components[1])
+        case false: return (r: components[0], g: components[1], b: components[2], a: components[3])
+        }
+    }
+}
+
 open class Transformation {
     
     typealias TransformationBlock = (Double) -> Void
@@ -100,18 +110,29 @@ open class Transformation {
         
         return { factor in
             let cgFloatFactor = CGFloat(factor)
-            let ifloat = (1.0 - cgFloatFactor) * start + cgFloatFactor * end
-            block(ifloat)
+            let iFloat = (1.0 - cgFloatFactor) * start + cgFloatFactor * end
+            block(iFloat)
             
         }
     }
     
     private func createColorInterpolation(from start:UIColor, to end:UIColor, block: @escaping (UIColor) -> Void) -> TransformationBlock {
         
+        let startComponents = start.components
+        let endComponents   = end.components
+        
         return { factor in
+            
             let cgFloatFactor = CGFloat(factor)
-            let icolor = UIColor.interpolate(from: start, to: end, with: cgFloatFactor)
-            block(icolor)
+            
+            let r = (1 - cgFloatFactor) * startComponents.r + cgFloatFactor * endComponents.r
+            let g = (1 - cgFloatFactor) * startComponents.g + cgFloatFactor * endComponents.g
+            let b = (1 - cgFloatFactor) * startComponents.b + cgFloatFactor * endComponents.b
+            let a = (1 - cgFloatFactor) * startComponents.a + cgFloatFactor * endComponents.a
+            
+            let iColor = UIColor(red: r, green: g, blue: b, alpha: a)
+            
+            block(iColor)
             
         }
     }

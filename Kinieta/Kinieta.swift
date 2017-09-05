@@ -9,18 +9,18 @@
 import UIKit
 
 
+struct Frame {
+    var timestamp: Double
+    var duration: Double
+}
+
 class KinietaEngine {
     
     static let shared = KinietaEngine()
     
     private var displayLink: CADisplayLink?
     
-    
     private var instances: [Kinieta] = []
-    
-    init() {
-        
-    }
     
     func add(_ instance: Kinieta) {
         
@@ -34,7 +34,16 @@ class KinietaEngine {
     
     @objc func update(_ displayLink: CADisplayLink) {
         
+        for instance in instances {
+            let frame = Frame(timestamp: displayLink.timestamp, duration: displayLink.duration)
+            instance.update(frame)
+        }
     }
+    
+    deinit {
+        displayLink?.invalidate()
+    }
+    
 }
 
 class Kinieta {
@@ -48,6 +57,11 @@ class Kinieta {
     }
     
     var transformations = [Transformation]()
+    
+    
+    func update(_ frame: Frame) {
+        
+    }
     
     // MARK: API
     
