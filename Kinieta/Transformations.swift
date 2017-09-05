@@ -8,17 +8,6 @@
 
 import UIKit
 
-
-public extension UIColor {
-    var components: (r: CGFloat, g: CGFloat, b: CGFloat, a: CGFloat) {
-        let components = self.cgColor.components!
-        switch components.count == 2 {
-        case true : return (r: components[0], g: components[0], b: components[0], a: components[1])
-        case false: return (r: components[0], g: components[1], b: components[2], a: components[3])
-        }
-    }
-}
-
 open class Transformation {
     
     typealias TransformationBlock = (Double) -> Void
@@ -85,17 +74,17 @@ open class Transformation {
                 self.view.alpha = nValue
             }
             
-        case "b", "background":
+        case "bg", "background":
             return createColorInterpolation(from: self.view.backgroundColor ?? UIColor.white, to: value as! UIColor) { nColor in
                 self.view.backgroundColor = nColor
             }
             
-        case "borderColor":
+        case "brc", "borderColor":
             return createColorInterpolation(from: self.view.backgroundColor ?? UIColor.white, to: value as! UIColor) { nColor in
                 self.view.layer.borderColor = nColor.cgColor
             }
             
-        case "borderWidth":
+        case "brw", "borderWidth":
             return createFloatInterpolation(from: self.view.layer.borderWidth, to: cgFloatValue) { nValue in
                 self.view.layer.borderWidth = nValue
             }
@@ -118,8 +107,18 @@ open class Transformation {
     
     private func createColorInterpolation(from start:UIColor, to end:UIColor, block: @escaping (UIColor) -> Void) -> TransformationBlock {
         
-        let startComponents = start.components
-        let endComponents   = end.components
+        let components = { (color: UIColor) -> (r: CGFloat, g: CGFloat, b: CGFloat, a: CGFloat)? in
+            guard let components = color.cgColor.components else { return nil }
+            if components.count == 2 {
+                return (r: components[0], g: components[0], b: components[0], a: components[1])
+            } else {
+                return (r: components[0], g: components[1], b: components[2], a: components[3])
+            }
+        }
+        
+        guard
+            let startComponents = components(start),
+            let endComponents   = components(end) else { return { _ in } }
         
         return { factor in
             
