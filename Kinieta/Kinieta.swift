@@ -19,7 +19,7 @@ class Kinieta {
     
     init(_ view:UIView) {
         self.view = view
-        KinietaEngine.shared.add(self)
+        Engine.shared.add(self)
     }
     
     
@@ -50,7 +50,7 @@ class Kinieta {
     }
     
     // returns finished
-    @discardableResult func update(_ frame: KinietaEngine.Frame) -> Bool {
+    @discardableResult func update(_ frame: Engine.Frame) -> Bool {
         
         guard timeframe.contains(frame.timestamp) else {
             return true

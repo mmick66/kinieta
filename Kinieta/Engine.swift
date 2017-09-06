@@ -8,7 +8,7 @@
 
 import UIKit
 
-class KinietaEngine {
+class Engine {
     
     struct Frame {
         var timestamp: Double
@@ -19,54 +19,41 @@ class KinietaEngine {
         }
     }
     
-    struct Scene<T> {
-        let content:T
-        init(_ content:T) {
-            self.content = content
-        }
-    }
-    
-    static let shared = KinietaEngine()
+    static let shared = Engine()
     
     private var displayLink: CADisplayLink?
     
-    private var instances: [Kinieta] = []
+    private var groups: [Group] = []
     
     func add(_ instance: Kinieta) {
         
-        instances.append(instance)
+        groups.append(Group(instance))
         
         if displayLink == nil {
-            displayLink = CADisplayLink(target: self, selector: #selector(KinietaEngine.update(_:)))
+            displayLink = CADisplayLink(target: self, selector: #selector(Engine.update(_:)))
             displayLink?.add(to: RunLoop.current, forMode: RunLoopMode.commonModes)
-        }
-    }
-    
-    func remove(_ instance: Kinieta) {
-        
-        if let index = instances.index(where: { $0 === instance }) {
-            instances.remove(at: index)
-        }
-        
-        if instances.count == 0 {
-            displayLink?.invalidate()
-            displayLink = nil
         }
     }
     
     @objc func update(_ displayLink: CADisplayLink) {
         
-        guard let current = self.instances.last else {
+        guard let group = self.groups.first else {
             return
         }
         
-        let frame = KinietaEngine.Frame(displayLink.timestamp, displayLink.duration)
-        
-        let finished = current.update(frame)
-        
-        if finished {
-            self.remove(current)
+        if group.update(Engine.Frame(displayLink.timestamp, displayLink.duration)) {
+            
+            if let index = groups.index(where: { $0 === group }) {
+                groups.remove(at: index)
+            }
+            
+            if groups.count == 0 {
+                self.displayLink?.invalidate()
+                self.displayLink = nil
+            }
         }
+        
+        
     }
     
     func pause() {
@@ -85,4 +72,32 @@ class KinietaEngine {
         self.stop()
     }
     
+}
+
+
+class Group {
+    
+    private(set) var members:[Kinieta] = []
+    
+    init(_ member:Kinieta) {
+        self.add(member)
+    }
+    
+    func add(_ member:Kinieta) {
+        self.members.append(member)
+    }
+    func remove(_ member:Kinieta) {
+        
+    }
+    @discardableResult func update(_ frame: Engine.Frame) -> Bool {
+        
+        var complete = true
+        
+        for kinieta in members {
+            complete = complete && kinieta.update(frame)
+        }
+        
+        return complete
+        
+    }
 }
