@@ -22,7 +22,7 @@ class Kinieta {
         Engine.shared.add(self)
     }
     
-    
+    // MARK: API
     func move(_ dict: [String:Any], _ duration: TimeInterval) -> Kinieta {
         
         let ctime = CACurrentMediaTime()
@@ -49,12 +49,14 @@ class Kinieta {
         return Kinieta(self.view)
     }
     
-    // returns finished
+    // MARK: Update
     @discardableResult func update(_ frame: Engine.Frame) -> Bool {
         
         guard timeframe.contains(frame.timestamp) else {
             return true
         }
+        
+        
         let factor = (frame.timestamp - timeframe.lowerBound) / (timeframe.upperBound - timeframe.lowerBound)
         
         for transformation in transformations {
@@ -63,12 +65,9 @@ class Kinieta {
         
         return false
     }
-}
-
-
-
-extension Kinieta {
     
+    
+    // MARK: Create Transformations
     internal func createTransormation(of property:String, for value:Any) -> TransformationBlock {
         
         let cgFloatValue: CGFloat = (value as? CGFloat) ?? 1.0
@@ -130,5 +129,6 @@ extension Kinieta {
         
     }
 }
+
 
 
