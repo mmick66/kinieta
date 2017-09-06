@@ -23,18 +23,24 @@ class Animation {
     }
     
     // MARK: API
-    func move(_ dict: [String:Any], _ duration: TimeInterval) -> Animation {
+    func move(_ dict: [String:Any], during duration: TimeInterval) -> Animation {
         
-        let ctime = CACurrentMediaTime()
-        
-        timeframe = ctime..<(ctime+duration)
-        
-        for (key,value) in dict {
-            let transformation = createTransormation(of: key, for: value)
-            transformations.append(transformation)
+        if self.transformations.count == 0 {
+            
+            let ctime = CACurrentMediaTime()
+            
+            timeframe = ctime..<(ctime+duration)
+            
+            for (key,value) in dict {
+                let transformation = createTransormation(of: key, for: value)
+                transformations.append(transformation)
+            }
+            
+            return self
         }
         
-        return self
+        
+        return Animation(self.view).move(dict, during: duration)
     }
     
     private var waiting: TimeInterval = 0.0
@@ -49,9 +55,12 @@ class Animation {
         return Animation(self.view)
     }
     
-    private(set) var onComplete: @escaping () -> Void = { _ in }
-    func complete(_ block: () -> Void) {
+    private(set) var onComplete: () -> Void = { _ in }
+    func complete(_ block: @escaping  () -> Void) {
+        
         self.onComplete = block
+        
+        return Animation(self.view)
     }
     
     // MARK: Update
