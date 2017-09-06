@@ -91,17 +91,28 @@ class Group {
     }
     @discardableResult func update(_ frame: Engine.Frame) -> Bool {
         
-        var all = true
+        var allComplete = true
         
         for animation in animations {
             
             switch animation.update(frame) {
                 case true: animation.onComplete()
-                case false: all = false
+                case false: allComplete = false
             }
         }
         
-        return all
+        if allComplete {
+            self.onComplete()
+            return true
+        }
+        
+        return false
+    }
+    
+    private(set) var onComplete: () -> Void = { _ in }
+    func complete(_ block: @escaping  () -> Void) {
+        
+        self.onComplete = block
         
     }
 }

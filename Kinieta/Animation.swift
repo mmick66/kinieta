@@ -56,7 +56,7 @@ class Animation {
     }
     
     private(set) var onComplete: () -> Void = { _ in }
-    func complete(_ block: @escaping  () -> Void) {
+    func complete(_ block: @escaping  () -> Void) -> Animation {
         
         self.onComplete = block
         
@@ -66,7 +66,13 @@ class Animation {
     // MARK: Update
     @discardableResult func update(_ frame: Engine.Frame) -> Bool {
         
-        guard timeframe.contains(frame.timestamp) else {
+        if !timeframe.contains(frame.timestamp) {
+            
+            if waiting > (frame.timestamp - self.timeframe.upperBound) {
+                return false
+            }
+            
+            self.onComplete()
             return true
         }
         

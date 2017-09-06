@@ -9,7 +9,7 @@
 import UIKit
 
 extension UIView {
-    func move(_ dict: [String:Any], during duration: TimeInterval = 0.0) -> Animation {
+    @discardableResult func move(_ dict: [String:Any], during duration: TimeInterval = 0.0) -> Animation {
         return Animation(self).move(dict, during: duration)
     }
 }
