@@ -91,13 +91,17 @@ class Group {
     }
     @discardableResult func update(_ frame: Engine.Frame) -> Bool {
         
-        var complete = true
+        var all = true
         
         for kinieta in members {
-            complete = complete && kinieta.update(frame)
+            
+            switch kinieta.update(frame) {
+                case true: kinieta.onComplete()
+                case false: all = false
+            }
         }
         
-        return complete
+        return all
         
     }
 }

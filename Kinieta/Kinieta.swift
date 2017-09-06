@@ -49,6 +49,11 @@ class Kinieta {
         return Kinieta(self.view)
     }
     
+    private(set) var onComplete: () -> Void = { _ in }
+    func complete(_ block: () -> Void) {
+        self.oncomplete = block
+    }
+    
     // MARK: Update
     @discardableResult func update(_ frame: Engine.Frame) -> Bool {
         
