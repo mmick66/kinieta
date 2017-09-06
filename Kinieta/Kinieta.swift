@@ -9,119 +9,30 @@
 import UIKit
 
 
-class KinietaEngine {
-    
-    struct Frame {
-        var timestamp: Double
-        var duration: Double
-        init(_ timestamp: Double, _ duration:Double) {
-            self.timestamp  = timestamp
-            self.duration   = duration
-        }
-    }
-    
-    static let shared = KinietaEngine()
-    
-    private var displayLink: CADisplayLink?
-    
-    private var instances: [Kinieta] = []
-    
-    func add(_ instance: Kinieta) {
-        
-        instances.append(instance)
-        
-        if displayLink == nil {
-            displayLink = CADisplayLink(target: self, selector: #selector(KinietaEngine.update(_:)))
-            displayLink?.add(to: RunLoop.current, forMode: RunLoopMode.commonModes)
-        }
-    }
-    
-    func remove(_ instance: Kinieta) {
-        
-        if let index = instances.index(where: { $0 === instance }) {
-            instances.remove(at: index)
-        }
-        
-        if instances.count == 0 {
-            displayLink?.invalidate()
-            displayLink = nil
-        }
-    }
-    
-    @objc func update(_ displayLink: CADisplayLink) {
-        
-        guard let current = self.instances.last else {
-            return
-        }
-        
-        let frame = KinietaEngine.Frame(displayLink.timestamp, displayLink.duration)
-        
-        let finished = current.update(frame)
-        
-        if finished {
-            self.remove(current)
-        }
-    }
-    
-    func pause() {
-        displayLink?.isPaused = true
-    }
-    
-    func resume() {
-        displayLink?.isPaused = false
-    }
-    
-    func stop() {
-        displayLink?.invalidate()
-    }
-    
-    deinit {
-        self.stop()
-    }
-    
-}
-
+typealias TransformationBlock = (Double) -> Void
 
 class Kinieta {
     
-    static var associatedKey = "KinietaAssociatedKey"
+    private(set) var view:UIView
+    private var transformations:[TransformationBlock] = []
+    private var timeframe: Range<TimeInterval> = 0.0..<0.0
     
-    let view:UIView
     init(_ view:UIView) {
         self.view = view
         KinietaEngine.shared.add(self)
     }
     
-    var transformations = [Transformation]()
-    
-    
-    @discardableResult func update(_ frame: KinietaEngine.Frame) -> Bool {
-        
-        var finished = true
-        
-        for transformation in transformations {
-            finished = finished && transformation.execute(for: frame.timestamp)
-        }
-        
-        return finished
-    }
-    
-    // MARK: API
-    
     
     func move(_ dict: [String:Any], _ duration: TimeInterval) -> Kinieta {
         
-        let startTime = CACurrentMediaTime()
+        let ctime = CACurrentMediaTime()
         
-        let m = Transformation(self.view, for: dict, from: startTime, to: startTime + duration)
+        timeframe = ctime..<(ctime+duration)
         
-        transformations.append(m)
-        
-        return self
-    }
-    
-    func snap(_ dict: [String:Any]) -> Kinieta {
-        
+        for (key,value) in dict {
+            let transformation = createTransormation(of: key, for: value)
+            transformations.append(transformation)
+        }
         
         return self
     }
@@ -137,12 +48,87 @@ class Kinieta {
     func group() -> Kinieta {
         return Kinieta(self.view)
     }
+    
+    // returns finished
+    @discardableResult func update(_ frame: KinietaEngine.Frame) -> Bool {
+        
+        guard timeframe.contains(frame.timestamp) else {
+            return true
+        }
+        let factor = (frame.timestamp - timeframe.lowerBound) / (timeframe.upperBound - timeframe.lowerBound)
+        
+        for transformation in transformations {
+            transformation(factor)
+        }
+        
+        return false
+    }
 }
 
-extension UIView {
+
+
+extension Kinieta {
     
-    func move(_ dict: [String:Any], _ duration: TimeInterval = 0.0) -> Kinieta {
-        return Kinieta(self).move(dict, duration)
+    internal func createTransormation(of property:String, for value:Any) -> TransformationBlock {
+        
+        let cgFloatValue: CGFloat = (value as? CGFloat) ?? 1.0
+        
+        switch property {
+            
+        case "x":
+            return createFloatInterpolation(from: self.view.center.x, to: cgFloatValue) { nValue in
+                self.view.center = CGPoint(x: nValue, y: self.view.center.y)
+            }
+            
+        case "y":
+            return createFloatInterpolation(from: self.view.center.x, to: cgFloatValue) { nValue in
+                self.view.center = CGPoint(x: self.view.center.x, y: nValue)
+            }
+            
+        case "w", "width":
+            return createFloatInterpolation(from: self.view.frame.size.width, to: cgFloatValue) { nValue in
+                var oFrame = self.view.frame
+                oFrame.size.width = nValue
+                self.view.frame = oFrame
+            }
+            
+        case "h", "height":
+            return createFloatInterpolation(from: self.view.frame.size.height, to: cgFloatValue) { nValue in
+                var oFrame = self.view.frame
+                oFrame.size.height = nValue
+                self.view.frame = oFrame
+            }
+            
+        case "r", "rotation":
+            return createFloatInterpolation(from: self.view.rotation, to: cgFloatValue) { nValue in
+                self.view.rotation = nValue
+            }
+            
+        case "a", "alpha":
+            return createFloatInterpolation(from: self.view.alpha, to: cgFloatValue) { nValue in
+                self.view.alpha = nValue
+            }
+            
+        case "bg", "background":
+            return createColorInterpolation(from: self.view.backgroundColor ?? UIColor.white, to: value as! UIColor) { nColor in
+                self.view.backgroundColor = nColor
+            }
+            
+        case "brc", "borderColor":
+            return createColorInterpolation(from: self.view.backgroundColor ?? UIColor.white, to: value as! UIColor) { nColor in
+                self.view.layer.borderColor = nColor.cgColor
+            }
+            
+        case "brw", "borderWidth":
+            return createFloatInterpolation(from: self.view.layer.borderWidth, to: cgFloatValue) { nValue in
+                self.view.layer.borderWidth = nValue
+            }
+            
+        default:
+            return { _ in }
+        }
+        
     }
-    
 }
+
+
