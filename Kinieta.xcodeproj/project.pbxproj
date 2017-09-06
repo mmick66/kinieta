@@ -13,10 +13,10 @@
 		BE6568DF1F57DE10007E41D2 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BE6568DE1F57DE10007E41D2 /* Assets.xcassets */; };
 		BE6568E21F57DE10007E41D2 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = BE6568E01F57DE10007E41D2 /* LaunchScreen.storyboard */; };
 		BE6568ED1F57DE10007E41D2 /* KinietaTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE6568EC1F57DE10007E41D2 /* KinietaTests.swift */; };
-		C772DF781F57F33100A3F690 /* Kinieta.swift in Sources */ = {isa = PBXBuildFile; fileRef = C772DF771F57F33100A3F690 /* Kinieta.swift */; };
+		C772DF781F57F33100A3F690 /* Animation.swift in Sources */ = {isa = PBXBuildFile; fileRef = C772DF771F57F33100A3F690 /* Animation.swift */; };
 		C772DF7C1F58129000A3F690 /* Bezier.swift in Sources */ = {isa = PBXBuildFile; fileRef = C772DF7B1F58129000A3F690 /* Bezier.swift */; };
 		C772DF7E1F581B7B00A3F690 /* Easing.swift in Sources */ = {isa = PBXBuildFile; fileRef = C772DF7D1F581B7B00A3F690 /* Easing.swift */; };
-		C772DF801F5D4FA200A3F690 /* Kinieta.swift in Sources */ = {isa = PBXBuildFile; fileRef = C772DF771F57F33100A3F690 /* Kinieta.swift */; };
+		C772DF801F5D4FA200A3F690 /* Animation.swift in Sources */ = {isa = PBXBuildFile; fileRef = C772DF771F57F33100A3F690 /* Animation.swift */; };
 		C772DF811F5D4FA600A3F690 /* Bezier.swift in Sources */ = {isa = PBXBuildFile; fileRef = C772DF7B1F58129000A3F690 /* Bezier.swift */; };
 		C772DF821F5D4FA800A3F690 /* Easing.swift in Sources */ = {isa = PBXBuildFile; fileRef = C772DF7D1F581B7B00A3F690 /* Easing.swift */; };
 		C772DF841F5D51F100A3F690 /* CalculationsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C772DF831F5D51F100A3F690 /* CalculationsTests.swift */; };
@@ -46,7 +46,7 @@
 		BE6568E81F57DE10007E41D2 /* KinietaTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = KinietaTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		BE6568EC1F57DE10007E41D2 /* KinietaTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KinietaTests.swift; sourceTree = "<group>"; };
 		BE6568EE1F57DE10007E41D2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		C772DF771F57F33100A3F690 /* Kinieta.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Kinieta.swift; sourceTree = "<group>"; };
+		C772DF771F57F33100A3F690 /* Animation.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Animation.swift; sourceTree = "<group>"; };
 		C772DF7B1F58129000A3F690 /* Bezier.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Bezier.swift; sourceTree = "<group>"; };
 		C772DF7D1F581B7B00A3F690 /* Easing.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Easing.swift; sourceTree = "<group>"; };
 		C772DF831F5D51F100A3F690 /* CalculationsTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CalculationsTests.swift; sourceTree = "<group>"; };
@@ -119,7 +119,7 @@
 			isa = PBXGroup;
 			children = (
 				C7B25AD71F5FCE9B0060071E /* Engine.swift */,
-				C772DF771F57F33100A3F690 /* Kinieta.swift */,
+				C772DF771F57F33100A3F690 /* Animation.swift */,
 				C772DF7B1F58129000A3F690 /* Bezier.swift */,
 				C772DF7D1F581B7B00A3F690 /* Easing.swift */,
 				C7B25AD91F5FCEFA0060071E /* Utilities.swift */,
@@ -231,7 +231,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C772DF781F57F33100A3F690 /* Kinieta.swift in Sources */,
+				C772DF781F57F33100A3F690 /* Animation.swift in Sources */,
 				C772DF7E1F581B7B00A3F690 /* Easing.swift in Sources */,
 				C7B25ADA1F5FCEFA0060071E /* Utilities.swift in Sources */,
 				C7B25ADC1F5FD0AA0060071E /* Extensions.swift in Sources */,
@@ -249,7 +249,7 @@
 				C772DF821F5D4FA800A3F690 /* Easing.swift in Sources */,
 				C772DF841F5D51F100A3F690 /* CalculationsTests.swift in Sources */,
 				C772DF811F5D4FA600A3F690 /* Bezier.swift in Sources */,
-				C772DF801F5D4FA200A3F690 /* Kinieta.swift in Sources */,
+				C772DF801F5D4FA200A3F690 /* Animation.swift in Sources */,
 				BE6568ED1F57DE10007E41D2 /* KinietaTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

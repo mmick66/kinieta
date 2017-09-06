@@ -9,8 +9,8 @@
 import UIKit
 
 extension UIView {
-    func move(_ dict: [String:Any], _ duration: TimeInterval = 0.0) -> Kinieta {
-        return Kinieta(self).move(dict, duration)
+    func move(_ dict: [String:Any], _ duration: TimeInterval = 0.0) -> Animation {
+        return Animation(self).move(dict, duration)
     }
 }
 

@@ -25,9 +25,9 @@ class Engine {
     
     private var groups: [Group] = []
     
-    func add(_ instance: Kinieta) {
+    func add(_ animation: Animation) {
         
-        groups.append(Group(instance))
+        groups.append(Group(animation))
         
         if displayLink == nil {
             displayLink = CADisplayLink(target: self, selector: #selector(Engine.update(_:)))
@@ -77,26 +77,26 @@ class Engine {
 
 class Group {
     
-    private(set) var members:[Kinieta] = []
+    private(set) var animations:[Animation] = []
     
-    init(_ member:Kinieta) {
-        self.add(member)
+    init(_ animation:Animation) {
+        self.add(animation)
     }
     
-    func add(_ member:Kinieta) {
-        self.members.append(member)
+    func add(_ animation:Animation) {
+        self.animations.append(animation)
     }
-    func remove(_ member:Kinieta) {
+    func remove(_ member:Animation) {
         
     }
     @discardableResult func update(_ frame: Engine.Frame) -> Bool {
         
         var all = true
         
-        for kinieta in members {
+        for animation in animations {
             
-            switch kinieta.update(frame) {
-                case true: kinieta.onComplete()
+            switch animation.update(frame) {
+                case true: animation.onComplete()
                 case false: all = false
             }
         }

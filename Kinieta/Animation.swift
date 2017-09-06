@@ -11,7 +11,7 @@ import UIKit
 
 typealias TransformationBlock = (Double) -> Void
 
-class Kinieta {
+class Animation {
     
     private(set) var view:UIView
     private var transformations:[TransformationBlock] = []
@@ -23,7 +23,7 @@ class Kinieta {
     }
     
     // MARK: API
-    func move(_ dict: [String:Any], _ duration: TimeInterval) -> Kinieta {
+    func move(_ dict: [String:Any], _ duration: TimeInterval) -> Animation {
         
         let ctime = CACurrentMediaTime()
         
@@ -38,20 +38,20 @@ class Kinieta {
     }
     
     private var waiting: TimeInterval = 0.0
-    func wait(_ time: TimeInterval) -> Kinieta {
+    func wait(_ time: TimeInterval) -> Animation {
         
         waiting = time
         
         return self
     }
     
-    func group() -> Kinieta {
-        return Kinieta(self.view)
+    func group() -> Animation {
+        return Animation(self.view)
     }
     
-    private(set) var onComplete: () -> Void = { _ in }
+    private(set) var onComplete: @escaping () -> Void = { _ in }
     func complete(_ block: () -> Void) {
-        self.oncomplete = block
+        self.onComplete = block
     }
     
     // MARK: Update
