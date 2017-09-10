@@ -52,3 +52,5 @@ func createColorInterpolation(from start:UIColor, to end:UIColor, block: @escapi
 func radians(_ degrees: CGFloat) -> CGFloat {
     return degrees * (CGFloat.pi / 180.0)
 }
+
+

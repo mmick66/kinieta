@@ -11,71 +11,29 @@ import UIKit
 
 typealias TransformationBlock = (Double) -> Void
 
-class Animation {
+class Animation: Action {
     
-    private(set) var view:UIView
     private var transformations:[TransformationBlock] = []
-    private var timeframe: Range<TimeInterval> = 0.0..<0.0
     
-    init(_ view:UIView) {
-        self.view = view
-        Engine.shared.add(self)
-    }
-    
-    // MARK: API
-    func move(_ dict: [String:Any], during duration: TimeInterval) -> Animation {
+    override func move(_ dict: [String:Any], during duration: TimeInterval) -> Animation {
         
-        if self.transformations.count == 0 {
-            
-            let ctime = CACurrentMediaTime()
-            
-            timeframe = ctime..<(ctime+duration)
-            
-            for (key,value) in dict {
-                let transformation = createTransormation(of: key, for: value)
-                transformations.append(transformation)
-            }
-            
-            return self
+        guard transformations.count == 0 else {
+            return Animation(self.view).move(dict, during: duration)
         }
         
+        self.setTimeframe(for: duration)
         
-        return Animation(self.view).move(dict, during: duration)
-    }
-    
-    private var waiting: TimeInterval = 0.0
-    func wait(_ time: TimeInterval) -> Animation {
-        
-        waiting = time
+        for (key,value) in dict {
+            let transformation = createTransormation(of: key, for: value)
+            transformations.append(transformation)
+        }
         
         return self
+        
     }
     
-    func group() -> Animation {
-        return Animation(self.view)
-    }
     
-    private(set) var onComplete: () -> Void = { _ in }
-    func complete(_ block: @escaping  () -> Void) -> Animation {
-        
-        self.onComplete = block
-        
-        return Animation(self.view)
-    }
-    
-    // MARK: Update
-    @discardableResult func update(_ frame: Engine.Frame) -> Bool {
-        
-        if !timeframe.contains(frame.timestamp) {
-            
-            if waiting > (frame.timestamp - self.timeframe.upperBound) {
-                return false
-            }
-            
-            self.onComplete()
-            return true
-        }
-        
+    override func execute(_ frame: Engine.Frame) -> Bool {
         
         let factor = (frame.timestamp - timeframe.lowerBound) / (timeframe.upperBound - timeframe.lowerBound)
         
@@ -139,6 +97,11 @@ class Animation {
             }
             
         case "brw", "borderWidth":
+            return createFloatInterpolation(from: self.view.layer.borderWidth, to: cgFloatValue) { nValue in
+                self.view.layer.borderWidth = nValue
+            }
+            
+        case "crd", "cornerRadius":
             return createFloatInterpolation(from: self.view.layer.borderWidth, to: cgFloatValue) { nValue in
                 self.view.layer.borderWidth = nValue
             }

@@ -23,11 +23,11 @@ class Engine {
     
     private var displayLink: CADisplayLink?
     
-    private var groups: [Group] = []
+    private var actions: [Action] = []
     
-    func add(_ animation: Animation) {
+    func add(_ action: Action) {
         
-        groups.append(Group(animation))
+        actions.append(action)
         
         if displayLink == nil {
             displayLink = CADisplayLink(target: self, selector: #selector(Engine.update(_:)))
@@ -37,22 +37,22 @@ class Engine {
     
     @objc func update(_ displayLink: CADisplayLink) {
         
-        guard let group = self.groups.first else {
+        guard let action = self.actions.first else {
             return
         }
         
-        if group.update(Engine.Frame(displayLink.timestamp, displayLink.duration)) {
+        let frame = Engine.Frame(displayLink.timestamp, displayLink.duration)
+        if action.update(frame) {
             
-            if let index = groups.index(where: { $0 === group }) {
-                groups.remove(at: index)
+            if let index = actions.index(where: { $0 === action }) {
+                actions.remove(at: index)
             }
             
-            if groups.count == 0 {
+            if actions.count == 0 {
                 self.displayLink?.invalidate()
                 self.displayLink = nil
             }
         }
-        
         
     }
     
@@ -68,6 +68,23 @@ class Engine {
         displayLink?.invalidate()
     }
     
+    func index(_ action: Action) -> Int? {
+        if let index = actions.index(where: { $0 === action }) {
+            return index
+        }
+        return nil
+    }
+    
+    private var ipeg: Int = 0
+    func peg() {
+        ipeg = actions.count
+    }
+    
+    func group() -> Group? {
+        let bundle = Array(actions[ipeg..<actions.count])
+        return Group(bundle)
+    }
+    
     deinit {
         self.stop()
     }
@@ -75,44 +92,4 @@ class Engine {
 }
 
 
-class Group {
-    
-    private(set) var animations:[Animation] = []
-    
-    init(_ animation:Animation) {
-        self.add(animation)
-    }
-    
-    func add(_ animation:Animation) {
-        self.animations.append(animation)
-    }
-    func remove(_ member:Animation) {
-        
-    }
-    @discardableResult func update(_ frame: Engine.Frame) -> Bool {
-        
-        var allComplete = true
-        
-        for animation in animations {
-            
-            switch animation.update(frame) {
-                case true: animation.onComplete()
-                case false: allComplete = false
-            }
-        }
-        
-        if allComplete {
-            self.onComplete()
-            return true
-        }
-        
-        return false
-    }
-    
-    private(set) var onComplete: () -> Void = { _ in }
-    func complete(_ block: @escaping  () -> Void) {
-        
-        self.onComplete = block
-        
-    }
-}
+

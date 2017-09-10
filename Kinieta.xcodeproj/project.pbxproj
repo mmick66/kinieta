@@ -13,6 +13,9 @@
 		BE6568DF1F57DE10007E41D2 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BE6568DE1F57DE10007E41D2 /* Assets.xcassets */; };
 		BE6568E21F57DE10007E41D2 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = BE6568E01F57DE10007E41D2 /* LaunchScreen.storyboard */; };
 		BE6568ED1F57DE10007E41D2 /* KinietaTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE6568EC1F57DE10007E41D2 /* KinietaTests.swift */; };
+		BE6568FA1F652B6C007E41D2 /* Action.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE6568F91F652B6C007E41D2 /* Action.swift */; };
+		BE6568FC1F6536E0007E41D2 /* Pause.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE6568FB1F6536E0007E41D2 /* Pause.swift */; };
+		BE6568FE1F656019007E41D2 /* Group.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE6568FD1F656019007E41D2 /* Group.swift */; };
 		C772DF781F57F33100A3F690 /* Animation.swift in Sources */ = {isa = PBXBuildFile; fileRef = C772DF771F57F33100A3F690 /* Animation.swift */; };
 		C772DF7C1F58129000A3F690 /* Bezier.swift in Sources */ = {isa = PBXBuildFile; fileRef = C772DF7B1F58129000A3F690 /* Bezier.swift */; };
 		C772DF7E1F581B7B00A3F690 /* Easing.swift in Sources */ = {isa = PBXBuildFile; fileRef = C772DF7D1F581B7B00A3F690 /* Easing.swift */; };
@@ -46,6 +49,9 @@
 		BE6568E81F57DE10007E41D2 /* KinietaTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = KinietaTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		BE6568EC1F57DE10007E41D2 /* KinietaTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KinietaTests.swift; sourceTree = "<group>"; };
 		BE6568EE1F57DE10007E41D2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		BE6568F91F652B6C007E41D2 /* Action.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Action.swift; sourceTree = "<group>"; };
+		BE6568FB1F6536E0007E41D2 /* Pause.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Pause.swift; sourceTree = "<group>"; };
+		BE6568FD1F656019007E41D2 /* Group.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Group.swift; sourceTree = "<group>"; };
 		C772DF771F57F33100A3F690 /* Animation.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Animation.swift; sourceTree = "<group>"; };
 		C772DF7B1F58129000A3F690 /* Bezier.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Bezier.swift; sourceTree = "<group>"; };
 		C772DF7D1F581B7B00A3F690 /* Easing.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Easing.swift; sourceTree = "<group>"; };
@@ -118,8 +124,11 @@
 		C772DF761F57F32400A3F690 /* Kinieta */ = {
 			isa = PBXGroup;
 			children = (
+				BE6568F91F652B6C007E41D2 /* Action.swift */,
 				C7B25AD71F5FCE9B0060071E /* Engine.swift */,
+				BE6568FD1F656019007E41D2 /* Group.swift */,
 				C772DF771F57F33100A3F690 /* Animation.swift */,
+				BE6568FB1F6536E0007E41D2 /* Pause.swift */,
 				C772DF7B1F58129000A3F690 /* Bezier.swift */,
 				C772DF7D1F581B7B00A3F690 /* Easing.swift */,
 				C7B25AD91F5FCEFA0060071E /* Utilities.swift */,
@@ -231,6 +240,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BE6568FE1F656019007E41D2 /* Group.swift in Sources */,
+				BE6568FA1F652B6C007E41D2 /* Action.swift in Sources */,
 				C772DF781F57F33100A3F690 /* Animation.swift in Sources */,
 				C772DF7E1F581B7B00A3F690 /* Easing.swift in Sources */,
 				C7B25ADA1F5FCEFA0060071E /* Utilities.swift in Sources */,
@@ -238,6 +249,7 @@
 				C772DF7C1F58129000A3F690 /* Bezier.swift in Sources */,
 				BE6568DA1F57DE10007E41D2 /* ViewController.swift in Sources */,
 				BE6568D81F57DE10007E41D2 /* AppDelegate.swift in Sources */,
+				BE6568FC1F6536E0007E41D2 /* Pause.swift in Sources */,
 				C7B25AD81F5FCE9B0060071E /* Engine.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
