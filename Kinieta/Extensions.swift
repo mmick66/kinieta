@@ -31,4 +31,7 @@ extension UIView {
     }
 }
 
+func >>(lhs: Range<TimeInterval>, rhs: TimeInterval) -> Range<TimeInterval> {
+    return (lhs.lowerBound+rhs)..<(lhs.upperBound+rhs)
+}
 

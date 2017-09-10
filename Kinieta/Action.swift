@@ -17,28 +17,39 @@ class Action {
         Engine.shared.add(self)
     }
     
-    func move(_ dict: [String:Any], during duration: TimeInterval) -> Action {
+    @discardableResult func move(_ dict: [String:Any], during duration: TimeInterval) -> Action {
         return Animation(self.view).move(dict, during: duration)
     }
     
-    func wait(for time: TimeInterval) -> Action {
+    @discardableResult func wait(for time: TimeInterval) -> Action {
         return Pause(self.view, for: time)
     }
     
-    func group() -> Action? {
+    @discardableResult func group() -> Action? {
         return Engine.shared.group()
     }
     
     internal var timeframe: Range<TimeInterval> = 0.0..<0.0
     
     internal(set) var onComplete: () -> Void = { _ in }
-    func complete(_ block: @escaping  () -> Void) -> Action {
+    @discardableResult func complete(_ block: @escaping  () -> Void) -> Action {
         self.onComplete = block
         return self
     }
     
     func then() -> Action {
         Engine.shared.peg()
+        return self
+    }
+    
+    @discardableResult func delay(by time: TimeInterval) -> Action {
+        self.timeframe = self.timeframe >> time
+        return self
+    }
+    
+    internal var easeCurve: Bezier = Easing.liner
+    @discardableResult func ease(_ curve: Bezier) -> Action {
+        self.easeCurve = curve
         return self
     }
     
@@ -53,6 +64,7 @@ class Action {
     internal func execute(_ frame: Engine.Frame) -> Bool {
         return true
     }
+    
     
     internal func setTimeframe(for timeDuration: TimeInterval) {
         let currentMediaTime = CACurrentMediaTime()

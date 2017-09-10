@@ -36,7 +36,7 @@ class Engine {
     }
     
     @objc func update(_ displayLink: CADisplayLink) {
-        
+        print("Updating for \(displayLink.timestamp)")
         guard let action = self.actions.first else {
             return
         }

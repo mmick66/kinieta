@@ -13,6 +13,7 @@ class Easing {
     // Easing curves are from https://github.com/ai/easings.net/
     
     public static let none:Bezier           = Bezier(0.250, 0.250,  0.750,  0.750) // linear
+    public static let liner:Bezier          = none
     
     public static let sineIn:Bezier         = Bezier(0.47,  0,      0.745,  0.715)
     public static let sineOut:Bezier        = Bezier(0.39,  0.575,  0.565,  1.0)

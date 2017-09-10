@@ -32,10 +32,24 @@ class Group: Action {
             return false
         }
         
+        
         return !results.contains(false)
     }
     
     override func group() -> Action? {
         return self // cannot group a group
+    }
+    
+    override func delay(by time: TimeInterval) -> Action {
+        applyToAll { $0.delay(by: time) }
+        return self
+    }
+    override func ease(_ curve: Bezier) -> Action {
+        applyToAll { $0.ease(curve) }
+        return self
+    }
+    
+    private func applyToAll(_ f: (Action)->Void) {
+        for action in actions { f(action) }
     }
 }
