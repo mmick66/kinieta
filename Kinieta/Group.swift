@@ -35,5 +35,7 @@ class Group: Action {
         return !results.contains(false)
     }
     
-
+    override func group() -> Action? {
+        return self // cannot group a group
+    }
 }

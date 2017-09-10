@@ -82,7 +82,12 @@ class Engine {
     
     func group() -> Group? {
         let bundle = Array(actions[ipeg..<actions.count])
-        return Group(bundle)
+        guard let group = Group(bundle) else {
+            return nil
+        }
+        self.actions = Array(actions[0..<ipeg])
+        self.actions.append(group)
+        return group
     }
     
     deinit {
