@@ -23,9 +23,10 @@
 		C772DF811F5D4FA600A3F690 /* Bezier.swift in Sources */ = {isa = PBXBuildFile; fileRef = C772DF7B1F58129000A3F690 /* Bezier.swift */; };
 		C772DF821F5D4FA800A3F690 /* Easing.swift in Sources */ = {isa = PBXBuildFile; fileRef = C772DF7D1F581B7B00A3F690 /* Easing.swift */; };
 		C772DF841F5D51F100A3F690 /* CalculationsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C772DF831F5D51F100A3F690 /* CalculationsTests.swift */; };
+		C77895871F8B6ADA004A6274 /* Sequence.swift in Sources */ = {isa = PBXBuildFile; fileRef = C77895861F8B6ADA004A6274 /* Sequence.swift */; };
 		C7B25AD81F5FCE9B0060071E /* Engine.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7B25AD71F5FCE9B0060071E /* Engine.swift */; };
 		C7B25ADA1F5FCEFA0060071E /* Utilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7B25AD91F5FCEFA0060071E /* Utilities.swift */; };
-		C7B25ADC1F5FD0AA0060071E /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7B25ADB1F5FD0AA0060071E /* Extensions.swift */; };
+		C7B25ADC1F5FD0AA0060071E /* View.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7B25ADB1F5FD0AA0060071E /* View.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -56,9 +57,10 @@
 		C772DF7B1F58129000A3F690 /* Bezier.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Bezier.swift; sourceTree = "<group>"; };
 		C772DF7D1F581B7B00A3F690 /* Easing.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Easing.swift; sourceTree = "<group>"; };
 		C772DF831F5D51F100A3F690 /* CalculationsTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CalculationsTests.swift; sourceTree = "<group>"; };
+		C77895861F8B6ADA004A6274 /* Sequence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sequence.swift; sourceTree = "<group>"; };
 		C7B25AD71F5FCE9B0060071E /* Engine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Engine.swift; sourceTree = "<group>"; };
 		C7B25AD91F5FCEFA0060071E /* Utilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Utilities.swift; sourceTree = "<group>"; };
-		C7B25ADB1F5FD0AA0060071E /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
+		C7B25ADB1F5FD0AA0060071E /* View.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = View.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -126,13 +128,14 @@
 			children = (
 				BE6568F91F652B6C007E41D2 /* Action.swift */,
 				C7B25AD71F5FCE9B0060071E /* Engine.swift */,
+				C77895861F8B6ADA004A6274 /* Sequence.swift */,
 				BE6568FD1F656019007E41D2 /* Group.swift */,
 				C772DF771F57F33100A3F690 /* Animation.swift */,
 				BE6568FB1F6536E0007E41D2 /* Pause.swift */,
 				C772DF7B1F58129000A3F690 /* Bezier.swift */,
 				C772DF7D1F581B7B00A3F690 /* Easing.swift */,
 				C7B25AD91F5FCEFA0060071E /* Utilities.swift */,
-				C7B25ADB1F5FD0AA0060071E /* Extensions.swift */,
+				C7B25ADB1F5FD0AA0060071E /* View.swift */,
 			);
 			name = Kinieta;
 			sourceTree = "<group>";
@@ -182,15 +185,17 @@
 			isa = PBXProject;
 			attributes = {
 				LastSwiftUpdateCheck = 0830;
-				LastUpgradeCheck = 0830;
+				LastUpgradeCheck = 0900;
 				ORGANIZATIONNAME = "Michael Michailidis";
 				TargetAttributes = {
 					BE6568D31F57DE10007E41D2 = {
 						CreatedOnToolsVersion = 8.3.3;
+						LastSwiftMigration = 0900;
 						ProvisioningStyle = Automatic;
 					};
 					BE6568E71F57DE10007E41D2 = {
 						CreatedOnToolsVersion = 8.3.3;
+						LastSwiftMigration = 0900;
 						ProvisioningStyle = Automatic;
 						TestTargetID = BE6568D31F57DE10007E41D2;
 					};
@@ -242,10 +247,11 @@
 			files = (
 				BE6568FE1F656019007E41D2 /* Group.swift in Sources */,
 				BE6568FA1F652B6C007E41D2 /* Action.swift in Sources */,
+				C77895871F8B6ADA004A6274 /* Sequence.swift in Sources */,
 				C772DF781F57F33100A3F690 /* Animation.swift in Sources */,
 				C772DF7E1F581B7B00A3F690 /* Easing.swift in Sources */,
 				C7B25ADA1F5FCEFA0060071E /* Utilities.swift in Sources */,
-				C7B25ADC1F5FD0AA0060071E /* Extensions.swift in Sources */,
+				C7B25ADC1F5FD0AA0060071E /* View.swift in Sources */,
 				C772DF7C1F58129000A3F690 /* Bezier.swift in Sources */,
 				BE6568DA1F57DE10007E41D2 /* ViewController.swift in Sources */,
 				BE6568D81F57DE10007E41D2 /* AppDelegate.swift in Sources */,
@@ -306,7 +312,9 @@
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
 				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
 				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
@@ -314,7 +322,11 @@
 				CLANG_WARN_ENUM_CONVERSION = YES;
 				CLANG_WARN_INFINITE_RECURSION = YES;
 				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
@@ -357,7 +369,9 @@
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
 				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
 				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
@@ -365,7 +379,11 @@
 				CLANG_WARN_ENUM_CONVERSION = YES;
 				CLANG_WARN_INFINITE_RECURSION = YES;
 				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
@@ -399,7 +417,8 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.karmadust.Kinieta;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_VERSION = 3.0;
+				SWIFT_SWIFT3_OBJC_INFERENCE = On;
+				SWIFT_VERSION = 4.0;
 			};
 			name = Debug;
 		};
@@ -411,7 +430,8 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.karmadust.Kinieta;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_VERSION = 3.0;
+				SWIFT_SWIFT3_OBJC_INFERENCE = On;
+				SWIFT_VERSION = 4.0;
 			};
 			name = Release;
 		};
@@ -424,7 +444,8 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.karmadust.KinietaTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_VERSION = 3.0;
+				SWIFT_SWIFT3_OBJC_INFERENCE = On;
+				SWIFT_VERSION = 4.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Kinieta.app/Kinieta";
 			};
 			name = Debug;
@@ -438,7 +459,8 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.karmadust.KinietaTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_VERSION = 3.0;
+				SWIFT_SWIFT3_OBJC_INFERENCE = On;
+				SWIFT_VERSION = 4.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Kinieta.app/Kinieta";
 			};
 			name = Release;

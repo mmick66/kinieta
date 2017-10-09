@@ -10,9 +10,9 @@ import UIKit
 
 class Pause: Action {
     
-    init(_ view: UIView, for duration: TimeInterval) {
-        super.init(view)
-        self.setTimeframe(for: duration)
+    let duration: TimeInterval
+    init(for duration: TimeInterval) {
+        self.duration = duration
     }
     
 }

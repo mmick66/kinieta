@@ -10,46 +10,30 @@ import UIKit
 
 class Group: Action {
     
-    let actions: [Action]
+    var actions: [Action]
     
-    init?(_ actions: [Action]) {
-        guard let first = actions.first else { return nil }
+    init(_ actions: [Action]) {
         self.actions = actions
-        super.init(first.view)
     }
-    
-    override func execute(_ frame: Engine.Frame) -> Bool {
+
+    @discardableResult
+    override func update(_ frame: Engine.Frame) -> Result {
         
-        let results:[Bool] = actions.map {
-            
-            let completed = $0.update(frame)
-            
-            if completed {
-                $0.onComplete()
-                return true
-            }
-            
-            return false
+        guard self.actions.count > 0 else {
+            return .Finished
         }
         
+        for action in actions {
+            switch action.update(frame)  {
+            case .Running:
+                return .Running
+            case .Finished:
+                self.actions.removeFirst()
+            }
+        }
         
-        return !results.contains(false)
+        return self.actions.count > 0 ? .Running : .Finished
+        
     }
     
-    override func group() -> Action? {
-        return self // cannot group a group
-    }
-    
-    override func delay(by time: TimeInterval) -> Action {
-        applyToAll { $0.delay(by: time) }
-        return self
-    }
-    override func ease(_ curve: Bezier) -> Action {
-        applyToAll { $0.ease(curve) }
-        return self
-    }
-    
-    private func applyToAll(_ f: (Action)->Void) {
-        for action in actions { f(action) }
-    }
 }

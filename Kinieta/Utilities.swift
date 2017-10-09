@@ -49,6 +49,73 @@ func createColorInterpolation(from start:UIColor, to end:UIColor, block: @escapi
     }
 }
 
+typealias TransformationBlock = (Double) -> Void
+func createTransormation(in view: UIView, for property:String, with value:Any) -> TransformationBlock {
+    
+    let cgFloatValue: CGFloat = (value as? CGFloat) ?? 1.0
+    
+    switch property {
+        
+    case "x":
+        return createFloatInterpolation(from: view.center.x, to: cgFloatValue) { nValue in
+            view.center = CGPoint(x: nValue, y: view.center.y)
+        }
+        
+    case "y":
+        return createFloatInterpolation(from: view.center.x, to: cgFloatValue) { nValue in
+            view.center = CGPoint(x: view.center.x, y: nValue)
+        }
+        
+    case "w", "width":
+        return createFloatInterpolation(from: view.frame.size.width, to: cgFloatValue) { nValue in
+            var oFrame = view.frame
+            oFrame.size.width = nValue
+            view.frame = oFrame
+        }
+        
+    case "h", "height":
+        return createFloatInterpolation(from: view.frame.size.height, to: cgFloatValue) { nValue in
+            var oFrame = view.frame
+            oFrame.size.height = nValue
+            view.frame = oFrame
+        }
+        
+    case "r", "rotation":
+        return createFloatInterpolation(from: view.rotation, to: cgFloatValue) { nValue in
+            view.rotation = nValue
+        }
+        
+    case "a", "alpha":
+        return createFloatInterpolation(from: view.alpha, to: cgFloatValue) { nValue in
+            view.alpha = nValue
+        }
+        
+    case "bg", "background":
+        return createColorInterpolation(from: view.backgroundColor ?? UIColor.white, to: value as! UIColor) { nColor in
+            view.backgroundColor = nColor
+        }
+        
+    case "brc", "borderColor":
+        return createColorInterpolation(from: view.backgroundColor ?? UIColor.white, to: value as! UIColor) { nColor in
+            view.layer.borderColor = nColor.cgColor
+        }
+        
+    case "brw", "borderWidth":
+        return createFloatInterpolation(from: view.layer.borderWidth, to: cgFloatValue) { nValue in
+            view.layer.borderWidth = nValue
+        }
+        
+    case "crd", "cornerRadius":
+        return createFloatInterpolation(from: view.layer.borderWidth, to: cgFloatValue) { nValue in
+            view.layer.borderWidth = nValue
+        }
+        
+    default:
+        return { _ in }
+    }
+    
+}
+
 func radians(_ degrees: CGFloat) -> CGFloat {
     return degrees * (CGFloat.pi / 180.0)
 }

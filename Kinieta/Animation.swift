@@ -9,29 +9,19 @@
 import UIKit
 
 
-typealias TransformationBlock = (Double) -> Void
-
 class Animation: Action {
     
     private var transformations:[TransformationBlock] = []
     
-    override func move(_ dict: [String:Any], during duration: TimeInterval) -> Animation {
+    internal var easeCurve: Bezier = Easing.liner
+    
+    init(view: UIView, moves: [String:Any], duration: TimeInterval) {
         
-        guard transformations.count == 0 else {
-            return Animation(self.view).move(dict, during: duration)
-        }
-        
-        self.setTimeframe(for: duration)
-        
-        for (key,value) in dict {
-            let transformation = createTransormation(of: key, for: value)
+        for (property, value) in moves {
+            let transformation = createTransormation(in: view, for: property, with: value)
             transformations.append(transformation)
         }
-        
-        return self
-        
     }
-    
     
     override func execute(_ frame: Engine.Frame) -> Bool {
         
@@ -45,72 +35,7 @@ class Animation: Action {
     }
     
     
-    // MARK: Create Transformations
-    internal func createTransormation(of property:String, for value:Any) -> TransformationBlock {
-        
-        let cgFloatValue: CGFloat = (value as? CGFloat) ?? 1.0
-        
-        switch property {
-            
-        case "x":
-            return createFloatInterpolation(from: self.view.center.x, to: cgFloatValue) { nValue in
-                self.view.center = CGPoint(x: nValue, y: self.view.center.y)
-            }
-            
-        case "y":
-            return createFloatInterpolation(from: self.view.center.x, to: cgFloatValue) { nValue in
-                self.view.center = CGPoint(x: self.view.center.x, y: nValue)
-            }
-            
-        case "w", "width":
-            return createFloatInterpolation(from: self.view.frame.size.width, to: cgFloatValue) { nValue in
-                var oFrame = self.view.frame
-                oFrame.size.width = nValue
-                self.view.frame = oFrame
-            }
-            
-        case "h", "height":
-            return createFloatInterpolation(from: self.view.frame.size.height, to: cgFloatValue) { nValue in
-                var oFrame = self.view.frame
-                oFrame.size.height = nValue
-                self.view.frame = oFrame
-            }
-            
-        case "r", "rotation":
-            return createFloatInterpolation(from: self.view.rotation, to: cgFloatValue) { nValue in
-                self.view.rotation = nValue
-            }
-            
-        case "a", "alpha":
-            return createFloatInterpolation(from: self.view.alpha, to: cgFloatValue) { nValue in
-                self.view.alpha = nValue
-            }
-            
-        case "bg", "background":
-            return createColorInterpolation(from: self.view.backgroundColor ?? UIColor.white, to: value as! UIColor) { nColor in
-                self.view.backgroundColor = nColor
-            }
-            
-        case "brc", "borderColor":
-            return createColorInterpolation(from: self.view.backgroundColor ?? UIColor.white, to: value as! UIColor) { nColor in
-                self.view.layer.borderColor = nColor.cgColor
-            }
-            
-        case "brw", "borderWidth":
-            return createFloatInterpolation(from: self.view.layer.borderWidth, to: cgFloatValue) { nValue in
-                self.view.layer.borderWidth = nValue
-            }
-            
-        case "crd", "cornerRadius":
-            return createFloatInterpolation(from: self.view.layer.borderWidth, to: cgFloatValue) { nValue in
-                self.view.layer.borderWidth = nValue
-            }
-            
-        default:
-            return { _ in }
-        }
-        
-    }
+    
 }
 
 

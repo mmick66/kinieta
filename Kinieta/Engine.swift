@@ -19,79 +19,74 @@ class Engine {
         }
     }
     
-    static let shared = Engine()
+    class DisplayLink {
+        private var displayLink: CADisplayLink?
     
-    private var displayLink: CADisplayLink?
-    
-    private var actions: [Action] = []
-    
-    func add(_ action: Action) {
+        func pause() {
+            displayLink?.isPaused = true
+        }
         
-        actions.append(action)
+        func resume() {
+            displayLink?.isPaused = false
+        }
         
-        if displayLink == nil {
-            displayLink = CADisplayLink(target: self, selector: #selector(Engine.update(_:)))
+        var onUpdate:((Engine.Frame) -> Void)?
+        func start(onUpdate: ((Engine.Frame) -> Void)? = nil) {
+            guard displayLink == nil else {
+                return
+            }
+            self.onUpdate = onUpdate
+            displayLink = CADisplayLink(target: self, selector: #selector(DisplayLink.update(_:)))
             displayLink?.add(to: RunLoop.current, forMode: RunLoopMode.commonModes)
         }
+        func stop() {
+            self.displayLink?.invalidate()
+            self.displayLink = nil
+        }
+        
+        @objc func update(_ displayLink: CADisplayLink) {
+            let frame = Engine.Frame(displayLink.timestamp, displayLink.duration)
+            self.onUpdate?(frame)
+        }
     }
     
-    @objc func update(_ displayLink: CADisplayLink) {
-        print("Updating for \(displayLink.timestamp)")
-        guard let action = self.actions.first else {
+    static let shared = Engine()
+    
+    let displayLink = Engine.DisplayLink()
+    
+    private var sequences: [Sequence] = []
+    
+    func add(sequence: Sequence) {
+        
+        
+        sequences.append(sequence)
+        displayLink.start() { frame in
+            self.update(with: frame)
+        }
+    }
+    
+    func remove(sequence: Sequence) {
+        guard let index = sequences.index(where: { $0 === sequence }) else {
             return
         }
+        sequences.remove(at: index)
+        if sequences.count == 0 {
+            displayLink.stop()
+        }
+    }
+    
+    private func update(with frame: Engine.Frame) {
         
-        let frame = Engine.Frame(displayLink.timestamp, displayLink.duration)
-        if action.update(frame) {
-            
-            if let index = actions.index(where: { $0 === action }) {
-                actions.remove(at: index)
-            }
-            
-            if actions.count == 0 {
-                self.displayLink?.invalidate()
-                self.displayLink = nil
+        for sequence in sequences {
+            switch sequence.update(frame) {
+            case .Running:  continue
+            case .Finished: self.remove(sequence: sequence)
             }
         }
-        
-    }
-    
-    func pause() {
-        displayLink?.isPaused = true
-    }
-    
-    func resume() {
-        displayLink?.isPaused = false
-    }
-    
-    func stop() {
-        displayLink?.invalidate()
-    }
-    
-    func index(_ action: Action) -> Int? {
-        if let index = actions.index(where: { $0 === action }) {
-            return index
-        }
-        return nil
-    }
-    
-    private var ipeg: Int = 0
-    func peg() {
-        ipeg = actions.count
-    }
-    
-    func group() -> Group? {
-        let bundle = Array(actions[ipeg..<actions.count])
-        guard let group = Group(bundle) else {
-            return nil
-        }
-        self.actions = Array(actions[0..<ipeg])
-        self.actions.append(group)
-        return group
     }
     
     deinit {
-        self.stop()
+        displayLink.stop()
     }
     
 }
