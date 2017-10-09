@@ -20,11 +20,10 @@ class ViewController: UIViewController {
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         
-        
     }
 
     @IBAction func goButtonPressed(_ sender: UIButton) {
-        self.square.move(["y": 300], during: 1.0)
+        self.square.move(["x": 250, "y": 500, "r": 30], during: 1.0)
         
     }
     

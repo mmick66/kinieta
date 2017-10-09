@@ -38,7 +38,7 @@ class Animation: Action {
         currentt += frame.duration
         currentt  = currentt > duration ? duration : currentt
         
-        let factor = 1.0 - (currentt / duration)
+        let factor = currentt / duration
         
         for transformation in transformations {
             transformation(factor)

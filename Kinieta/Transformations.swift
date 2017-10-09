@@ -36,10 +36,10 @@ func createColorInterpolation(from start:UIColor, to end:UIColor, block: @escapi
         
         let cgFloatFactor = CGFloat(factor)
         
-        let r = (1 - cgFloatFactor) * startComponents.r + cgFloatFactor * endComponents.r
-        let g = (1 - cgFloatFactor) * startComponents.g + cgFloatFactor * endComponents.g
-        let b = (1 - cgFloatFactor) * startComponents.b + cgFloatFactor * endComponents.b
-        let a = (1 - cgFloatFactor) * startComponents.a + cgFloatFactor * endComponents.a
+        let r = (1.0 - cgFloatFactor) * startComponents.r + cgFloatFactor * endComponents.r
+        let g = (1.0 - cgFloatFactor) * startComponents.g + cgFloatFactor * endComponents.g
+        let b = (1.0 - cgFloatFactor) * startComponents.b + cgFloatFactor * endComponents.b
+        let a = (1.0 - cgFloatFactor) * startComponents.a + cgFloatFactor * endComponents.a
         
         let iColor = UIColor(red: r, green: g, blue: b, alpha: a)
         
@@ -60,7 +60,7 @@ func createTransormation(in view: UIView, for property:String, with value:Any) -
         }
         
     case "y":
-        return createFloatInterpolation(from: view.center.x, to: cgFloatValue) { nValue in
+        return createFloatInterpolation(from: view.center.y, to: cgFloatValue) { nValue in
             view.center = CGPoint(x: view.center.x, y: nValue)
         }
         
