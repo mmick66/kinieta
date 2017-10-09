@@ -38,13 +38,13 @@ class Animation: Action {
         currentt += frame.duration
         currentt  = currentt > duration ? duration : currentt
         
-        let factor = currentt / duration
-        
+        let tpoint = currentt / duration
+        let ypoint = self.easeCurve.solve(tpoint)
         for transformation in transformations {
-            transformation(factor)
+            transformation(ypoint)
         }
         
-        return factor < 1.0 ? .Running : .Finished
+        return tpoint < 1.0 ? .Running : .Finished
     }
     
     

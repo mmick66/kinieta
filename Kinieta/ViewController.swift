@@ -23,7 +23,7 @@ class ViewController: UIViewController {
     }
 
     @IBAction func goButtonPressed(_ sender: UIButton) {
-        self.square.move(["x": 250, "y": 500, "r": 30], during: 1.0)
+        self.square.move(["x": 250, "y": 500, "r": 30], during: 1.0).ease(Easing.easeInOut)
         
     }
     
