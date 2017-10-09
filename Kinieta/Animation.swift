@@ -18,6 +18,8 @@ class Animation: Action {
     let duration: TimeInterval
     var currentt: TimeInterval = 0.0
     
+    var initial: [String: Any]!
+    
     init(view: UIView, moves: [String:Any], duration: TimeInterval) {
         self.duration = duration
         for (property, value) in moves {
@@ -46,9 +48,6 @@ class Animation: Action {
         
         return tpoint < 1.0 ? .Running : .Finished
     }
-    
-    
-    
     
 }
 

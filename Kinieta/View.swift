@@ -46,3 +46,30 @@ func >>(lhs: Range<TimeInterval>, rhs: TimeInterval) -> Range<TimeInterval> {
     return (lhs.lowerBound+rhs)..<(lhs.upperBound+rhs)
 }
 
+extension UIView {
+    var properties: [String: Any] {
+        get {
+            var dict = [String: Any]()
+            
+            dict["x"] = self.frame.origin.x
+            dict["y"] = self.frame.origin.y
+            dict["w"] = self.frame.size.width
+            dict["h"] = self.frame.size.height
+            dict["r"] = self.rotation
+            dict["a"] = self.alpha
+            
+            if let bg = self.backgroundColor {
+                dict["bg"] = bg
+            }
+            
+            if let brc = self.layer.borderColor {
+                dict["brc"] = UIColor(cgColor: brc)
+            }
+            dict["brw"] = self.layer.borderWidth
+            dict["crd"] = self.layer.cornerRadius
+            
+            return dict
+        }
+    }
+}
+

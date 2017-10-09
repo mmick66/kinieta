@@ -89,12 +89,14 @@ func createTransormation(in view: UIView, for property:String, with value:Any) -
         }
         
     case "bg", "background":
-        return createColorInterpolation(from: view.backgroundColor ?? UIColor.white, to: value as! UIColor) { nColor in
+        let ibg = view.backgroundColor != nil ? view.backgroundColor! : UIColor.clear
+        return createColorInterpolation(from: ibg , to: value as! UIColor) { nColor in
             view.backgroundColor = nColor
         }
         
     case "brc", "borderColor":
-        return createColorInterpolation(from: view.backgroundColor ?? UIColor.white, to: value as! UIColor) { nColor in
+        let ibrc = view.layer.borderColor != nil ? UIColor(cgColor: view.layer.borderColor!) : UIColor.clear
+        return createColorInterpolation(from: ibrc, to: value as! UIColor) { nColor in
             view.layer.borderColor = nColor.cgColor
         }
         
