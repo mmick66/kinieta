@@ -28,10 +28,17 @@ class Animation: Action {
     
     override func update(_ frame: Engine.Frame) -> Result {
         
-        currentt += frame.timestamp
+        guard duration > 0.0 else {
+            for transformation in transformations {
+                transformation(1.0)
+            }
+            return .Finished
+        }
+        
+        currentt += frame.duration
         currentt  = currentt > duration ? duration : currentt
         
-        let factor = 1.0 - ((duration - currentt) / duration)
+        let factor = 1.0 - (currentt / duration)
         
         for transformation in transformations {
             transformation(factor)

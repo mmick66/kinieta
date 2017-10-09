@@ -44,14 +44,13 @@ func createColorInterpolation(from start:UIColor, to end:UIColor, block: @escapi
         let iColor = UIColor(red: r, green: g, blue: b, alpha: a)
         
         block(iColor)
-        
     }
 }
 
 typealias TransformationBlock = (Double) -> Void
 func createTransormation(in view: UIView, for property:String, with value:Any) -> TransformationBlock {
     
-    let cgFloatValue: CGFloat = (value as? CGFloat) ?? 1.0
+    let cgFloatValue: CGFloat = cgfloat(value) ?? 1.0
     
     switch property {
         
@@ -123,4 +122,22 @@ func clamp<T: Comparable>(value: T, lower: T, upper: T) -> T {
     return min(max(value, lower), upper)
 }
 
+func cgfloat(_ any: Any) -> CGFloat? {
+    switch any {
+    case let x as CGFloat:  return CGFloat(x)
+    case let x as Float:    return CGFloat(x)
+    case let x as Int:      return CGFloat(x)
+    case let x as Double:   return CGFloat(x)
+    case let x as UInt8:    return CGFloat(x)
+    case let x as Int8:     return CGFloat(x)
+    case let x as UInt16:   return CGFloat(x)
+    case let x as Int16:    return CGFloat(x)
+    case let x as UInt32:   return CGFloat(x)
+    case let x as Int32:    return CGFloat(x)
+    case let x as UInt64:   return CGFloat(x)
+    case let x as Int64:    return CGFloat(x)
+    case let x as UInt:     return CGFloat(x)
+    default:                return nil
+    }
+}
 

@@ -58,7 +58,6 @@ class Engine {
     
     func add(sequence: Sequence) {
         
-        
         sequences.append(sequence)
         displayLink.start() { frame in
             self.update(with: frame)
@@ -76,7 +75,7 @@ class Engine {
     }
     
     private func update(with frame: Engine.Frame) {
-        
+     
         for sequence in sequences {
             switch sequence.update(frame) {
             case .Running:  continue

@@ -13,13 +13,13 @@ class ViewController: UIViewController {
     @IBOutlet var square: UIView!
     override func viewDidLoad() {
         super.viewDidLoad()
-        
+        self.square.layer.cornerRadius = 4.0
     }
     
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         
-        square.move(["x": 300])
+        self.square.move(["x": 330])
     }
 
 
