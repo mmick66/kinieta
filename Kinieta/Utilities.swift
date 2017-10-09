@@ -14,7 +14,6 @@ func createFloatInterpolation(from start:CGFloat, to end:CGFloat, block: @escapi
         let cgFloatFactor = CGFloat(factor)
         let iFloat = (1.0 - cgFloatFactor) * start + cgFloatFactor * end
         block(iFloat)
-        
     }
 }
 
@@ -118,6 +117,10 @@ func createTransormation(in view: UIView, for property:String, with value:Any) -
 
 func radians(_ degrees: CGFloat) -> CGFloat {
     return degrees * (CGFloat.pi / 180.0)
+}
+
+func clamp<T: Comparable>(value: T, lower: T, upper: T) -> T {
+    return min(max(value, lower), upper)
 }
 
 

@@ -8,33 +8,24 @@
 
 import UIKit
 
+
 class Action {
     
     enum Result: String {
         case Running     = "Action.Result.Running"
         case Finished   = "Action.Result.Finished"
     }
-    internal var timeframe: Range<TimeInterval> = 0.0..<0.0
     
     internal(set) var onComplete: () -> Void = {  }
-    @discardableResult func complete(_ block: @escaping  () -> Void) -> Action {
+    @discardableResult
+    func complete(_ block: @escaping  () -> Void) -> Action {
         self.onComplete = block
         return self
     }
     
-    @discardableResult func update(_ frame: Engine.Frame) -> Result {
-        guard timeframe.contains(frame.timestamp) else {
-            self.onComplete()
-            return .Finished
-        }
-        return execute(frame) == true ? .Finished : .Running
+    @discardableResult
+    func update(_ frame: Engine.Frame) -> Result {
+        return .Finished
     }
-    
-    internal func execute(_ frame: Engine.Frame) -> Bool {
-        return true
-    }
-    
     
 }
-
-
