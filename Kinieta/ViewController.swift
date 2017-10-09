@@ -16,14 +16,18 @@ class ViewController: UIViewController {
         self.square.layer.cornerRadius = 4.0
     }
     
+    @IBOutlet weak var goButton: UIButton!
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         
-        self.square.move(["x": 330])
+        
     }
 
-
-
+    @IBAction func goButtonPressed(_ sender: UIButton) {
+        self.square.move(["y": 300], during: 1.0)
+        
+    }
+    
 
 }
 
