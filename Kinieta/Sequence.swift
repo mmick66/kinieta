@@ -19,14 +19,14 @@ class Sequence: Action {
     
     @discardableResult
     func move(_ moves: [String:Any], during duration: TimeInterval) -> Sequence {
-        addInQueue(.Animation(moves, duration, nil))
+        addInQueue(.Animation(moves, duration, nil, nil))
         return self
     }
     
     
     @discardableResult
-    func wait(for time: TimeInterval) -> Sequence {
-        addInQueue(.Pause(time))
+    func wait(for time: TimeInterval, complete: Block? = nil) -> Sequence {
+        addInQueue(.Pause(time, complete))
         return self
     }
     
@@ -40,7 +40,7 @@ class Sequence: Action {
         guard let lastAction = actionsQueue.popLast() else {
             return self
         }
-        let pauseAction = Action.ActionType.Pause(time)
+        let pauseAction = Action.ActionType.Pause(time, nil)
         actionsQueue.append(pauseAction)
         actionsQueue.append(lastAction)
         
@@ -68,9 +68,9 @@ class Sequence: Action {
             return self
         }
         switch lastAction {
-        case .Animation(let moves, let duration, _):
+        case .Animation(let moves, let duration, _, let complete):
             let easing = Easing.get(type, place) ?? Easing.Linear
-            self.actionsQueue.append(.Animation(moves, duration, easing))
+            self.actionsQueue.append(.Animation(moves, duration, easing, complete))
         default:
             self.actionsQueue.append(lastAction) // put back
         }
@@ -78,12 +78,12 @@ class Sequence: Action {
         return self
     }
     
-//    // MARK: Group
+    // MARK: Group
 //    @discardableResult
 //    func group() -> Sequence {
 //
 //        var actionsToGroup = [Action]()
-//        while let action = self.actions.popLast() {
+//        while let actionType = self.actions.popLast() {
 //            if action is Group {
 //                self.actions.append(action) // put back
 //                break
@@ -96,29 +96,50 @@ class Sequence: Action {
 //
 //        return self
 //    }
-//
+
 //    // MARK: Update
+    
+    @discardableResult
+    override func complete(_ block: @escaping Block) -> Action {
+        guard let lastAction = actionsQueue.popLast() else {
+            return self
+        }
+        switch lastAction {
+        case .Animation(let moves, let duration, let easing, _):
+            self.currentAction = Animation(self.view, moves: moves, duration: duration, easing: easing, complete: block)
+        case .Pause(let time, _):
+            self.currentAction = Pause(time, complete: block)
+        case .Group(let types, let block):
+            let actions = types.map { (type) -> Action in return self.prepareAction(type) }
+            self.currentAction = Group(actions, complete: block)
+        }
+        
+        return self
+    }
     
     private var currentAction: Action?
     
     @discardableResult
     private func prepareNextAction() -> Bool {
-        
-        guard let nextAction = self.actionsQueue.first else {
+        guard let nextActionType = self.actionsQueue.first else {
             return false
         }
-        
-        switch nextAction {
-        case .Animation(let moves, let duration, let easing):
-            self.currentAction = Animation(self.view, moves: moves, duration: duration, easing: easing)
-        case .Pause(let time):
-            self.currentAction = Pause(time)
-        }
-        
+        self.currentAction = self.prepareAction(nextActionType)
         self.actionsQueue.removeFirst()
-        
         return true
         
+    }
+    
+    private func prepareAction(_ type: ActionType) -> Action {
+        switch type {
+        case .Animation(let moves, let duration, let easing, let block):
+            return Animation(self.view, moves: moves, duration: duration, easing: easing, complete: block)
+        case .Pause(let time, let block):
+            return Pause(time, complete: block)
+        case .Group(let types, let block):
+            let actions = types.map { (type) -> Action in return self.prepareAction(type) }
+            return Group(actions, complete: block)
+        }
     }
     
     

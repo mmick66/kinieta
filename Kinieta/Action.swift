@@ -8,6 +8,7 @@
 
 import UIKit
 
+typealias Block = (()->Void)
 
 class Action {
     
@@ -17,11 +18,12 @@ class Action {
     }
     
     enum ActionType {
-        case Animation(Dictionary<String,Any>, TimeInterval, Bezier?)
-        case Pause(TimeInterval)
+        case Animation(Dictionary<String,Any>, TimeInterval, Bezier?, Block?)
+        case Pause(TimeInterval, Block?)
+        case Group([ActionType], Block?)
     }
     
-    internal(set) var onComplete: () -> Void = {  }
+    internal var onComplete: (()->Void)?
     @discardableResult
     func complete(_ block: @escaping  () -> Void) -> Action {
         self.onComplete = block

@@ -20,9 +20,11 @@ class Animation: Action {
     
     var initial: [String: Any]?
     
-    init(_ view: UIView, moves: [String:Any], duration: TimeInterval, easing: Bezier?) {
-        self.duration = duration
-        self.easing   = easing ?? Easing.Linear
+    init(_ view: UIView, moves: [String:Any], duration: TimeInterval, easing: Bezier?, complete: (()->Void)?) {
+        self.duration   = duration
+        self.easing     = easing ?? Easing.Linear
+        super.init()
+        self.onComplete = complete
         for (property, value) in moves {
             let transformation = createTransormation(in: view, for: property, with: value)
             transformations.append(transformation)
@@ -47,7 +49,14 @@ class Animation: Action {
             transformation(ypoint)
         }
         
-        return tpoint < 1.0 ? .Running : .Finished
+        if tpoint < 1.0 {
+            return .Running
+        }
+        else {
+            self.onComplete?()
+            return .Finished
+        }
+        
     }
     
 }

@@ -12,8 +12,10 @@ class Group: Action {
     
     var actions: [Action]
     
-    init(_ actions: [Action]) {
+    init(_ actions: [Action], complete: Block?) {
         self.actions = actions
+        super.init()
+        self.onComplete = complete
     }
 
     @discardableResult
@@ -23,12 +25,12 @@ class Group: Action {
             return .Finished
         }
         
-        for action in actions {
+        for (i,action) in actions.enumerated() {
             switch action.update(frame)  {
             case .Running:
-                return .Running
+                break
             case .Finished:
-                self.actions.removeFirst()
+                self.actions.remove(at: i)
             }
         }
         

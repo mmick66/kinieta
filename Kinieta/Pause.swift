@@ -12,7 +12,7 @@ class Pause: Action {
     
     let duration: TimeInterval
     var currentt: TimeInterval = 0.0
-    init(_ duration: TimeInterval) {
+    init(_ duration: TimeInterval, complete: (()->Void)?) {
         self.duration = duration
     }
     
@@ -23,7 +23,15 @@ class Pause: Action {
             return .Finished
         }
         currentt += frame.duration
-        return currentt < duration ? .Running : .Finished
+        
+        if currentt < duration {
+            return .Running
+        }
+        else {
+            self.onComplete?()
+            return .Finished
+        }
+        
     }
     
 }
