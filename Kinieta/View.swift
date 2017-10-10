@@ -28,16 +28,17 @@ extension UIView {
 extension UIView {
     var rotation:CGFloat {
         get {
-            return atan2(self.transform.b, self.transform.a);
+            return atan2(self.transform.b, self.transform.a).radiansToDegrees
         }
         set {
-            let rads = radians(newValue)
+            let rads = newValue.degreesToRadians
             var tr_p = self.transform
             tr_p.a =  cos(rads)
             tr_p.b =  sin(rads)
             tr_p.c = -sin(rads)
             tr_p.d =  cos(rads)
             self.transform = tr_p
+
         }
     }
 }

@@ -116,8 +116,10 @@ func createTransormation(in view: UIView, for property:String, with value:Any) -
     
 }
 
-func radians(_ degrees: CGFloat) -> CGFloat {
-    return degrees * (CGFloat.pi / 180.0)
+
+extension FloatingPoint {
+    var degreesToRadians: Self { return self * .pi / 180 }
+    var radiansToDegrees: Self { return self * 180 / .pi }
 }
 
 func clamp<T: Comparable>(value: T, lower: T, upper: T) -> T {

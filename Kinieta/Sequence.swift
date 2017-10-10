@@ -37,18 +37,12 @@ class Sequence: Action {
     
     @discardableResult
     func delay(for time: TimeInterval) -> Sequence {
-        guard let lastAction = actionsQueue.last else {
+        guard let lastAction = actionsQueue.popLast() else {
             return self
         }
-        
-        switch lastAction {
-        case .Animation(_, _, _):
-            let pause = Action.ActionType.Pause(time)
-            let index = actionsQueue.endIndex.advanced(by: -1)
-            actionsQueue.insert(pause, at: index)
-        default:
-            break
-        }
+        let pauseAction = Action.ActionType.Pause(time)
+        actionsQueue.append(pauseAction)
+        actionsQueue.append(lastAction)
         
         return self
     }
@@ -83,7 +77,7 @@ class Sequence: Action {
         
         return self
     }
-//
+    
 //    // MARK: Group
 //    @discardableResult
 //    func group() -> Sequence {

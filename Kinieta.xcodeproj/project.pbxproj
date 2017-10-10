@@ -24,6 +24,7 @@
 		C772DF821F5D4FA800A3F690 /* Easing.swift in Sources */ = {isa = PBXBuildFile; fileRef = C772DF7D1F581B7B00A3F690 /* Easing.swift */; };
 		C772DF841F5D51F100A3F690 /* CalculationsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C772DF831F5D51F100A3F690 /* CalculationsTests.swift */; };
 		C77895871F8B6ADA004A6274 /* Sequence.swift in Sources */ = {isa = PBXBuildFile; fileRef = C77895861F8B6ADA004A6274 /* Sequence.swift */; };
+		C7937B881F8CDF8C00B54DC0 /* Sequence.swift in Sources */ = {isa = PBXBuildFile; fileRef = C77895861F8B6ADA004A6274 /* Sequence.swift */; };
 		C7B25AD81F5FCE9B0060071E /* Engine.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7B25AD71F5FCE9B0060071E /* Engine.swift */; };
 		C7B25ADA1F5FCEFA0060071E /* Transformations.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7B25AD91F5FCEFA0060071E /* Transformations.swift */; };
 		C7B25ADC1F5FD0AA0060071E /* View.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7B25ADB1F5FD0AA0060071E /* View.swift */; };
@@ -266,6 +267,7 @@
 			files = (
 				C772DF821F5D4FA800A3F690 /* Easing.swift in Sources */,
 				C772DF841F5D51F100A3F690 /* CalculationsTests.swift in Sources */,
+				C7937B881F8CDF8C00B54DC0 /* Sequence.swift in Sources */,
 				C772DF811F5D4FA600A3F690 /* Bezier.swift in Sources */,
 				C772DF801F5D4FA200A3F690 /* Animation.swift in Sources */,
 				BE6568ED1F57DE10007E41D2 /* KinietaTests.swift in Sources */,
