@@ -11,10 +11,4 @@ For the moment, just copy the files in the Kinieta folder
 
 ## How to Use
 
-<style>
-  img[src$="centerme"] {
-    display:block;
-    margin: 0 auto;
-  }
-</style>
 
