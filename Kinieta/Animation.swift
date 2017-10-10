@@ -13,7 +13,7 @@ class Animation: Action {
     
     private var transformations:[TransformationBlock] = []
     
-    internal var easeCurve: Bezier = Easing.liner
+    internal var easeCurve: Bezier = Easing.Linear
     
     let duration: TimeInterval
     var currentt: TimeInterval = 0.0

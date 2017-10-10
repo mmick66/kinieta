@@ -31,14 +31,41 @@ class Sequence: Action {
     }
     
     @discardableResult
-    func ease(_ curve: Bezier) -> Sequence {
-        guard let animation = self.actions.last as? Animation else {
+    func delay(for time: TimeInterval) -> Sequence {
+        guard self.actions.last is Animation else {
             return self
         }
-        animation.easeCurve = curve
+        let pause = Pause(for: time)
+        let index = self.actions.endIndex.advanced(by: -1)
+        self.actions.insert(pause, at: index)
         return self
     }
     
+    // MARK: Easing Functions
+    @discardableResult
+    func easeIn(_ type: Easing.Types = Easing.Types.Quad) -> Sequence {
+        return self.ease(type, place: "In")
+    }
+    
+    @discardableResult
+    func easeOut(_ type: Easing.Types = Easing.Types.Quad) -> Sequence {
+        return self.ease(type, place: "Out")
+    }
+    
+    @discardableResult
+    func easeInOut(_ type: Easing.Types = Easing.Types.Quad) -> Sequence {
+        return self.ease(type, place: "InOut")
+    }
+    
+    private func ease(_ type: Easing.Types, place: String) -> Sequence {
+        guard let animation = self.actions.last as? Animation else {
+            return self
+        }
+        animation.easeCurve = Easing.get(type, place) ?? Easing.Linear
+        return self
+    }
+    
+    // MARK: Group
     @discardableResult
     func group() -> Sequence {
         
@@ -57,6 +84,7 @@ class Sequence: Action {
         return self
     }
     
+    // MARK: Update
     @discardableResult
     override func update(_ frame: Engine.Frame) -> Result {
         
