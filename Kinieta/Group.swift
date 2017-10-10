@@ -34,7 +34,14 @@ class Group: Action {
             }
         }
         
-        return self.actions.count > 0 ? .Running : .Finished
+        if self.actions.count > 0 {
+            return .Running
+        }
+        else {
+            self.onComplete?()
+            return .Finished
+        }
+        
         
     }
     
