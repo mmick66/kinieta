@@ -13,15 +13,16 @@ class Animation: Action {
     
     private var transformations:[TransformationBlock] = []
     
-    internal var easeCurve: Bezier = Easing.Linear
+    private(set) var easing: Bezier
     
-    let duration: TimeInterval
-    var currentt: TimeInterval = 0.0
+    private(set) var duration: TimeInterval
+    private(set) var currentt: TimeInterval = 0.0
     
-    var initial: [String: Any]!
+    var initial: [String: Any]?
     
-    init(view: UIView, moves: [String:Any], duration: TimeInterval) {
+    init(_ view: UIView, moves: [String:Any], duration: TimeInterval, easing: Bezier?) {
         self.duration = duration
+        self.easing   = easing ?? Easing.Linear
         for (property, value) in moves {
             let transformation = createTransormation(in: view, for: property, with: value)
             transformations.append(transformation)
@@ -41,7 +42,7 @@ class Animation: Action {
         currentt  = currentt > duration ? duration : currentt
         
         let tpoint = currentt / duration
-        let ypoint = self.easeCurve.solve(tpoint)
+        let ypoint = self.easing.solve(tpoint)
         for transformation in transformations {
             transformation(ypoint)
         }

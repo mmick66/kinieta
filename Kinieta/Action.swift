@@ -16,6 +16,11 @@ class Action {
         case Finished   = "Action.Result.Finished"
     }
     
+    enum ActionType {
+        case Animation(Dictionary<String,Any>, TimeInterval, Bezier?)
+        case Pause(TimeInterval)
+    }
+    
     internal(set) var onComplete: () -> Void = {  }
     @discardableResult
     func complete(_ block: @escaping  () -> Void) -> Action {

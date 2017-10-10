@@ -12,7 +12,7 @@ class Pause: Action {
     
     let duration: TimeInterval
     var currentt: TimeInterval = 0.0
-    init(for duration: TimeInterval) {
+    init(_ duration: TimeInterval) {
         self.duration = duration
     }
     
