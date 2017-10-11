@@ -11,18 +11,14 @@ import UIKit
 class Collection {
     
     internal var actions: [ActionType]
-    let view: UIView
     
-    init(_ view: UIView, actions: [ActionType]) {
-        
-        self.actions    = actions
-        self.view       = view
-        
+    init(_ actions: [ActionType]) {
+        self.actions = actions
     }
     
     func popFirstAction() -> Action? {
         guard let type = self.actions.first else { return nil }
-        let action = Factory.Action(for: self.view, with: type)
+        let action = Factory.Action(from: type)
         self.actions.removeFirst()
         return action
     }

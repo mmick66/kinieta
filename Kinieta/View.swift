@@ -10,14 +10,14 @@ import UIKit
 
 extension UIView {
     @discardableResult
-    func move(_ dict: [String:Any], during duration: TimeInterval = 0.0) -> Kinieta {
+    func move(to dict: [String:Any], during duration: TimeInterval = 0.0) -> Kinieta {
         let kinieta = Kinieta(for: self)
-        kinieta.move(dict, during: duration)
+        kinieta.move(to: dict, during: duration)
         Engine.shared.add(kinieta)
         return kinieta
     }
     @discardableResult
-    func wait(time: TimeInterval) -> Kinieta {
+    func wait(for time: TimeInterval) -> Kinieta {
         let kinieta = Kinieta(for: self)
         kinieta.wait(for: time)
         Engine.shared.add(kinieta)

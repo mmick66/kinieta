@@ -11,7 +11,7 @@ import UIKit
 typealias Block = (()->Void)
 
 enum ActionType {
-    case Animation(Dictionary<String,Any>, TimeInterval, Bezier?, Block?)
+    case Animation(UIView, Dictionary<String,Any>, TimeInterval, Bezier?, Block?)
     case Pause(TimeInterval, Block?)
     case Group([ActionType], Block?)
     case Sequence([ActionType], Block?)
@@ -30,16 +30,16 @@ class Factory {
     
     let shared = Factory()
     
-    static func Action(for view: UIView, with type: ActionType) -> Action {
+    static func Action(from type: ActionType) -> Action {
         switch type {
-        case .Animation(let moves, let duration, let easing, let block):
+        case .Animation(let view, let moves, let duration, let easing, let block):
             return Animation(view, moves: moves, duration: duration, easing: easing, complete: block)
         case .Pause(let time, let block):
             return Pause(time, complete: block)
-        case .Group(let types, let block):
-            return Group(view, actions: types, complete: block)
-        case .Sequence(let types, let block):
-            return Sequence(view, actions: types, complete: block)
+        case .Group(let list, let block):
+            return Group(list, complete: block)
+        case .Sequence(let list, let block):
+            return Sequence(list, complete: block)
         }
     }
 }

@@ -26,7 +26,7 @@ class Animation: Action {
         
         self.duration   = duration
         self.easing     = easing ?? Easing.Linear
-        self.complete = complete
+        self.complete   = complete
         
         for (property, value) in moves {
             let transformation = createTransormation(in: view, for: property, with: value)

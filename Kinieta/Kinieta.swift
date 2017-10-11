@@ -15,12 +15,12 @@ class Kinieta: Action {
     let view: UIView
     init(for view: UIView) {
         self.view = view
-        self.main = Sequence(view, actions: [])
+        self.main = Sequence()
     }
     
     @discardableResult
-    func move(_ moves: [String:Any], during duration: TimeInterval) -> Kinieta {
-        self.main.add(.Animation(moves, duration, nil, nil))
+    func move(to moves: [String:Any], during duration: TimeInterval) -> Kinieta {
+        self.main.add(.Animation(self.view, moves, duration, nil, nil))
         return self
     }
     
@@ -64,9 +64,9 @@ class Kinieta: Action {
             return self
         }
         switch lastAction {
-        case .Animation(let moves, let duration, _, let complete):
+        case .Animation(let view, let moves, let duration, _, let complete):
             let easing = Easing.get(type, place) ?? Easing.Linear
-            self.main.add(.Animation(moves, duration, easing, complete))
+            self.main.add(.Animation(view, moves, duration, easing, complete))
         default:
             self.main.add(lastAction) // put back
         }
@@ -74,40 +74,44 @@ class Kinieta: Action {
         return self
     }
     
-    // MARK: Group
-    //    @discardableResult
-    //    func group() -> Sequence {
-    //
-    //        var actionsToGroup = [Action]()
-    //        while let actionType = self.actions.popLast() {
-    //            if action is Group {
-    //                self.actions.append(action) // put back
-    //                break
-    //            }
-    //            actionsToGroup.append(action)
-    //        }
-    //
-    //        let group = Group(actionsToGroup)
-    //        self.actions.append(group)
-    //
-    //        return self
-    //    }
+
+    @discardableResult
+    func group() -> Kinieta {
     
-    //    // MARK: Update
+        var actions = [ActionType]()
+        while let last = self.main.popLast() {
+            switch last {
+            case .Sequence, .Group:
+                break
+            default:
+                actions.append(last)
+            }
+            
+        }
     
+        let group = ActionType.Group(actions, nil)
+        self.main.add(group)
+    
+        return self
+    }
+    
+
     @discardableResult
     func complete(_ block: @escaping Block) -> Kinieta {
-//        guard let lastAction = self.main.popLast() else {
-//            return self
-//        }
-//        switch lastAction {
-//        case .Animation(let moves, let duration, let easing, _):
-//            self.currentAction = Animation(self.view, moves: moves, duration: duration, easing: easing, complete: block)
-//        case .Pause(let time, _):
-//            self.currentAction = Pause(time, complete: block)
-//        case .Group(let types, let block):
-//            self.currentAction = Group(self.view, actions: types, complete: block)
-//        }
+        guard let last = self.main.popLast() else {
+            return self
+        }
+        switch last {
+        case .Animation(let view, let moves, let duration, let easing, _):
+            self.main.add(ActionType.Animation(view, moves, duration, easing, block))
+        case .Pause(let time, _):
+            self.main.add(ActionType.Pause(time, block))
+        case .Group(let list, let block):
+            self.main.add(ActionType.Group(list, block))
+        case .Sequence(let list, let block):
+            self.main.add(ActionType.Sequence(list, block))
+        }
+        
         
         return self
     }

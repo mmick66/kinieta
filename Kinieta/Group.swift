@@ -13,9 +13,9 @@ class Group: Collection, Action {
     var currentActions: [Action]?
     let complete: Block?
     
-    init(_ view: UIView, actions: [ActionType], complete: Block? = nil) {
+    init(_ actions: [ActionType], complete: Block? = nil) {
         self.complete = complete
-        super.init(view, actions: actions)
+        super.init(actions)
     }
     
     func update(_ frame: Engine.Frame) -> ActionResult {
