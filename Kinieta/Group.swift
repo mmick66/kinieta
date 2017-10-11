@@ -13,7 +13,7 @@ class Group: Collection, Action {
     var currentActions: [Action]?
     let complete: Block?
     
-    init(_ actions: [ActionType], complete: Block? = nil) {
+    init(_ actions: [ActionType] = [], complete: Block? = nil) {
         self.complete = complete
         super.init(actions)
     }
@@ -32,7 +32,7 @@ class Group: Collection, Action {
             self.currentActions = currentActions
             return currentActions.count > 0 ? .Running : .Finished
         }
-        else if actions.count > 0 {
+        else if types.count > 0 {
             self.currentActions = self.popAllActions()
             return update(frame)
         }

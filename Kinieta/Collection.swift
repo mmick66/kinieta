@@ -10,16 +10,31 @@ import UIKit
 
 class Collection {
     
-    internal var actions: [ActionType]
+    internal var types: [ActionType]
     
     init(_ actions: [ActionType]) {
-        self.actions = actions
+        self.types = actions
+    }
+    
+    var first: ActionType? {
+        get {
+            return self.types.first
+        }
+    }
+    var last: ActionType? {
+        get {
+            return self.types.last
+        }
+    }
+    
+    func add(type: ActionType) {
+        self.types.append(type)
     }
     
     func popFirstAction() -> Action? {
-        guard let type = self.actions.first else { return nil }
+        guard let type = self.types.first else { return nil }
         let action = Factory.Action(from: type)
-        self.actions.removeFirst()
+        self.types.removeFirst()
         return action
     }
     

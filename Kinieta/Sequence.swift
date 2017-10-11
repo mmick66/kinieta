@@ -19,19 +19,15 @@ class Sequence: Collection, Action {
         super.init(actions)
     }
     
-    func add(_ action: ActionType) {
-        self.actions.append(action)
-    }
-    
     func popLast() -> ActionType? {
-        guard let last = self.actions.last else { return nil }
-        self.actions.removeLast()
+        guard let last = self.types.last else { return nil }
+        self.types.removeLast()
         return last
     }
     
     func popFirst() -> ActionType? {
-        guard let first = self.actions.first else { return nil }
-        self.actions.removeFirst()
+        guard let first = self.types.first else { return nil }
+        self.types.removeFirst()
         return first
     }
     
@@ -42,7 +38,7 @@ class Sequence: Collection, Action {
             case .Running:
                 return .Running
             case .Finished:
-                return actions.count > 0 ? .Running : .Finished
+                return types.count > 0 ? .Running : .Finished
             }
         }
         else if let nextAction = self.popFirstAction() {
