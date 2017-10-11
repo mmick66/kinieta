@@ -54,32 +54,32 @@ class Engine {
     
     let displayLink = Engine.DisplayLink()
     
-    private var sequences: [Sequence] = []
+    private var kinietas: [Kinieta] = []
     
-    func add(sequence: Sequence) {
+    func add(_ kinieta: Kinieta) {
         
-        sequences.append(sequence)
+        kinietas.append(kinieta)
         displayLink.start() { frame in
             self.update(with: frame)
         }
     }
     
-    func remove(sequence: Sequence) {
-        guard let index = sequences.index(where: { $0 === sequence }) else {
+    func remove(_ kinieta: Kinieta) {
+        guard let index = kinietas.index(where: { $0 === kinieta }) else {
             return
         }
-        sequences.remove(at: index)
-        if sequences.count == 0 {
+        kinietas.remove(at: index)
+        if kinietas.count == 0 {
             displayLink.stop()
         }
     }
     
     private func update(with frame: Engine.Frame) {
      
-        for sequence in sequences {
-            switch sequence.update(frame) {
+        for kinieta in kinietas {
+            switch kinieta.update(frame) {
             case .Running:  continue
-            case .Finished: self.remove(sequence: sequence)
+            case .Finished: self.remove(kinieta)
             }
         }
     }

@@ -28,7 +28,7 @@ class Group: Collection {
             return currentActions.count > 0 ? .Running : .Finished
         }
         else if actions.count > 0 {
-            self.currentActions = actions.map { Factory.Action(for: self.view, with: $0) }
+            self.currentActions = self.popAllActions()
             return update(frame)
         }
         

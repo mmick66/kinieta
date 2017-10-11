@@ -10,18 +10,18 @@ import UIKit
 
 extension UIView {
     @discardableResult
-    func move(_ dict: [String:Any], during duration: TimeInterval = 0.0) -> Sequence {
-        let sequence = Sequence(view: self)
-        sequence.move(dict, during: duration)
-        Engine.shared.add(sequence: sequence)
-        return sequence
+    func move(_ dict: [String:Any], during duration: TimeInterval = 0.0) -> Kinieta {
+        let kinieta = Kinieta(for: self)
+        kinieta.move(dict, during: duration)
+        Engine.shared.add(kinieta)
+        return kinieta
     }
     @discardableResult
-    func wait(time: TimeInterval) -> Sequence {
-        let sequence = Sequence(view: self)
-        sequence.wait(for: time)
-        Engine.shared.add(sequence: sequence)
-        return sequence
+    func wait(time: TimeInterval) -> Kinieta {
+        let kinieta = Kinieta(for: self)
+        kinieta.wait(for: time)
+        Engine.shared.add(kinieta)
+        return kinieta
     }
 }
 
