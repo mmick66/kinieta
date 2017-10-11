@@ -24,7 +24,9 @@ class ViewController: UIViewController {
 
     @IBAction func goButtonPressed(_ sender: UIButton) {
         self.square
-            .move(["x": 250, "y": 500, "r": 10], during: 4.0).easeInOut()
+            .move(["x": 250, "y": 500, "r": 10], during: 1.0).easeInOut()
+            .wait(for: 0.5)
+            .move(["x": 150, "y": 200, "r": 30], during: 1.0).easeInOut()
         
     }
     

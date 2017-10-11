@@ -19,19 +19,15 @@ class Sequence: Action {
     
     @discardableResult
     func move(_ moves: [String:Any], during duration: TimeInterval) -> Sequence {
-        addInQueue(.Animation(moves, duration, nil, nil))
+        actionsQueue.append(.Animation(moves, duration, nil, nil))
         return self
     }
     
     
     @discardableResult
     func wait(for time: TimeInterval, complete: Block? = nil) -> Sequence {
-        addInQueue(.Pause(time, complete))
+        actionsQueue.append(.Pause(time, complete))
         return self
-    }
-    
-    private func addInQueue(_ action: ActionType) {
-        actionsQueue.append(action)
     }
     
     @discardableResult

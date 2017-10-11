@@ -8,19 +8,10 @@
 
 import UIKit
 
-class Group: Action {
+class Group: Collection {
     
-    var actionsQueue: [ActionType]
     var currentActions: [Action]?
-    let view: UIView
-    init(_ view: UIView, actions: [ActionType], complete: Block?) {
-        self.actionsQueue = actions
-        self.view = view
-        super.init()
-        self.onComplete = complete
-        
-    }
-
+    
     @discardableResult
     override func update(_ frame: Engine.Frame) -> Result {
         
@@ -36,8 +27,8 @@ class Group: Action {
             self.currentActions = currentActions
             return currentActions.count > 0 ? .Running : .Finished
         }
-        else if actionsQueue.count > 0 {
-            self.currentActions = actionsQueue.map { Factory.Action(for: self.view, with: $0) }
+        else if actions.count > 0 {
+            self.currentActions = actions.map { Factory.Action(for: self.view, with: $0) }
             return update(frame)
         }
         
