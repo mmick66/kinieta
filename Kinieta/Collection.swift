@@ -8,19 +8,15 @@
 
 import UIKit
 
-class Collection: Action {
+class Collection {
     
     internal var actions: [ActionType]
     let view: UIView
     
-    init(_ view: UIView, actions: [ActionType], complete: Block? = nil) {
+    init(_ view: UIView, actions: [ActionType]) {
         
         self.actions    = actions
         self.view       = view
-        
-        super.init()
-        
-        self.onComplete = complete
         
     }
     

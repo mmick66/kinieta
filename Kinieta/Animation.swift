@@ -18,20 +18,23 @@ class Animation: Action {
     private(set) var duration: TimeInterval
     private(set) var currentt: TimeInterval = 0.0
     
+    var complete: Block?
+    
     var initial: [String: Any]?
     
     init(_ view: UIView, moves: [String: Any], duration: TimeInterval, easing: Bezier?, complete: (()->Void)?) {
+        
         self.duration   = duration
         self.easing     = easing ?? Easing.Linear
-        super.init()
-        self.onComplete = complete
+        self.complete = complete
+        
         for (property, value) in moves {
             let transformation = createTransormation(in: view, for: property, with: value)
             transformations.append(transformation)
         }
     }
     
-    override func update(_ frame: Engine.Frame) -> Result {
+    func update(_ frame: Engine.Frame) -> ActionResult {
         
         guard duration > 0.0 else {
             for transformation in transformations {
@@ -50,7 +53,7 @@ class Animation: Action {
         }
         
         if tpoint == 1.0 { // reached end
-            self.onComplete?()
+            self.complete?()
             return .Finished
         }
         

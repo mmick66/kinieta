@@ -8,9 +8,16 @@
 
 import UIKit
 
-class Sequence: Collection {
+class Sequence: Collection, Action {
     
     private var currentAction: Action?
+    
+    let complete: Block?
+    
+    init(_ view: UIView, actions: [ActionType], complete: Block? = nil) {
+        self.complete = complete
+        super.init(view, actions: actions)
+    }
     
     func add(_ action: ActionType) {
         self.actions.append(action)
@@ -28,8 +35,7 @@ class Sequence: Collection {
         return first
     }
     
-    @discardableResult
-    override func update(_ frame: Engine.Frame) -> Action.Result {
+    func update(_ frame: Engine.Frame) -> ActionResult {
         
         if let currentAction = self.currentAction {
             switch currentAction.update(frame) {
@@ -44,6 +50,7 @@ class Sequence: Collection {
             return update(frame)
         }
         
+        self.complete?()
         return .Finished
     }
 }

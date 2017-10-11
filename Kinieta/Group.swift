@@ -8,12 +8,17 @@
 
 import UIKit
 
-class Group: Collection {
+class Group: Collection, Action {
     
     var currentActions: [Action]?
+    let complete: Block?
     
-    @discardableResult
-    override func update(_ frame: Engine.Frame) -> Result {
+    init(_ view: UIView, actions: [ActionType], complete: Block? = nil) {
+        self.complete = complete
+        super.init(view, actions: actions)
+    }
+    
+    func update(_ frame: Engine.Frame) -> ActionResult {
         
         if var currentActions = self.currentActions {
             
@@ -32,6 +37,7 @@ class Group: Collection {
             return update(frame)
         }
         
+        self.complete?()
         return .Finished
     }
     

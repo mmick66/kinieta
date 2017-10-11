@@ -11,13 +11,16 @@ import UIKit
 class Pause: Action {
     
     let duration: TimeInterval
+    let complete: Block?
+    
     var currentt: TimeInterval = 0.0
-    init(_ duration: TimeInterval, complete: (()->Void)?) {
+    
+    init(_ duration: TimeInterval, complete: Block?) {
         self.duration = duration
+        self.complete = complete
     }
     
-    @discardableResult
-    override func update(_ frame: Engine.Frame) -> Result {
+    func update(_ frame: Engine.Frame) -> ActionResult {
         
         guard duration > 0.0 else {
             return .Finished
@@ -26,7 +29,7 @@ class Pause: Action {
         currentt += frame.duration
         
         if currentt >= duration {
-            self.onComplete?()
+            self.complete?()
             return .Finished
         }
         

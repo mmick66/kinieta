@@ -8,7 +8,7 @@
 
 import UIKit
 
-class Kinieta {
+class Kinieta: Action {
     
     private var main: Sequence
     
@@ -33,12 +33,12 @@ class Kinieta {
     
     @discardableResult
     func delay(for time: TimeInterval) -> Kinieta {
-//        guard let lastAction = actionsQueue.popLast() else {
-//            return self
-//        }
-//        let pauseAction = ActionType.Pause(time, nil)
-//        actionsQueue.append(pauseAction)
-//        actionsQueue.append(lastAction)
+        guard let last = self.main.popLast() else {
+            return self
+        }
+        let pause = ActionType.Pause(time, nil)
+        let sequence = ActionType.Sequence([pause, last], nil)
+        self.main.add(sequence)
         
         return self
     }
@@ -112,8 +112,7 @@ class Kinieta {
         return self
     }
     
-    func update(_ frame: Engine.Frame) -> Action.Result {
+    func update(_ frame: Engine.Frame) -> ActionResult {
         return self.main.update(frame)
     }
-    
 }
