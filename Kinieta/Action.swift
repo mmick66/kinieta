@@ -10,11 +10,23 @@ import UIKit
 
 typealias Block = (()->Void)
 
-enum ActionType {
+enum ActionType: CustomStringConvertible {
     case Animation(UIView, Dictionary<String,Any>, TimeInterval, Bezier?, Block?)
     case Pause(TimeInterval, Block?)
     case Group([ActionType], Block?)
     case Sequence([ActionType], Block?)
+    var description: String {
+        switch self {
+        case .Animation(_, let moves, _, _, _):
+            return "Animation(\(moves.toString()))"
+        case .Pause(let time, _):
+            return "Pause(\(time))"
+        case .Group(let types, _):
+            return "Group(\(types.count))"
+        case .Sequence(let types, _):
+            return "Sequence(\(types.count))"
+        }
+    }
 }
 
 enum ActionResult: String {
@@ -41,5 +53,11 @@ class Factory {
         case .Sequence(let list, let block):
             return Sequence(list, complete: block)
         }
+    }
+}
+
+extension Dictionary {
+    func toString() -> String {
+        return self.map({ return "\($0):\($1)" }).joined(separator: " ")
     }
 }

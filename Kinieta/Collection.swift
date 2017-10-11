@@ -27,7 +27,7 @@ class Collection {
         }
     }
     
-    func add(type: ActionType) {
+    func add(_ type: ActionType) {
         self.types.append(type)
     }
     

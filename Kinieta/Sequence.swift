@@ -10,7 +10,7 @@ import UIKit
 
 class Sequence: Collection, Action {
     
-    private var currentAction: Action?
+    
     
     let complete: Block?
     
@@ -31,6 +31,7 @@ class Sequence: Collection, Action {
         return first
     }
     
+    private var currentAction: Action?
     func update(_ frame: Engine.Frame) -> ActionResult {
         
         if let currentAction = self.currentAction {
@@ -38,7 +39,8 @@ class Sequence: Collection, Action {
             case .Running:
                 return .Running
             case .Finished:
-                return types.count > 0 ? .Running : .Finished
+                self.currentAction = nil
+                return self.types.count > 0 ? .Running : .Finished
             }
         }
         else if let nextAction = self.popFirstAction() {
