@@ -17,12 +17,6 @@ class Action {
         case Finished   = "Action.Result.Finished"
     }
     
-    enum ActionType {
-        case Animation(Dictionary<String,Any>, TimeInterval, Bezier?, Block?)
-        case Pause(TimeInterval, Block?)
-        case Group([ActionType], Block?)
-    }
-    
     internal var onComplete: (()->Void)?
     @discardableResult
     func complete(_ block: @escaping  () -> Void) -> Action {
@@ -35,4 +29,27 @@ class Action {
         return .Finished
     }
     
+}
+
+class Factory {
+    
+    let shared = Factory()
+    
+    enum ActionType {
+        case Animation(Dictionary<String,Any>, TimeInterval, Bezier?, Block?)
+        case Pause(TimeInterval, Block?)
+        case Group([ActionType], Block?)
+    }
+    
+    static func Action(for view: UIView, with type: ActionType) -> Action {
+        switch type {
+        case .Animation(let moves, let duration, let easing, let block):
+            return Animation(view, moves: moves, duration: duration, easing: easing, complete: block)
+        case .Pause(let time, let block):
+            return Pause(time, complete: block)
+        case .Group(let types, let block):
+            let actions = types.map { (type) -> Action in return self.Action(for: view, with: type) }
+            return Group(actions, complete: block)
+        }
+    }
 }

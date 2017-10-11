@@ -10,7 +10,7 @@ import UIKit
 
 class Sequence: Action {
     
-    var actionsQueue = [Action.ActionType]()
+    var actionsQueue = [Factory.ActionType]()
     
     let view: UIView
     init(view:UIView) {
@@ -30,7 +30,7 @@ class Sequence: Action {
         return self
     }
     
-    private func addInQueue(_ action: Action.ActionType) {
+    private func addInQueue(_ action: Factory.ActionType) {
         actionsQueue.append(action)
         if currentAction == nil { prepareNextAction() }
     }
@@ -40,7 +40,7 @@ class Sequence: Action {
         guard let lastAction = actionsQueue.popLast() else {
             return self
         }
-        let pauseAction = Action.ActionType.Pause(time, nil)
+        let pauseAction = Factory.ActionType.Pause(time, nil)
         actionsQueue.append(pauseAction)
         actionsQueue.append(lastAction)
         
@@ -110,7 +110,7 @@ class Sequence: Action {
         case .Pause(let time, _):
             self.currentAction = Pause(time, complete: block)
         case .Group(let types, let block):
-            let actions = types.map { (type) -> Action in return self.prepareAction(type) }
+            let actions = types.map { (type) -> Action in return Factory.Action(for: self.view, with: type) }
             self.currentAction = Group(actions, complete: block)
         }
         
@@ -124,22 +124,10 @@ class Sequence: Action {
         guard let nextActionType = self.actionsQueue.first else {
             return false
         }
-        self.currentAction = self.prepareAction(nextActionType)
+        self.currentAction = Factory.Action(for: self.view, with: nextActionType)
         self.actionsQueue.removeFirst()
         return true
         
-    }
-    
-    private func prepareAction(_ type: ActionType) -> Action {
-        switch type {
-        case .Animation(let moves, let duration, let easing, let block):
-            return Animation(self.view, moves: moves, duration: duration, easing: easing, complete: block)
-        case .Pause(let time, let block):
-            return Pause(time, complete: block)
-        case .Group(let types, let block):
-            let actions = types.map { (type) -> Action in return self.prepareAction(type) }
-            return Group(actions, complete: block)
-        }
     }
     
     
