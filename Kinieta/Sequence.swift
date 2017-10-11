@@ -10,7 +10,7 @@ import UIKit
 
 class Sequence: Action {
     
-    var actionsQueue = [Factory.ActionType]()
+    var actionsQueue = [ActionType]()
     
     let view: UIView
     init(view:UIView) {
@@ -30,9 +30,8 @@ class Sequence: Action {
         return self
     }
     
-    private func addInQueue(_ action: Factory.ActionType) {
+    private func addInQueue(_ action: ActionType) {
         actionsQueue.append(action)
-        if currentAction == nil { prepareNextAction() }
     }
     
     @discardableResult
@@ -40,7 +39,7 @@ class Sequence: Action {
         guard let lastAction = actionsQueue.popLast() else {
             return self
         }
-        let pauseAction = Factory.ActionType.Pause(time, nil)
+        let pauseAction = ActionType.Pause(time, nil)
         actionsQueue.append(pauseAction)
         actionsQueue.append(lastAction)
         
@@ -110,8 +109,7 @@ class Sequence: Action {
         case .Pause(let time, _):
             self.currentAction = Pause(time, complete: block)
         case .Group(let types, let block):
-            let actions = types.map { (type) -> Action in return Factory.Action(for: self.view, with: type) }
-            self.currentAction = Group(actions, complete: block)
+            self.currentAction = Group(self.view, actions: types, complete: block)
         }
         
         return self
@@ -120,30 +118,23 @@ class Sequence: Action {
     private var currentAction: Action?
     
     @discardableResult
-    private func prepareNextAction() -> Bool {
-        guard let nextActionType = self.actionsQueue.first else {
-            return false
-        }
-        self.currentAction = Factory.Action(for: self.view, with: nextActionType)
-        self.actionsQueue.removeFirst()
-        return true
-        
-    }
-    
-    
-    @discardableResult
     override func update(_ frame: Engine.Frame) -> Result {
-
-        guard let action = self.currentAction else {
-            return .Finished
+        
+        if let action = self.currentAction {
+            switch action.update(frame) {
+            case .Running:
+                return .Running
+            case .Finished:
+                return actionsQueue.count > 0 ? .Running : .Finished
+            }
+        }
+            
+        if let type = self.actionsQueue.first {
+            self.currentAction = Factory.Action(for: self.view, with: type)
+            return update(frame)
         }
         
-        switch action.update(frame) {
-        case .Running:
-            return .Running
-        case .Finished:
-            return self.prepareNextAction() ? .Running : .Finished
-        }
+        return .Finished
 
     }
 }

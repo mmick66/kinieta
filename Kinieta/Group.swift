@@ -10,39 +10,38 @@ import UIKit
 
 class Group: Action {
     
-    var actions: [Action]
-    
-    init(_ actions: [Action], complete: Block?) {
-        self.actions = actions
+    var actionsQueue: [ActionType]
+    var currentActions: [Action]?
+    let view: UIView
+    init(_ view: UIView, actions: [ActionType], complete: Block?) {
+        self.actionsQueue = actions
+        self.view = view
         super.init()
         self.onComplete = complete
+        
     }
 
     @discardableResult
     override func update(_ frame: Engine.Frame) -> Result {
         
-        guard self.actions.count > 0 else {
-            return .Finished
-        }
-        
-        for (i,action) in actions.enumerated() {
-            switch action.update(frame)  {
-            case .Running:
-                break
-            case .Finished:
-                self.actions.remove(at: i)
+        if var currentActions = self.currentActions {
+            
+            for (i,currentAction) in currentActions.enumerated() {
+                switch currentAction.update(frame) {
+                case .Running: continue
+                case .Finished:
+                    currentActions.remove(at: i)
+                }
             }
+            self.currentActions = currentActions
+            return currentActions.count > 0 ? .Running : .Finished
+        }
+        else if actionsQueue.count > 0 {
+            self.currentActions = actionsQueue.map { Factory.Action(for: self.view, with: $0) }
+            return update(frame)
         }
         
-        if self.actions.count > 0 {
-            return .Running
-        }
-        else {
-            self.onComplete?()
-            return .Finished
-        }
-        
-        
+        return .Finished
     }
     
 }

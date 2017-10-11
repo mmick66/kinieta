@@ -31,15 +31,15 @@ class Action {
     
 }
 
+enum ActionType {
+    case Animation(Dictionary<String,Any>, TimeInterval, Bezier?, Block?)
+    case Pause(TimeInterval, Block?)
+    case Group([ActionType], Block?)
+}
+
 class Factory {
     
     let shared = Factory()
-    
-    enum ActionType {
-        case Animation(Dictionary<String,Any>, TimeInterval, Bezier?, Block?)
-        case Pause(TimeInterval, Block?)
-        case Group([ActionType], Block?)
-    }
     
     static func Action(for view: UIView, with type: ActionType) -> Action {
         switch type {
@@ -48,8 +48,7 @@ class Factory {
         case .Pause(let time, let block):
             return Pause(time, complete: block)
         case .Group(let types, let block):
-            let actions = types.map { (type) -> Action in return self.Action(for: view, with: type) }
-            return Group(actions, complete: block)
+            return Group(view, actions: types, complete: block)
         }
     }
 }

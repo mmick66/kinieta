@@ -20,7 +20,7 @@ class Animation: Action {
     
     var initial: [String: Any]?
     
-    init(_ view: UIView, moves: [String:Any], duration: TimeInterval, easing: Bezier?, complete: (()->Void)?) {
+    init(_ view: UIView, moves: [String: Any], duration: TimeInterval, easing: Bezier?, complete: (()->Void)?) {
         self.duration   = duration
         self.easing     = easing ?? Easing.Linear
         super.init()
@@ -49,13 +49,12 @@ class Animation: Action {
             transformation(ypoint)
         }
         
-        if tpoint < 1.0 {
-            return .Running
-        }
-        else {
+        if tpoint == 1.0 { // reached end
             self.onComplete?()
             return .Finished
         }
+        
+        return .Running
         
     }
     

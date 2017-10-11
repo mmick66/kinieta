@@ -22,15 +22,15 @@ class Pause: Action {
         guard duration > 0.0 else {
             return .Finished
         }
+        
         currentt += frame.duration
         
-        if currentt < duration {
-            return .Running
-        }
-        else {
+        if currentt >= duration {
             self.onComplete?()
             return .Finished
         }
+        
+        return .Running
         
     }
     
