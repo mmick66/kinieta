@@ -21,6 +21,8 @@ For the moment, just copy the files in the Kinieta (virtual) folder
 
 ## How to Use
 
+### Basic Usage
+
 An extension on UIView that is included in the code will provide the entry point for the animations. The interface object is the `Kinieta` and there is one for every view.
 
 ```swift
@@ -40,8 +42,11 @@ myView.move(to: ["x": 250, "y": 500], during: 0.5).delay(for: 0.5).easeInOut()
 myView.move(to: ["x": 250, "y": 500], during: 0.5).delay(for: 0.5).easeInOut(.Back)
 ```
 
+The properties that can be animated are:
+* "x" - the x coordinate as in the `frame.origin.x `
+* "y" - the y coordinate as in the `frame.origin.y`
 
-## Easing
+### Easing
 
 The easing is based on Bezier curves and many are provided by default as seen in the `Easing.Types` enum. 
 
@@ -68,4 +73,33 @@ let myBezier = Bezier(0.16, 0.73, 0.89, 0.24)
 myView.move(to: ["x": 250, "y": 500], during: 1.0).easeInOut(.Custom(myBezier))
  ```
 
+### Sequencing
 
+You can string a few animations together very easily:
+
+```swift
+let start = ["x": self.square.x, "y": self.square.y]
+self.myView
+    .move(to: ["x": 250, "y": 500], during: 0.5).easeInOut(.Cubic)
+    .move(to: ["x": 300, "y": 200], during: 0.5).easeInOut(.Cubic)
+    .move(to: start, during: 0.5).easeInOut(.Cubic)
+```
+
+The dictionary with the animations can be saved and passed later as the example above shows.
+
+### Callbacks
+
+When an animation or animation sequence finishes you can get a callback:
+
+```swift
+let start = ["x": self.square.x, "y": self.square.y]
+myView
+    .move(to: ["x": 250, "y": 500], during: 0.5).easeInOut(.Cubic)
+    .move(to: ["x": 300, "y": 200], during: 0.5).easeInOut(.Cubic)
+    .move(to: start, during: 0.5).easeInOut(.Cubic)
+    .complete { self.myView.move(to: ["a": 0.0], during: 0.3) }
+```
+
+### Grouping
+
+You can group various animations together
