@@ -56,7 +56,15 @@ The UIView properties that can be animated, together with their keys are:
 
 ### Easing
 
-The easing is based on Bezier curves and many are provided by default as seen in the `Easing.Types` enum. 
+Every move can be smoothed by calling the ease functions:
+
+```swift
+func easeIn(_ type: Easing.Types = Easing.Types.Quad) -> Kinieta
+func easeOut(_ type: Easing.Types = Easing.Types.Quad) -> Kinieta
+func easeInOut(_ type: Easing.Types = Easing.Types.Quad) -> Kinieta
+```
+
+An default argument can be passed to provide an easing functions to be used, Quad being the default. All easing is based on Bezier curves and many are provided by default as seen in the `Easing.Types` enum. 
 
 ```swift
 enum Types {
@@ -102,9 +110,7 @@ When an animation or animation sequence finishes you can get a callback:
 ```swift
 let start = ["x": self.square.x, "y": self.square.y]
 myView
-    .move(to: ["x": 250, "y": 500], during: 0.5).easeInOut(.Cubic)
-    .move(to: ["x": 300, "y": 200], during: 0.5).easeInOut(.Cubic)
-    .move(to: start, during: 0.5).easeInOut(.Cubic)
+    .move(to: ["x": 250, "y": 500], during: 0.5).easeOut()
     .complete { self.myView.move(to: ["a": 0.0], during: 0.3) }
 ```
 
