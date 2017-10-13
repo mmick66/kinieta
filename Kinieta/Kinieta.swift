@@ -80,10 +80,8 @@ class Kinieta: Action {
         var actions = [ActionType]()
         while let last = self.mainSequence.popLast() {
             switch last {
-            case .Sequence, .Group:
-                break
-            default:
-                actions.append(last)
+            case .Group: break
+            default:     actions.append(last)
             }
             
         }
