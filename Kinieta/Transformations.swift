@@ -55,27 +55,23 @@ func createTransormation(in view: UIView, for property:String, with value:Any) -
     switch property {
         
     case "x":
-        return createFloatInterpolation(from: view.center.x, to: cgFloatValue) { nValue in
-            view.center = CGPoint(x: nValue, y: view.center.y)
+        return createFloatInterpolation(from: view.x, to: cgFloatValue) { nValue in
+            view.x = nValue
         }
         
     case "y":
-        return createFloatInterpolation(from: view.center.y, to: cgFloatValue) { nValue in
-            view.center = CGPoint(x: view.center.x, y: nValue)
+        return createFloatInterpolation(from: view.y, to: cgFloatValue) { nValue in
+            view.y = nValue
         }
         
     case "w", "width":
-        return createFloatInterpolation(from: view.frame.size.width, to: cgFloatValue) { nValue in
-            var oFrame = view.frame
-            oFrame.size.width = nValue
-            view.frame = oFrame
+        return createFloatInterpolation(from: view.width, to: cgFloatValue) { nValue in
+            view.width = nValue
         }
         
     case "h", "height":
-        return createFloatInterpolation(from: view.frame.size.height, to: cgFloatValue) { nValue in
-            var oFrame = view.frame
-            oFrame.size.height = nValue
-            view.frame = oFrame
+        return createFloatInterpolation(from: view.height, to: cgFloatValue) { nValue in
+            view.height = nValue
         }
         
     case "r", "rotation":

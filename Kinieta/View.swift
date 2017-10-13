@@ -26,6 +26,50 @@ extension UIView {
 }
 
 extension UIView {
+    var x: CGFloat {
+        get {
+           return self.frame.origin.x
+        }
+        set {
+            let oFrame = self.frame
+            self.frame = CGRect(
+                x: newValue, y: oFrame.origin.y, width: oFrame.size.width, height: oFrame.size.height
+            )
+        }
+    }
+    var y: CGFloat {
+        get {
+            return self.frame.origin.y
+        }
+        set {
+            let oFrame = self.frame
+            self.frame = CGRect(
+                x: oFrame.origin.x, y: newValue, width: oFrame.size.width, height: oFrame.size.height
+            )
+        }
+    }
+    var width: CGFloat {
+        get {
+            return self.frame.size.width
+        }
+        set {
+            let oFrame = self.frame
+            self.frame = CGRect(
+                x: oFrame.origin.x, y: oFrame.origin.y, width: newValue, height: oFrame.size.height
+            )
+        }
+    }
+    var height: CGFloat {
+        get {
+            return self.frame.size.height
+        }
+        set {
+            let oFrame = self.frame
+            self.frame = CGRect(
+                x: oFrame.origin.x, y: oFrame.origin.y, width: oFrame.size.width, height: newValue
+            )
+        }
+    }
     var rotation:CGFloat {
         get {
             return atan2(self.transform.b, self.transform.a).radiansToDegrees
@@ -42,6 +86,7 @@ extension UIView {
         }
     }
 }
+
 
 func >>(lhs: Range<TimeInterval>, rhs: TimeInterval) -> Range<TimeInterval> {
     return (lhs.lowerBound+rhs)..<(lhs.upperBound+rhs)
