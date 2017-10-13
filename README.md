@@ -26,10 +26,10 @@ For the moment, just copy the files in the Kinieta (virtual) folder
 An extension on UIView that is included in the code will provide the entry point for the animations. The interface object is the `Kinieta` and there is one for every view.
 
 ```swift
-// This will snap myView to the coordinates
+// This will snap the view to the given coordinates
 aView.move(to: ["x": 250, "y": 500])
 
-// This will animate the same view to these coordinates in 0.5 seconds
+// This will animate the same view to the coordinates in 0.5 seconds
 aView.move(to: ["x": 250, "y": 500], during: 0.5)
 
 // This will delay the start of the animation by 0.5 seconds
