@@ -12,15 +12,29 @@ import Foundation
 
 struct Easing {
     
-    enum Types: String {
-        case Linear = "linear"
-        case Sine   = "sine"
-        case Quad   = "quad"
-        case Cubic  = "cubic"
-        case Quart  = "quart"
-        case Quint  = "quint"
-        case Expo   = "expo"
-        case Back   = "back"
+    enum Types {
+        case Linear
+        case Sine
+        case Quad
+        case Cubic
+        case Quart
+        case Quint
+        case Expo
+        case Back
+        case Custom(Bezier)
+        var string: String {
+            switch self {
+            case .Linear:    return "linear"
+            case .Sine:      return "sine"
+            case .Quad:      return "quad"
+            case .Cubic:     return "cubic"
+            case .Quart:     return "quart"
+            case .Quint:     return "quint"
+            case .Expo:      return "expo"
+            case .Back:      return "back"
+            case .Custom:    return "Custom"
+            }
+        }
     }
     
     static let Linear = Bezier(0.250, 0.250,  0.750,  0.750)
@@ -56,12 +70,14 @@ struct Easing {
         "backInOut":    Bezier(0.68, -0.55,   0.265,  1.55),
     ]
     
-    static func get(_ type: Types, _ place: String) -> Bezier? {
-        guard ["In", "Out", "InOut"].contains(place) else {
-            return nil
+    static func Get(_ type: Types, _ place: String) -> Bezier? {
+        
+        switch type {
+        case .Custom(let bezier):
+            return bezier
+        default:
+            return self.curves[(type.string+place)]
         }
-        let key = type.rawValue + place
-        return self.curves[key]!
     }
 }
 

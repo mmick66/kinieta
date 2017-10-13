@@ -22,11 +22,9 @@ class ViewController: UIViewController {
     }
 
     @IBAction func goButtonPressed(_ sender: UIButton) {
+        let myBezier = Bezier(0.16, 0.73, 0.89, 0.24)
         self.square
-            .move(to: ["x": 250, "y": 500], during: 1.0).easeInOut()
-            .move(to: ["r": 30], during: 1.0).delay(for: 0.5).easeInOut()
-            .group()
-            .move(to: ["x": 10], during: 0.3).easeOut(.Back)
+            .move(to: ["x": 250, "y": 500], during: 1.0).easeInOut(.Custom(myBezier))
         
     }
     

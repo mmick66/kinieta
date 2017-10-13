@@ -64,7 +64,7 @@ class Kinieta: Action {
         }
         switch lastAction {
         case .Animation(let view, let moves, let duration, _, let complete):
-            let easing = Easing.get(type, place) ?? Easing.Linear
+            let easing = Easing.Get(type, place) ?? Easing.Linear
             self.mainSequence.add(.Animation(view, moves, duration, easing, complete))
         default:
             self.mainSequence.add(lastAction) // put back
