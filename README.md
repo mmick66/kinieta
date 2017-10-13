@@ -38,8 +38,11 @@ aView.move(to: ["x": 250, "y": 500], during: 0.5).delay(for: 0.5)
 // And this will ease the whole thing
 aView.move(to: ["x": 250, "y": 500], during: 0.5).delay(for: 0.5).easeInOut()
 
-// Whike this will ease it with a bounce-back
+// While this will ease it with a bounce-back
 aView.move(to: ["x": 250, "y": 500], during: 0.5).delay(for: 0.5).easeInOut(.Back)
+
+// While this will ease it with a bounce-back
+aView.move(to: ["x": 250, "y": 500], during: 0.5).delay(for: 0.5).easeInOut(.Back).complete { print("Finished") }
 ```
 
 The UIView properties that can be animated, together with their keys are:
@@ -110,23 +113,14 @@ aView.move(to: ["x": 250, "y": 500], during: 0.5).easeInOut(.Cubic)
 
 The dictionary with the animations can be saved and passed later as the example above shows.
 
-### Callbacks
-
-When an animation or an animation sequence finishes you can get a callback:
-
-```swift
-let start = ["x": self.square.x, "y": self.square.y]
-aView.move(to: ["x": 200, "y": 500], during: 1.0).easeOut(.Cubic)
-     .move(to: ["x": 280, "y": 200], during: 1.0).easeIn(.Cubic)
-     .complete { self.aView.move(to: ["a": 0.0], during: 0.3) }
-```
-
 ### Grouping
 
-You can group various animations together to achieve more complicated effects. For example, we can add a short fade at the end of a move:
+You can group various animations together to achieve more complicated effects. For example, we can add a short fade at the end of a move and have a single callback when everything finishes:
 
 ```swift
 aView.move(to: ["x": 200, "y": 500], during: 1.0).easeInOut(.Cubic)
      .move(to: ["a": 0], during: 0.2).delay(for: 0.8).easeOut()
      .group()
+     .complete { print("Finished") }
 ```
+
