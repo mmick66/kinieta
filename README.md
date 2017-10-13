@@ -27,19 +27,19 @@ An extension on UIView that is included in the code will provide the entry point
 
 ```swift
 // This will snap myView to the coordinates
-myView.move(to: ["x": 250, "y": 500])
+aView.move(to: ["x": 250, "y": 500])
 
 // This will animate the same view to these coordinates in 0.5 seconds
-myView.move(to: ["x": 250, "y": 500], during: 0.5)
+aView.move(to: ["x": 250, "y": 500], during: 0.5)
 
 // This will delay the start of the animation by 0.5 seconds
-myView.move(to: ["x": 250, "y": 500], during: 0.5).delay(for: 0.5)
+aView.move(to: ["x": 250, "y": 500], during: 0.5).delay(for: 0.5)
 
 // And this will ease the whole thing
-myView.move(to: ["x": 250, "y": 500], during: 0.5).delay(for: 0.5).easeInOut()
+aView.move(to: ["x": 250, "y": 500], during: 0.5).delay(for: 0.5).easeInOut()
 
 // Whike this will ease it with a bounce-back
-myView.move(to: ["x": 250, "y": 500], during: 0.5).delay(for: 0.5).easeInOut(.Back)
+aView.move(to: ["x": 250, "y": 500], during: 0.5).delay(for: 0.5).easeInOut(.Back)
 ```
 
 The UIView properties that can be animated, together with their keys are:
@@ -86,7 +86,7 @@ For example, for a very fast start and sudden slow down animation I used [this c
 
 ```swift
 let myBezier = Bezier(0.16, 0.73, 0.89, 0.24)
-myView.move(to: ["x": 250, "y": 500], during: 1.0).easeInOut(.Custom(myBezier))
+aView.move(to: ["x": 250, "y": 500], during: 1.0).easeInOut(.Custom(myBezier))
  ```
 
 ### Sequencing
@@ -95,25 +95,38 @@ You can string a few animations together very easily:
 
 ```swift
 let start = ["x": self.square.x, "y": self.square.y]
-self.myView
-    .move(to: ["x": 250, "y": 500], during: 0.5).easeInOut(.Cubic)
-    .move(to: ["x": 300, "y": 200], during: 0.5).easeInOut(.Cubic)
-    .move(to: start, during: 0.5).easeInOut(.Cubic)
+aView.move(to: ["x": 250, "y": 500], during: 0.5).easeInOut(.Cubic)
+     .move(to: ["x": 300, "y": 200], during: 0.5).easeInOut(.Cubic)
+     .move(to: start, during: 0.5).easeInOut(.Cubic)
+```
+
+You can also add a pause between animations by calling the `wait(for: time)` function:
+
+```swift
+aView.move(to: ["x": 250, "y": 500], during: 0.5).easeInOut(.Cubic)
+     .wait(for: 0.5)
+     .move(to: ["x": 300, "y": 200], during: 0.5).easeInOut(.Cubic)
 ```
 
 The dictionary with the animations can be saved and passed later as the example above shows.
 
 ### Callbacks
 
-When an animation or animation sequence finishes you can get a callback:
+When an animation or an animation sequence finishes you can get a callback:
 
 ```swift
 let start = ["x": self.square.x, "y": self.square.y]
-myView
-    .move(to: ["x": 250, "y": 500], during: 0.5).easeOut()
-    .complete { self.myView.move(to: ["a": 0.0], during: 0.3) }
+aView.move(to: ["x": 200, "y": 500], during: 1.0).easeOut(.Cubic)
+     .move(to: ["x": 280, "y": 200], during: 1.0).easeIn(.Cubic)
+     .complete { self.aView.move(to: ["a": 0.0], during: 0.3) }
 ```
 
 ### Grouping
 
-You can group various animations together
+You can group various animations together to achieve more complicated effects. For example, we can add a short fade at the end of a move:
+
+```swift
+aView.move(to: ["x": 200, "y": 500], during: 1.0).easeInOut(.Cubic)
+     .move(to: ["a": 0], during: 0.2).delay(for: 0.8).easeOut()
+     .group()
+```
