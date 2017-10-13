@@ -10,8 +10,6 @@ import UIKit
 
 class Sequence: Collection, Action {
     
-    
-    
     let complete: Block?
     
     init(_ actions: [ActionType] = [], complete: Block? = nil) {

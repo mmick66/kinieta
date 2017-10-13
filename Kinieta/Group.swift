@@ -20,16 +20,17 @@ class Group: Collection, Action {
     
     func update(_ frame: Engine.Frame) -> ActionResult {
         
-        if var currentActions = self.currentActions {
-            
-            for (i,currentAction) in currentActions.enumerated() {
+        if let currentActions = self.currentActions {
+            var fidxs = [Int]()
+            for (index,currentAction) in currentActions.enumerated() {
                 switch currentAction.update(frame) {
-                case .Running: continue
-                case .Finished:
-                    currentActions.remove(at: i)
+                case .Running:  continue
+                case .Finished: fidxs.append(index)
                 }
             }
-            self.currentActions = currentActions
+            
+            self.currentActions = currentActions.enumerated().filter({ !fidxs.contains($0.offset) }).map({ $0.element })
+            
             return currentActions.count > 0 ? .Running : .Finished
         }
         else if types.count > 0 {
