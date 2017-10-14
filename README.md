@@ -42,7 +42,9 @@ aView.move(to: ["x": 250, "y": 500], during: 0.5).delay(for: 0.5).easeInOut()
 aView.move(to: ["x": 250, "y": 500], during: 0.5).delay(for: 0.5).easeInOut(.Back)
 
 // While this will ease it with a bounce-back
-aView.move(to: ["x": 250, "y": 500], during: 0.5).delay(for: 0.5).easeInOut(.Back).complete { print("Finished") }
+aView.move(to: ["x": 250, "y": 500], during: 0.5).delay(for: 0.5).easeInOut(.Back).complete { 
+    print("Finished") 
+}
 ```
 
 The UIView properties that can be animated, together with their keys are:
