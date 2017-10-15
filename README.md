@@ -57,7 +57,7 @@ The UIView properties that can be animated, together with their keys are:
 * "bg" or "background" - the `backgroundColor` property of the view 
 * "brc" or "borderColor" - the borderColor as in the `layer.borderColor`
 * "brw" or "borderWidth" - the borderWidth as in the `layer.borderWidth`
-* "crd" or "cornerRadius" - the cornerRadius as in the `layer.borderWidth`
+* "crd" or "cornerRadius" - the cornerRadius as in the `layer.borderColor`
 
 ### Easing
 
