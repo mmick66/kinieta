@@ -99,7 +99,7 @@ aView.move(to: ["x": 250, "y": 500], during: 1.0).easeInOut(.Custom(myBezier))
 You can string a few animations together very easily:
 
 ```swift
-let start = ["x": self.square.x, "y": self.square.y]
+let start = ["x": aView.x, "y": aView.y]
 aView.move(to: ["x": 250, "y": 500], during: 0.5).easeInOut(.Cubic)
      .move(to: ["x": 300, "y": 200], during: 0.5).easeInOut(.Cubic)
      .move(to: start, during: 0.5).easeInOut(.Cubic)
