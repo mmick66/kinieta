@@ -41,7 +41,7 @@ aView.move(to: ["x": 250, "y": 500], during: 0.5).delay(for: 0.5).easeInOut()
 // While this will ease it with a bounce-back
 aView.move(to: ["x": 250, "y": 500], during: 0.5).delay(for: 0.5).easeInOut(.Back)
 
-// While this will ease it with a bounce-back
+// And call the complete block when the animation is finished
 aView.move(to: ["x": 250, "y": 500], during: 0.5).delay(for: 0.5).easeInOut(.Back).complete { 
     print("Finished") 
 }
