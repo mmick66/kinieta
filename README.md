@@ -23,7 +23,7 @@ For the moment, just copy the files in the Kinieta (virtual) folder
 
 ### Basic Usage
 
-An extension on UIView that is included in the code will provide the entry point for the animations. The interface object is the `Kinieta` and there is one for every view.
+An extension on `UIView` that is included in the code will provide the entry point for the animations. The interface object is the `Kinieta` and there is one for every view.
 
 ```swift
 // This will snap the view to the given coordinates
