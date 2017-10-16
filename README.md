@@ -140,7 +140,7 @@ aView.move(to: ["x": 250, "y": 500], during: 0.5).easeInOut(.Cubic)
 
 The dictionary with the animations can be saved and passed later as the example above shows.
 
-### Parallelize
+### Parallelizing
 
 You can run various animations together to achieve more complicated effects. For example, we can add a short fade at the end of a move and have a single callback when everything finishes:
 
