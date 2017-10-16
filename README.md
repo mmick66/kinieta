@@ -95,14 +95,13 @@ An default argument can be passed to provide an easing functions to be used, Qua
 
 ```swift
 enum Types {
-    case Linear // This is used when no ease is called
     case Sine
     case Quad
     case Cubic
     case Quart
     case Quint
     case Expo
-    case Back // Bounce Effect
+    case Back 
     case Custom(Bezier)
 }
  ```
@@ -117,6 +116,8 @@ aView.move(to: ["x": 250, "y": 500], during: 1.0).easeInOut(.Custom(myBezier))
  ```
  
  ![Move with Custom Ease](https://github.com/mmick66/kinieta/blob/master/Assets/move.easeInOut.Custom.gif)
+ 
+ All the curves passed are **prebaked** into tables for fast resolution!
 
 ### Sequencing
 
@@ -139,7 +140,7 @@ aView.move(to: ["x": 250, "y": 500], during: 0.5).easeInOut(.Cubic)
 
 The dictionary with the animations can be saved and passed later as the example above shows.
 
-### Parallelize
+### Parallelizing
 
 You can run various animations together to achieve more complicated effects. For example, we can add a short fade at the end of a move and have a single callback when everything finishes:
 
