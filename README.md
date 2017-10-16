@@ -127,15 +127,15 @@ aView.move(to: ["x": 250, "y": 500], during: 0.5).easeInOut(.Cubic)
 
 The dictionary with the animations can be saved and passed later as the example above shows.
 
-### Grouping
+### Parallelize
 
-You can group various animations together to achieve more complicated effects. For example, we can add a short fade at the end of a move and have a single callback when everything finishes:
+You can run various animations together to achieve more complicated effects. For example, we can add a short fade at the end of a move and have a single callback when everything finishes:
 
 ```swift
 aView.move(to: ["x": 200, "y": 500], during: 1.0).easeInOut(.Cubic)
      .move(to: ["a": 0], during: 0.2).delay(for: 0.8).easeOut()
-     .group()
-     .complete { print("Finished") }
+     .parallel()
+     .complete { print("Finished All") }
 ```
 
  ![Move with Custom Ease](https://github.com/mmick66/kinieta/blob/master/Assets/move.easeInOut.fade.gif)
