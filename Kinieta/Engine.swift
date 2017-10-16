@@ -77,6 +77,7 @@ class Engine {
     
     
     func group(_ actions: [Action], complete: Block? = nil) {
+        for a in actions { remove(a) }
         let g = Group(actions, complete: complete)
         self.add(g)
     }

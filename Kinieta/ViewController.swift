@@ -10,10 +10,12 @@ import UIKit
 
 class ViewController: UIViewController {
 
+    @IBOutlet weak var square2: UIView!
     @IBOutlet var square: UIView!
     override func viewDidLoad() {
         super.viewDidLoad()
         self.square.layer.cornerRadius = 6.0
+        self.square2.layer.cornerRadius = 6.0
     }
     
     @IBOutlet weak var goButton: UIButton!
@@ -23,12 +25,15 @@ class ViewController: UIViewController {
 
     @IBAction func goButtonPressed(_ sender: UIButton) {
         
-        self.square.move(to: ["x": 74, "y": 74])
+        Engine.shared.group([
+            self.square.move(to: ["x": 374], during: 1.0).easeInOut(.Cubic)
+                .move(to: ["a": 0], during: 0.2).delay(for: 0.8).easeOut()
+                .parallel(),
+            self.square2.move(to: ["x": 374], during: 1.0).easeInOut(.Cubic)
+                .move(to: ["a": 0], during: 0.2).delay(for: 0.8).easeOut()
+                .parallel()
+        ]) { print("Finished") }
         
-        
-        self.square.move(to: ["x": 374], during: 1.0).easeInOut(.Cubic)
-            .move(to: ["a": 0], during: 0.2).delay(for: 0.8).easeOut()
-            .parallel()
         
     }
     
