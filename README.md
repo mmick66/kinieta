@@ -95,14 +95,13 @@ An default argument can be passed to provide an easing functions to be used, Qua
 
 ```swift
 enum Types {
-    case Linear // This is used when no ease is called
     case Sine
     case Quad
     case Cubic
     case Quart
     case Quint
     case Expo
-    case Back // Bounce Effect
+    case Back 
     case Custom(Bezier)
 }
  ```
