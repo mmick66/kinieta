@@ -26,10 +26,9 @@ class ViewController: UIViewController {
         self.square.move(to: ["x": 74, "y": 74])
         
         
-        let myBezier = Bezier(0.16, 0.73, 0.89, 0.24)
-        self.square.move(to: ["x": 374], during: 1.0).easeInOut(.Custom(myBezier)).wait(for: 1.0).complete {
-            self.square.move(to: ["x": 74, "y": 74])
-        }
+        self.square.move(to: ["x": 374], during: 1.0).easeInOut(.Cubic)
+            .move(to: ["a": 0], during: 0.2).delay(for: 0.8).easeOut()
+            .group()
         
     }
     
