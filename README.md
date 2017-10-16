@@ -103,6 +103,8 @@ For example, for a very fast start and sudden slow down animation I used [this c
 let myBezier = Bezier(0.16, 0.73, 0.89, 0.24)
 aView.move(to: ["x": 250, "y": 500], during: 1.0).easeInOut(.Custom(myBezier))
  ```
+ 
+ ![Move with Custom Ease](https://github.com/mmick66/kinieta/blob/master/Assets/move.easeInOut.Custom.gif)
 
 ### Sequencing
 
