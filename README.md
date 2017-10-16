@@ -79,26 +79,30 @@ The UIView properties that can be animated, together with their keys are:
 
 ### Easing
 
-Every move can be smoothed by calling the ease functions:
+Every move can be smoothed by calling one of the 3 easing functions and pass:
 
 ```swift
-func easeIn(_ type: Easing.Types = Easing.Types.Quad) -> Kinieta
-func easeOut(_ type: Easing.Types = Easing.Types.Quad) -> Kinieta
-func easeInOut(_ type: Easing.Types = Easing.Types.Quad) -> Kinieta
+// When no curve is passed `.Quad` is used
+aView.move(to: ["x": 250, "y": 500], during: 0.5).easeIn()
+
+// Ease at start, end and both ends respectively
+aView.move(to: ["x": 250, "y": 500], during: 0.5).easeIn(.Cubic)
+aView.move(to: ["x": 250, "y": 500], during: 0.5).easeOut(.Cubic)
+aView.move(to: ["x": 250, "y": 500], during: 0.5).easeInOut(.Cubic)
 ```
 
 An default argument can be passed to provide an easing functions to be used, Quad being the default. All easing is based on Bezier curves and many are provided by default as seen in the `Easing.Types` enum. 
 
 ```swift
 enum Types {
-    case Linear
+    case Linear // This is used when no ease is called
     case Sine
     case Quad
     case Cubic
     case Quart
     case Quint
     case Expo
-    case Back
+    case Back // Bounce Effect
     case Custom(Bezier)
 }
  ```
