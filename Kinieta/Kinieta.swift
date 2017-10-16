@@ -10,12 +10,13 @@ import UIKit
 
 class Kinieta: Action {
     
-    private var mainSequence = Sequence()
+    private(set) var mainSequence = Sequence()
     
     let view: UIView
     init(for view: UIView) {
         self.view = view
     }
+    
     
     @discardableResult
     func move(to moves: [String:Any], during duration: TimeInterval) -> Kinieta {
@@ -103,9 +104,9 @@ class Kinieta: Action {
             self.mainSequence.add(ActionType.Animation(view, moves, duration, easing, block))
         case .Pause(let time, _):
             self.mainSequence.add(ActionType.Pause(time, block))
-        case .Group(let list, let block):
+        case .Group(let list, _):
             self.mainSequence.add(ActionType.Group(list, block))
-        case .Sequence(let list, let block):
+        case .Sequence(let list, _):
             self.mainSequence.add(ActionType.Sequence(list, block))
         }
         

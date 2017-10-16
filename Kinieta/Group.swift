@@ -13,9 +13,15 @@ class Group: Collection, Action {
     var currentActions: [Action]?
     let complete: Block?
     
-    init(_ actions: [ActionType] = [], complete: Block? = nil) {
+    init(_ types: [ActionType] = [], complete: Block? = nil) {
         self.complete = complete
-        super.init(actions)
+        super.init(types)
+    }
+    
+    init(_ actions: [Action], complete: Block? = nil) {
+        self.complete = complete
+        super.init()
+        self.currentActions = actions
     }
     
     func update(_ frame: Engine.Frame) -> ActionResult {
@@ -31,7 +37,12 @@ class Group: Collection, Action {
             
             self.currentActions = currentActions.enumerated().filter({ !fidxs.contains($0.offset) }).map({ $0.element })
             
-            return currentActions.count > 0 ? .Running : .Finished
+            if self.currentActions!.count == 0 {
+                self.complete?()
+                return .Finished
+            }
+            
+            return .Running
         }
         else if types.count > 0 {
             self.currentActions = self.popAllActions()

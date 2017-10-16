@@ -54,32 +54,39 @@ class Engine {
     
     let displayLink = Engine.DisplayLink()
     
-    private var kinietas: [Kinieta] = []
+    private var actions: [Action] = []
     
-    func add(_ kinieta: Kinieta) {
+    // MARK: API
+    func add(_ action: Action) {
         
-        kinietas.append(kinieta)
+        actions.append(action)
         displayLink.start() { frame in
             self.update(with: frame)
         }
     }
     
-    func remove(_ kinieta: Kinieta) {
-        guard let index = kinietas.index(where: { $0 === kinieta }) else {
+    func remove(_ action: Action) {
+        guard let index = actions.index(where: { $0 === action }) else {
             return
         }
-        kinietas.remove(at: index)
-        if kinietas.count == 0 {
+        actions.remove(at: index)
+        if actions.count == 0 {
             displayLink.stop()
         }
     }
     
+    
+    func group(_ actions: [Action], complete: Block? = nil) {
+        let g = Group(actions, complete: complete)
+        self.add(g)
+    }
+    
     private func update(with frame: Engine.Frame) {
      
-        for kinieta in kinietas {
-            switch kinieta.update(frame) {
+        for action in actions {
+            switch action.update(frame) {
             case .Running:  continue
-            case .Finished: self.remove(kinieta)
+            case .Finished: self.remove(action)
             }
         }
     }

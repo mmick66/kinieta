@@ -12,8 +12,8 @@ class Collection {
     
     internal var types: [ActionType]
     
-    init(_ actions: [ActionType]) {
-        self.types = actions
+    init(_ types: [ActionType] = []) {
+        self.types = types
     }
     
     var first: ActionType? {

@@ -34,7 +34,7 @@ enum ActionResult: String {
     case Finished   = "ActionResult.Finished"
 }
 
-protocol Action {
+protocol Action: class {
     func update(_ frame: Engine.Frame) -> ActionResult
 }
 

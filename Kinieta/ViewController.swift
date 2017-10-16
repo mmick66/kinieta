@@ -23,12 +23,14 @@ class ViewController: UIViewController {
 
     @IBAction func goButtonPressed(_ sender: UIButton) {
         self.square
-            .move(to: ["x": 250, "y": 500], during: 1.0).easeInOut(.Cubic)
-            .move(to: ["x": 300, "y": 200], during: 1.0).easeInOut(.Cubic)
-            .move(to: ["x": 10, "y": 50], during: 1.0).easeInOut(.Cubic)
+            .move(to: ["x": 200, "y": 500], during: 1.0).easeInOut(.Cubic)
+            .group().complete {
+                
+        }
         
     }
     
 
 }
+
 

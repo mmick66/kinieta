@@ -12,9 +12,9 @@ class Sequence: Collection, Action {
     
     let complete: Block?
     
-    init(_ actions: [ActionType] = [], complete: Block? = nil) {
+    init(_ types: [ActionType] = [], complete: Block? = nil) {
         self.complete = complete
-        super.init(actions)
+        super.init(types)
     }
     
     func popLast() -> ActionType? {
