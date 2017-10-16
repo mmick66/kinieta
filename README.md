@@ -116,6 +116,8 @@ aView.move(to: ["x": 250, "y": 500], during: 1.0).easeInOut(.Custom(myBezier))
  ```
  
  ![Move with Custom Ease](https://github.com/mmick66/kinieta/blob/master/Assets/move.easeInOut.Custom.gif)
+ 
+ All the curves passed are **prebaked** into tables for fast resolution!
 
 ### Sequencing
 
