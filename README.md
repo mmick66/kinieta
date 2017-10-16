@@ -58,16 +58,22 @@ aView.move(to: ["x": 250, "y": 500], during: 0.5).delay(for: 0.5).easeInOut(.Bac
 
 
 The UIView properties that can be animated, together with their keys are:
-* "x" - the x coordinate as in the `frame.origin.x`
-* "y" - the y coordinate as in the `frame.origin.y`
-* "w" or "width" - the width as in the `frame.size.width`
-* "h" or "height" - the height as in the `frame.size.height`
-* "r" or "rotation" - the rotation of the view changing the parameters in the transform matrix
-* "a" or "alpha" - the `alpha` property of the view 
-* "bg" or "background" - the `backgroundColor` property of the view 
-* "brc" or "borderColor" - the borderColor as in the `layer.borderColor`
-* "brw" or "borderWidth" - the borderWidth as in the `layer.borderWidth`
-* "crd" or "cornerRadius" - the cornerRadius as in the `layer.cornerRadius`
+
+
+| Key                       | Value Type    |   Metric    | Property Animated  |
+| -------------             |:-------------:|:-------------:|               -----:|
+| **"x"**                       | Any Numeric   | screen points |   `frame.origin.x` |
+| **"y"**                       | Any Numeric   | screen points  |  `frame.origin.y` |
+| **"w"** or **"width"**            | Any Numeric   |  screen points |`frame.size.width` |
+| **"h"** or **"height"**           | Any Numeric   | screen points |`frame.size.height` |
+| **"a"** or **"alpha"**            | Any Numeric   |  0 to 1 transparency |           `alpha` |
+| **"r"** or **"rotation"**            | Any Numeric   |  **degrees** |           `transform` |
+| **"frame"**                   | CGRect        |  composite  |         `frame` |
+| **"bg"** or **"background"**      | UIColor       | color |  `backgroundColor` |
+| **"brc"** or **"borderColor"**    | UIColor       | color |`layer.borderColor` |
+| **"brw"** or **"borderWidth"**    | UIColor       | screen points |`layer.borderWidth` |
+| **"crd"** or **"cornerRadius"**   | UIColor       | bevel radius | `layer.cornerRadius` |
+
 
 ### Easing
 
