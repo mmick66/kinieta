@@ -10,10 +10,12 @@ An Animation Engine for iOS with an Intuitive API and Readable Code! (Written in
 I decided to build an Animation Engine from scratch for the usual reason: No other did what I wanted **how** I wanted it! While there are some great libraries out there, my requiremenets where pretty restrictive as what I wanted was:
 
 * A library written in **Swift 4.0**
-* With the ability to **group** various animations into an entity with a  signle complete block
+* With a **timeline** approach where animations can run in **parallel** at different start and end points
+* The ability to **group** various animations from different views with a single complete block
 * A **simple API** where I could just throw in some variables and the rest would be dealt by the library
-* Efficient interpolation with an infinite amount of **custom easing functions** based on Bezier curves
-* Code that was extremely easy to ready so that new developers from the community could join in
+* A **convention over configuration** approach where many variables would be assumed when not passed
+* Efficient interpolation with infinite **easing functions** based on custom Bezier curves
+* Code that was **extremely** easy to read and new developers from the community could join in in no time!
 
 ## Installation
 
