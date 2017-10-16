@@ -47,6 +47,8 @@ aView.move(to: ["x": 250, "y": 500], during: 0.5).delay(for: 0.5).easeInOut(.Bac
 }
 ```
 
+![Basic Move with Ease](https://github.com/mmick66/kinieta/blob/master/Assets/move.easeInOut.Back.gif)
+
 The UIView properties that can be animated, together with their keys are:
 * "x" - the x coordinate as in the `frame.origin.x`
 * "y" - the y coordinate as in the `frame.origin.y`
