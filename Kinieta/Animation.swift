@@ -34,6 +34,19 @@ class Animation: Action {
         }
     }
     
+    static let FrameProperties = ["x", "y", "w", "h", "width", "height"]
+    private func packFrameProperties(_ properties: [String: Any], for view: UIView) -> [String: Any] {
+        var p = properties
+        guard p.intersection(Animation.FrameProperties) else { return p }
+        let x = CGFloat.parse(p.pop("x")) ?? view.x
+        let y = CGFloat.parse(p.pop("y")) ?? view.y
+        let w = CGFloat.parse(p.pop("w")) ?? CGFloat.parse(p.pop("width")) ?? view.width
+        let h = CGFloat.parse(p.pop("h")) ?? CGFloat.parse(p.pop("height")) ?? view.height
+        p["frame"] = CGRect(x: x, y: y, width: w, height: h)
+        return p
+    
+    }
+    
     func update(_ frame: Engine.Frame) -> ActionResult {
         
         guard duration > 0.0 else {
@@ -58,6 +71,74 @@ class Animation: Action {
         }
         
         return .Running
+        
+    }
+    
+    static func interpolation<T: CGFractionable>(from start:T, to end:T, block: @escaping (T) -> Void) -> TransformationBlock {
+        return { factor in
+            let cgFactor = CGFloat(factor)
+            let iValue = (1.0 - cgFactor) * start + cgFactor * end
+            block(iValue)
+        }
+    }
+    
+    typealias TransformationBlock = (Double) -> Void
+    func transormation(in view: UIView, for property:String, with value:Any) -> TransformationBlock {
+        
+        let cgValue = CGFloat.parse(value) ?? 1.0
+        
+        switch property {
+            
+        case "x":
+            return Animation.interpolation(from: view.x, to: cgValue) { view.x = $0 }
+            
+        case "y":
+            return Animation.interpolation(from: view.y, to: cgValue) { view.y = $0 }
+            
+        case "w", "width":
+            return Animation.interpolation(from: view.width, to: cgValue) { view.width = $0 }
+            
+        case "h", "height":
+            return Animation.interpolation(from: view.height, to: cgValue) { view.height = $0 }
+            
+        case "r", "rotation":
+            return Animation.interpolation(from: view.rotation, to: cgValue) { view.rotation = $0 }
+            
+        case "a", "alpha":
+            return Animation.interpolation(from: view.alpha, to: cgValue) { view.alpha = $0 }
+            
+        case "frame":
+            return Animation.interpolation(from: view.frame, to: value as! CGRect) { view.frame = $0 }
+  
+        case "bg", "background":
+            guard
+                let valueAsColor    = value as? UIColor,
+                let fComponents     = view.backgroundColorOrClear.components,
+                let tComponents     = valueAsColor.components else { return { _ in } }
+            
+            return Animation.interpolation(from: fComponents, to: tComponents) { iComponents in
+                view.backgroundColor = UIColor(components: iComponents)
+            }
+            
+        case "brc", "borderColor":
+            guard
+                let valueAsColor    = value as? UIColor,
+                let fComponents     = view.borderColorOrClear.components,
+                let tComponents     = valueAsColor.components else { return { _ in } }
+            
+            return Animation.interpolation(from: fComponents, to: tComponents) { iComponents in
+                view.layer.borderColor = UIColor(components: iComponents).cgColor
+            }
+            
+        case "brw", "borderWidth":
+            return Animation.interpolation(from: view.layer.borderWidth, to: cgValue) { view.layer.borderWidth = $0 }
+            
+        case "crd", "cornerRadius":
+            return Animation.interpolation(from: view.layer.borderWidth, to: cgValue) { view.layer.borderWidth = $0 }
+            
+        default:
+            return { _ in }
+        }
         
     }
     

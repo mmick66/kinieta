@@ -24,13 +24,12 @@ class ViewController: UIViewController {
     }
 
     @IBAction func goButtonPressed(_ sender: UIButton) {
-        
-        Engine.shared.group([
-            self.square.move(to: ["x": 374], during: 1.0).easeInOut(.Cubic)
-                .move(to: ["a": 0], during: 0.2).delay(for: 0.8).easeOut()
-                .parallel(),
-            self.square2.move(to: ["x": 100, "r": 30], during: 1.0).easeInOut(.Cubic)
-        ]) { print("Finished") }
+        let target = UIColor(red:0.45, green:0.18, blue:0.18, alpha:1.00)
+        self.square
+            .move(to: ["x": 374], during: 1.0).easeInOut(.Cubic)
+            .move(to: ["bg": target], during: 0.3).easeOut()
+            .move(to: ["bg": target], during: 0.3).easeOut()
+            .parallel()
         
         
     }

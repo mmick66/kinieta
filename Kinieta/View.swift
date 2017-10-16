@@ -85,6 +85,16 @@ extension UIView {
 
         }
     }
+    
+    var backgroundColorOrClear: UIColor {
+        return self.backgroundColor ?? UIColor.clear
+    }
+    var borderColorOrClear: UIColor {
+        if let bc = self.layer.borderColor {
+            return UIColor(cgColor: bc)
+        }
+        return UIColor.clear
+    }
 }
 
 

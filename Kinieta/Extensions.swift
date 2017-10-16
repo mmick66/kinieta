@@ -46,9 +46,11 @@ extension CGRect: CGFractionable {
     }
 }
 
+
 extension CGFloat: CGFractionable {
-    static func parse(_ any: Any) -> CGFloat? {
-        switch any {
+    static func parse(_ any: Any?) -> CGFloat? {
+        guard let a = any else { return nil }
+        switch a {
         case let x as CGFloat:  return CGFloat(x)
         case let x as Float:    return CGFloat(x)
         case let x as Int:      return CGFloat(x)
@@ -64,6 +66,20 @@ extension CGFloat: CGFractionable {
         case let x as UInt:     return CGFloat(x)
         default:                return nil
         }
+    }
+}
+
+extension Dictionary where Key == String, Value == Any {
+    mutating func pop(_ key: String) -> Any? {
+        return self.removeValue(forKey: key)
+    }
+    func intersection(_ keys: [String]) -> Bool {
+        for (k,_) in self {
+            if keys.contains(k) {
+                return true
+            }
+        }
+        return false
     }
 }
 
