@@ -21,29 +21,55 @@ For the moment, just copy the files in the Kinieta (virtual) folder
 
 ## How to Use
 
-An extension on UIView that is included in the code will provide the entry point for the animations. The interface object is the `Kinieta` and there is one for every view.
+### Basic Usage
+
+An extension on `UIView` that is included in the code will provide the entry point for the animations. The interface object is the `Kinieta` and there is one for every view.
 
 ```swift
-// This will snap myView to the coordinates
-myView.move(to: ["x": 250, "y": 500])
+// This will snap the view to the given coordinates
+aView.move(to: ["x": 250, "y": 500])
 
-// This will animate the same view to these coordinates in 0.5 seconds
-myView.move(to: ["x": 250, "y": 500], during: 0.5)
+// This will animate the same view to the coordinates in 0.5 seconds
+aView.move(to: ["x": 250, "y": 500], during: 0.5)
 
 // This will delay the start of the animation by 0.5 seconds
-myView.move(to: ["x": 250, "y": 500], during: 0.5).delay(for: 0.5)
+aView.move(to: ["x": 250, "y": 500], during: 0.5).delay(for: 0.5)
 
 // And this will ease the whole thing
-myView.move(to: ["x": 250, "y": 500], during: 0.5).delay(for: 0.5).easeInOut()
+aView.move(to: ["x": 250, "y": 500], during: 0.5).delay(for: 0.5).easeInOut()
 
-// Whike this will ease it with a bounce-back
-myView.move(to: ["x": 250, "y": 500], during: 0.5).delay(for: 0.5).easeInOut(.Back)
+// While this will ease it with a bounce-back
+aView.move(to: ["x": 250, "y": 500], during: 0.5).delay(for: 0.5).easeInOut(.Back)
+
+// And call the complete block when the animation is finished
+aView.move(to: ["x": 250, "y": 500], during: 0.5).delay(for: 0.5).easeInOut(.Back).complete { 
+    print("Finished") 
+}
 ```
 
+The UIView properties that can be animated, together with their keys are:
+* "x" - the x coordinate as in the `frame.origin.x`
+* "y" - the y coordinate as in the `frame.origin.y`
+* "w" or "width" - the width as in the `frame.size.width`
+* "h" or "height" - the height as in the `frame.size.height`
+* "r" or "rotation" - the rotation of the view changing the parameters in the transform matrix
+* "a" or "alpha" - the `alpha` property of the view 
+* "bg" or "background" - the `backgroundColor` property of the view 
+* "brc" or "borderColor" - the borderColor as in the `layer.borderColor`
+* "brw" or "borderWidth" - the borderWidth as in the `layer.borderWidth`
+* "crd" or "cornerRadius" - the cornerRadius as in the `layer.cornerRadius`
 
-## Easing
+### Easing
 
-The easing is based on Bezier curves and many are provided by default as seen in the `Easing.Types` enum. 
+Every move can be smoothed by calling the ease functions:
+
+```swift
+func easeIn(_ type: Easing.Types = Easing.Types.Quad) -> Kinieta
+func easeOut(_ type: Easing.Types = Easing.Types.Quad) -> Kinieta
+func easeInOut(_ type: Easing.Types = Easing.Types.Quad) -> Kinieta
+```
+
+An default argument can be passed to provide an easing functions to be used, Quad being the default. All easing is based on Bezier curves and many are provided by default as seen in the `Easing.Types` enum. 
 
 ```swift
 enum Types {
@@ -65,7 +91,38 @@ For example, for a very fast start and sudden slow down animation I used [this c
 
 ```swift
 let myBezier = Bezier(0.16, 0.73, 0.89, 0.24)
-myView.move(to: ["x": 250, "y": 500], during: 1.0).easeInOut(.Custom(myBezier))
+aView.move(to: ["x": 250, "y": 500], during: 1.0).easeInOut(.Custom(myBezier))
  ```
 
+### Sequencing
+
+You can string a few animations together very easily:
+
+```swift
+let start = ["x": aView.x, "y": aView.y]
+aView.move(to: ["x": 250, "y": 500], during: 0.5).easeInOut(.Cubic)
+     .move(to: ["x": 300, "y": 200], during: 0.5).easeInOut(.Cubic)
+     .move(to: start, during: 0.5).easeInOut(.Cubic)
+```
+
+You can also add a pause between animations by calling the `wait(for: time)` function:
+
+```swift
+aView.move(to: ["x": 250, "y": 500], during: 0.5).easeInOut(.Cubic)
+     .wait(for: 0.5)
+     .move(to: ["x": 300, "y": 200], during: 0.5).easeInOut(.Cubic)
+```
+
+The dictionary with the animations can be saved and passed later as the example above shows.
+
+### Grouping
+
+You can group various animations together to achieve more complicated effects. For example, we can add a short fade at the end of a move and have a single callback when everything finishes:
+
+```swift
+aView.move(to: ["x": 200, "y": 500], during: 1.0).easeInOut(.Cubic)
+     .move(to: ["a": 0], during: 0.2).delay(for: 0.8).easeOut()
+     .group()
+     .complete { print("Finished") }
+```
 
