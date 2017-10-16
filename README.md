@@ -138,3 +138,4 @@ aView.move(to: ["x": 200, "y": 500], during: 1.0).easeInOut(.Cubic)
      .complete { print("Finished") }
 ```
 
+ ![Move with Custom Ease](https://github.com/mmick66/kinieta/blob/master/Assets/move.easeInOut.fade.gif)
