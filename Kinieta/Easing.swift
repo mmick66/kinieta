@@ -13,7 +13,6 @@ import Foundation
 struct Easing {
     
     enum Types {
-        case Linear
         case Sine
         case Quad
         case Cubic
@@ -24,7 +23,6 @@ struct Easing {
         case Custom(Bezier)
         var string: String {
             switch self {
-            case .Linear:    return "linear"
             case .Sine:      return "sine"
             case .Quad:      return "quad"
             case .Cubic:     return "cubic"

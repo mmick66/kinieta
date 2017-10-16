@@ -29,9 +29,7 @@ class ViewController: UIViewController {
             self.square.move(to: ["x": 374], during: 1.0).easeInOut(.Cubic)
                 .move(to: ["a": 0], during: 0.2).delay(for: 0.8).easeOut()
                 .parallel(),
-            self.square2.move(to: ["x": 374], during: 1.0).easeInOut(.Cubic)
-                .move(to: ["a": 0], during: 0.2).delay(for: 0.8).easeOut()
-                .parallel()
+            self.square2.move(to: ["x": 100, "r": 30], during: 1.0).easeInOut(.Cubic)
         ]) { print("Finished") }
         
         
