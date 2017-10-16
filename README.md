@@ -145,3 +145,15 @@ aView.move(to: ["x": 200, "y": 500], during: 1.0).easeInOut(.Cubic)
 ```
 
  ![Move with Custom Ease](https://github.com/mmick66/kinieta/blob/master/Assets/move.easeInOut.fade.gif)
+ 
+ ### Grouping
+ 
+ You can group multiple animation of different views and get a common complete handler when they all finish.
+ 
+ ```swift
+ Engine.shared.group([
+     aView.move(to: ["x": 374], during: 1.0).easeInOut(.Cubic)
+          .move(to: ["a": 0], during: 0.2).delay(for: 0.8).easeOut().parallel(),
+     otherView.move(to: ["x": 100, "r": 30], during: 1.0).easeInOut(.Cubic)
+]) { print("Both Finished") }
+```
