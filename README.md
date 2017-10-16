@@ -10,10 +10,12 @@ An Animation Engine for iOS with an Intuitive API and Readable Code! (Written in
 I decided to build an Animation Engine from scratch for the usual reason: No other did what I wanted **how** I wanted it! While there are some great libraries out there, my requiremenets where pretty restrictive as what I wanted was:
 
 * A library written in **Swift 4.0**
-* With the ability to **group** various animations into an entity with a  signle complete block
+* With a **timeline** approach where animations can run in **parallel** at different start and end points
+* The ability to **group** various animations from different views with a single complete block
 * A **simple API** where I could just throw in some variables and the rest would be dealt by the library
-* Efficient interpolation with an infinite amount of **custom easing functions** based on Bezier curves
-* Code that was extremely easy to ready so that new developers from the community could join in
+* A **convention over configuration** approach where many variables would be assumed when not passed
+* Efficient interpolation with infinite **easing functions** based on custom Bezier curves
+* Code that was **extremely** easy to read and new developers from the community could join in in no time!
 
 ## Installation
 
@@ -77,26 +79,30 @@ The UIView properties that can be animated, together with their keys are:
 
 ### Easing
 
-Every move can be smoothed by calling the ease functions:
+Every move can be smoothed by calling one of the 3 easing functions and pass:
 
 ```swift
-func easeIn(_ type: Easing.Types = Easing.Types.Quad) -> Kinieta
-func easeOut(_ type: Easing.Types = Easing.Types.Quad) -> Kinieta
-func easeInOut(_ type: Easing.Types = Easing.Types.Quad) -> Kinieta
+// When no curve is passed `.Quad` is used
+aView.move(to: ["x": 250, "y": 500], during: 0.5).easeIn()
+
+// Ease at start, end and both ends respectively
+aView.move(to: ["x": 250, "y": 500], during: 0.5).easeIn(.Cubic)
+aView.move(to: ["x": 250, "y": 500], during: 0.5).easeOut(.Cubic)
+aView.move(to: ["x": 250, "y": 500], during: 0.5).easeInOut(.Cubic)
 ```
 
 An default argument can be passed to provide an easing functions to be used, Quad being the default. All easing is based on Bezier curves and many are provided by default as seen in the `Easing.Types` enum. 
 
 ```swift
 enum Types {
-    case Linear
+    case Linear // This is used when no ease is called
     case Sine
     case Quad
     case Cubic
     case Quart
     case Quint
     case Expo
-    case Back
+    case Back // Bounce Effect
     case Custom(Bezier)
 }
  ```
@@ -145,3 +151,15 @@ aView.move(to: ["x": 200, "y": 500], during: 1.0).easeInOut(.Cubic)
 ```
 
  ![Move with Custom Ease](https://github.com/mmick66/kinieta/blob/master/Assets/move.easeInOut.fade.gif)
+ 
+ ### Grouping
+ 
+ You can group multiple animation of different views and get a common complete handler when they all finish.
+ 
+ ```swift
+ Engine.shared.group([
+     aView.move(to: ["x": 374], during: 1.0).easeInOut(.Cubic)
+          .move(to: ["a": 0], during: 0.2).delay(for: 0.8).easeOut().parallel(),
+     otherView.move(to: ["x": 100, "r": 30], during: 1.0).easeInOut(.Cubic)
+]) { print("Both Finished") }
+```
