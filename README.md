@@ -5,14 +5,6 @@
 ## Kinieta
 An Animation Engine for iOS with an Intuitive API and Readable Code! (Written in Swift 4.0.)
 
-```swift
-square.move(to: ["x": 374], during: 1.0).easeInOut(.Back).wait(for: 1.0).complete {
-    square.move(to: ["x": 74])
-}
-```
-
-![Basic Move with Ease](https://github.com/mmick66/kinieta/blob/master/Assets/move.easeInOut.Back.gif)
-
 ## Why another?
 
 I decided to build an Animation Engine from scratch for the usual reason: No other did what I wanted **how** I wanted it! While there are some great libraries out there, my requiremenets where pretty restrictive as what I wanted was:
@@ -28,6 +20,14 @@ I decided to build an Animation Engine from scratch for the usual reason: No oth
 For the moment, just copy the files in the Kinieta (virtual) folder
 
 ## How to Use
+
+```swift
+square.move(to: ["x": 374], during: 1.0).easeInOut(.Back).wait(for: 1.0).complete {
+    square.move(to: ["x": 74])
+}
+```
+
+![Basic Move with Ease](https://github.com/mmick66/kinieta/blob/master/Assets/move.easeInOut.Back.gif)
 
 ### Basic Usage
 
