@@ -76,7 +76,7 @@ class Kinieta: Action {
     
 
     @discardableResult
-    func group() -> Kinieta {
+    func group(complete: Block? = nil) -> Kinieta {
     
         var actions = [ActionType]()
         while let last = self.mainSequence.popLast() {
@@ -87,7 +87,7 @@ class Kinieta: Action {
             
         }
     
-        let group = ActionType.Group(actions, nil)
+        let group = ActionType.Group(actions, complete)
         self.mainSequence.add(group)
     
         return self
