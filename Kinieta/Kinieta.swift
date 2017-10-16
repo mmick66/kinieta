@@ -76,7 +76,7 @@ class Kinieta: Action {
     
 
     @discardableResult
-    func group(complete: Block? = nil) -> Kinieta {
+    func parallel(complete: Block? = nil) -> Kinieta {
     
         var actions = [ActionType]()
         while let last = self.mainSequence.popLast() {

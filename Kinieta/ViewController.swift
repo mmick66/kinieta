@@ -28,7 +28,7 @@ class ViewController: UIViewController {
         
         self.square.move(to: ["x": 374], during: 1.0).easeInOut(.Cubic)
             .move(to: ["a": 0], during: 0.2).delay(for: 0.8).easeOut()
-            .group()
+            .parallel()
         
     }
     
