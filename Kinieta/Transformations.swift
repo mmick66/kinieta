@@ -8,101 +8,80 @@
 
 import UIKit
 
-func createFloatInterpolation(from start:CGFloat, to end:CGFloat, block: @escaping (CGFloat) -> Void) -> TransformationBlock {
-    
-    return { factor in
-        let cgFloatFactor = CGFloat(factor)
-        let iFloat = (1.0 - cgFloatFactor) * start + cgFloatFactor * end
-        block(iFloat)
-    }
-}
 
-func createColorInterpolation(from start:UIColor, to end:UIColor, block: @escaping (UIColor) -> Void) -> TransformationBlock {
-    
-    let components = { (color: UIColor) -> (r: CGFloat, g: CGFloat, b: CGFloat, a: CGFloat)? in
-        guard let components = color.cgColor.components else { return nil }
-        if components.count == 2 {
-            return (r: components[0], g: components[0], b: components[0], a: components[1])
-        } else {
-            return (r: components[0], g: components[1], b: components[2], a: components[3])
-        }
-    }
-    
-    guard
-        let startComponents = components(start),
-        let endComponents   = components(end) else { return { _ in } }
-    
+func interpolation<T: CGFractionable>(from start:T, to end:T, block: @escaping (T) -> Void) -> TransformationBlock {
     return { factor in
-        
-        let cgFloatFactor = CGFloat(factor)
-        
-        let r = (1.0 - cgFloatFactor) * startComponents.r + cgFloatFactor * endComponents.r
-        let g = (1.0 - cgFloatFactor) * startComponents.g + cgFloatFactor * endComponents.g
-        let b = (1.0 - cgFloatFactor) * startComponents.b + cgFloatFactor * endComponents.b
-        let a = (1.0 - cgFloatFactor) * startComponents.a + cgFloatFactor * endComponents.a
-        
-        let iColor = UIColor(red: r, green: g, blue: b, alpha: a)
-        
-        block(iColor)
+        let cgFactor = CGFloat(factor)
+        let iValue = (1.0 - cgFactor) * start + cgFactor * end
+        block(iValue)
     }
 }
 
 typealias TransformationBlock = (Double) -> Void
-func createTransormation(in view: UIView, for property:String, with value:Any) -> TransformationBlock {
+func transormation(in view: UIView, for property:String, with value:Any) -> TransformationBlock {
     
-    let cgFloatValue: CGFloat = cgfloat(value) ?? 1.0
+    let cgFloatValue = CGFloat.parse(value) ?? 1.0
     
     switch property {
         
     case "x":
-        return createFloatInterpolation(from: view.x, to: cgFloatValue) { nValue in
+        return interpolation(from: view.x, to: cgFloatValue) { nValue in
             view.x = nValue
         }
         
     case "y":
-        return createFloatInterpolation(from: view.y, to: cgFloatValue) { nValue in
+        return interpolation(from: view.y, to: cgFloatValue) { nValue in
             view.y = nValue
         }
         
     case "w", "width":
-        return createFloatInterpolation(from: view.width, to: cgFloatValue) { nValue in
+        return interpolation(from: view.width, to: cgFloatValue) { nValue in
             view.width = nValue
         }
         
     case "h", "height":
-        return createFloatInterpolation(from: view.height, to: cgFloatValue) { nValue in
+        return interpolation(from: view.height, to: cgFloatValue) { nValue in
             view.height = nValue
         }
         
     case "r", "rotation":
-        return createFloatInterpolation(from: view.rotation, to: cgFloatValue) { nValue in
+        return interpolation(from: view.rotation, to: cgFloatValue) { nValue in
             view.rotation = nValue
         }
-        
+    case "frame":
+        return interpolation(from: view.frame, to: value as! CGRect) { nValue in
+            view.frame = nValue
+        }
     case "a", "alpha":
-        return createFloatInterpolation(from: view.alpha, to: cgFloatValue) { nValue in
+        return interpolation(from: view.alpha, to: cgFloatValue) { nValue in
             view.alpha = nValue
         }
         
     case "bg", "background":
-        let ibg = view.backgroundColor != nil ? view.backgroundColor! : UIColor.clear
-        return createColorInterpolation(from: ibg , to: value as! UIColor) { nColor in
-            view.backgroundColor = nColor
+        let uwBackgroundColor = view.backgroundColor != nil ? view.backgroundColor! : UIColor.clear
+        guard let fComponents = uwBackgroundColor.components, let tComponents = (value as! UIColor).components else {
+            return { float in }
+        }
+        return interpolation(from: fComponents, to: tComponents) { iComponents in
+            view.backgroundColor = UIColor(components: iComponents)
         }
         
     case "brc", "borderColor":
-        let ibrc = view.layer.borderColor != nil ? UIColor(cgColor: view.layer.borderColor!) : UIColor.clear
-        return createColorInterpolation(from: ibrc, to: value as! UIColor) { nColor in
-            view.layer.borderColor = nColor.cgColor
+        let uwBackgroundColor = view.layer.borderColor != nil ? UIColor(cgColor: view.layer.borderColor!) : UIColor.clear
+        guard let fComponents = uwBackgroundColor.components, let tComponents = (value as! UIColor).components else {
+            return { float in }
+        }
+        return interpolation(from: fComponents, to: tComponents) { iComponents in
+            view.layer.borderColor = UIColor(components: iComponents).cgColor
         }
         
     case "brw", "borderWidth":
-        return createFloatInterpolation(from: view.layer.borderWidth, to: cgFloatValue) { nValue in
+        return interpolation(from: view.layer.borderWidth, to: cgFloatValue) { nValue in
             view.layer.borderWidth = nValue
         }
         
     case "crd", "cornerRadius":
-        return createFloatInterpolation(from: view.layer.borderWidth, to: cgFloatValue) { nValue in
+        return interpolation(from: view.layer.borderWidth, to: cgFloatValue) { nValue in
             view.layer.borderWidth = nValue
         }
         
@@ -112,32 +91,4 @@ func createTransormation(in view: UIView, for property:String, with value:Any) -
     
 }
 
-
-extension FloatingPoint {
-    var degreesToRadians: Self { return self * .pi / 180 }
-    var radiansToDegrees: Self { return self * 180 / .pi }
-}
-
-func clamp<T: Comparable>(value: T, lower: T, upper: T) -> T {
-    return min(max(value, lower), upper)
-}
-
-func cgfloat(_ any: Any) -> CGFloat? {
-    switch any {
-    case let x as CGFloat:  return CGFloat(x)
-    case let x as Float:    return CGFloat(x)
-    case let x as Int:      return CGFloat(x)
-    case let x as Double:   return CGFloat(x)
-    case let x as UInt8:    return CGFloat(x)
-    case let x as Int8:     return CGFloat(x)
-    case let x as UInt16:   return CGFloat(x)
-    case let x as Int16:    return CGFloat(x)
-    case let x as UInt32:   return CGFloat(x)
-    case let x as Int32:    return CGFloat(x)
-    case let x as UInt64:   return CGFloat(x)
-    case let x as Int64:    return CGFloat(x)
-    case let x as UInt:     return CGFloat(x)
-    default:                return nil
-    }
-}
 

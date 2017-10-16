@@ -29,7 +29,7 @@ class Animation: Action {
         self.complete   = complete
         
         for (property, value) in moves {
-            let transformation = createTransormation(in: view, for: property, with: value)
+            let transformation = transormation(in: view, for: property, with: value)
             transformations.append(transformation)
         }
     }
