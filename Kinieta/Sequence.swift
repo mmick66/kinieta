@@ -18,15 +18,28 @@ class Sequence: Collection, Action {
     }
     
     func popLast() -> ActionType? {
-        guard let last = self.types.last else { return nil }
-        self.types.removeLast()
-        return last
+        return super.pop()
     }
     
     func popFirst() -> ActionType? {
         guard let first = self.types.first else { return nil }
         self.types.removeFirst()
         return first
+    }
+    
+    func popAllUnGrouped() -> [ActionType] {
+        var actions = [ActionType]()
+        pop: while let last = self.popLast() {
+            switch last {
+            case .Group:
+                self.add(last) // put back
+                break pop
+            default:
+                actions.append(last)
+            }
+        }
+        
+        return actions
     }
     
     private var currentAction: Action?

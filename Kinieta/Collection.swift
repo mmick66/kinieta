@@ -31,6 +31,12 @@ class Collection {
         self.types.append(type)
     }
     
+    func pop() -> ActionType? {
+        guard let last = self.types.last else { return nil }
+        self.types.removeLast()
+        return last
+    }
+    
     func popFirstAction() -> Action? {
         guard let type = self.types.first else { return nil }
         let action = Factory.Action(from: type)

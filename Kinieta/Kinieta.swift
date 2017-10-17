@@ -44,7 +44,12 @@ class Kinieta: Action {
     }
     
     var then: Kinieta {
-        self.parallel()
+        let actions = self.mainSequence.popAllUnGrouped()
+        guard actions.count > 0 else { return self }
+        
+        let sequence    = ActionType.Sequence(actions, nil)
+        let group       = ActionType.Group([sequence], nil)
+        self.mainSequence.add(group)
         return self
     }
     
@@ -83,24 +88,12 @@ class Kinieta: Action {
     @discardableResult
     func parallel(complete: Block? = nil) -> Kinieta {
     
-        var actions = [ActionType]()
-        popFromEnd: while let last = self.mainSequence.popLast() {
-            switch last {
-            case .Group:
-                self.mainSequence.add(last) // put back
-                break popFromEnd
-            default:
-                actions.append(last)
-            }
-            
-        }
-    
-        if actions.count > 0 {
-            let group = ActionType.Group(actions, complete)
-            self.mainSequence.add(group)
-        }
+        let actions = self.mainSequence.popAllUnGrouped()
+        guard actions.count > 0 else { return self }
         
-    
+        let group = ActionType.Group(actions, complete)
+        self.mainSequence.add(group)
+        
         return self
     }
     
