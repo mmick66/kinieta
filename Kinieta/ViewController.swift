@@ -30,7 +30,7 @@ class ViewController: UIViewController {
             .then
             .move(to: ["x": 274], during: 1.0)
             .move(to: ["bg": target], during: 0.3).easeOut()
-            .parallel()
+            .parallel().again(times: 3)
         
         
     }

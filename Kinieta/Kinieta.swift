@@ -86,14 +86,25 @@ class Kinieta: Action {
     
 
     @discardableResult
-    func parallel(complete: Block? = nil) -> Kinieta {
+    func parallel() -> Kinieta {
     
         let actions = self.mainSequence.popAllUnGrouped()
         guard actions.count > 0 else { return self }
         
-        let group = ActionType.Group(actions, complete)
+        let group = ActionType.Group(actions, nil)
         self.mainSequence.add(group)
         
+        return self
+    }
+    
+    @discardableResult
+    func again(times: UInt8 = 1) -> Kinieta {
+        let typesCopy = self.mainSequence.types
+        for _ in 0..<times {
+            for at in typesCopy {
+                self.mainSequence.add(at)
+            }
+        }
         return self
     }
     
