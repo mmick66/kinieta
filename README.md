@@ -130,7 +130,7 @@ aView.move(to: ["x": 250, "y": 500], during: 0.5).easeInOut(.Cubic)
      .move(to: start, during: 0.5).easeInOut(.Cubic)
 ```
 
-You can also add a pause between animations by calling the `wait(for: time)` function:
+The dictionary with the animations can be saved and passed later as the example above shows. You can also add a pause between animations by calling the `wait(for time: TimeInterval)` function:
 
 ```swift
 aView.move(to: ["x": 250, "y": 500], during: 0.5).easeInOut(.Cubic)
@@ -138,7 +138,13 @@ aView.move(to: ["x": 250, "y": 500], during: 0.5).easeInOut(.Cubic)
      .move(to: ["x": 300, "y": 200], during: 0.5).easeInOut(.Cubic)
 ```
 
-The dictionary with the animations can be saved and passed later as the example above shows.
+Finally, you can repeat the animation sequence with the `again(times: Int = 1)` function.
+
+```swift
+aView.move(to: ["x": 250, "y": 500], during: 0.5).easeInOut(.Cubic)
+     .move(to: ["x": 300, "y": 200], during: 0.5).easeInOut(.Cubic)
+     .again()
+```
 
 ### Parallelizing
 
