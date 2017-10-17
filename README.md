@@ -164,11 +164,11 @@ aView.move(to: ["x": 300], during: 1.0).easeInOut() // this needs to run first,
      .parallel()
 ```
 
-The code above will take **all three moves** and run then in parallel, esentially ignoring the first. What we wanted however is for the first move to run on its own **followed** by the other 2 in parallel. To achive this we call the `then` property (which is essentially syntacti sugar over `parrallel`) as follows:
+The code above will take **all three moves** and run then in parallel, esentially ignoring the first. What we wanted however is for the first move to run on its own **followed** by the other 2 in parallel. To achive this we call the `then` property as follows:
 
  ```swift
 aView.move(to: ["x": 300], during: 1.0).easeInOut() 
-     .then  // this will separate the two moves        
+     .then        
      .move(to: ["x": 200], during: 1.0).easeInOut() 
      .move(to: ["a": 0], during: 0.2).easeOut()     
      .parallel()
