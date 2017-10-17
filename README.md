@@ -153,6 +153,27 @@ aView.move(to: ["x": 200, "y": 500], during: 1.0).easeInOut(.Cubic)
 
  ![Move with Custom Ease](https://github.com/mmick66/kinieta/blob/master/Assets/move.easeInOut.fade.gif)
  
+ #### Potential Pitfalls in Combining Groups
+ 
+ What `.parallel()` does is to create an internal group with all the actions **that preceded the call** added inside. This might cause a problem when two or more parallel groups need to be run sequencially. For example:
+ 
+ ```swift
+aView.move(to: ["x": 300], during: 1.0).easeInOut() // this needs to run first,
+     .move(to: ["x": 200], during: 1.0).easeInOut() // then this...
+     .move(to: ["a": 0], during: 0.2).easeOut()     // ...parallel with this!
+     .parallel()
+```
+
+The code above will take **all three moves** and run then in parallel, esentially ignoring the first. What we wanted however is for the first move to run on its own **followed** by the other 2 in parallel. To achive this we call the `then` property (which is essentially syntacti sugar over `parrallel`) as follows:
+
+ ```swift
+aView.move(to: ["x": 300], during: 1.0).easeInOut() 
+     .then  // this will separate the two moves        
+     .move(to: ["x": 200], during: 1.0).easeInOut() 
+     .move(to: ["a": 0], during: 0.2).easeOut()     
+     .parallel()
+```
+ 
  ### Grouping
  
  You can group multiple animation of different views and get a common complete handler when they all finish.
@@ -163,4 +184,12 @@ aView.move(to: ["x": 200, "y": 500], during: 1.0).easeInOut(.Cubic)
           .move(to: ["a": 0], during: 0.2).delay(for: 0.8).easeOut().parallel(),
      otherView.move(to: ["x": 100, "r": 30], during: 1.0).easeInOut(.Cubic)
 ]) { print("Both Finished") }
+```
+
+Remember that calls to the Kinieta API return an object so one could also do:
+
+ ```swift
+ let move1 = aView.move(to: ["x": 374], during: 1.0).easeInOut(.Cubic)
+ let move2 = otherView.move(to: ["x": 100, "r": 30], during: 1.0).easeInOut(.Cubic)
+ Engine.shared.group([move1, move2]) { print("Both Finished") }
 ```
