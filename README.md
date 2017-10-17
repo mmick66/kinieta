@@ -185,3 +185,11 @@ aView.move(to: ["x": 300], during: 1.0).easeInOut()
      otherView.move(to: ["x": 100, "r": 30], during: 1.0).easeInOut(.Cubic)
 ]) { print("Both Finished") }
 ```
+
+Remember that calls to the Kinieta API return an object so one could also do:
+
+ ```swift
+ let move1 = aView.move(to: ["x": 374], during: 1.0).easeInOut(.Cubic)
+ let move2 = otherView.move(to: ["x": 100, "r": 30], during: 1.0).easeInOut(.Cubic)
+ Engine.shared.group([move1, move2]) { print("Both Finished") }
+```
