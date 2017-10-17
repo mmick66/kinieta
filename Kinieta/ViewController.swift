@@ -27,7 +27,8 @@ class ViewController: UIViewController {
         let target = UIColor(red:0.45, green:0.18, blue:0.18, alpha:1.00)
         self.square
             .move(to: ["x": 374], during: 1.0).easeInOut(.Cubic)
-            .move(to: ["bg": target], during: 0.3).easeOut()
+            .then
+            .move(to: ["x": 274], during: 1.0)
             .move(to: ["bg": target], during: 0.3).easeOut()
             .parallel()
         

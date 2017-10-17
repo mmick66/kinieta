@@ -43,6 +43,11 @@ class Kinieta: Action {
         return self
     }
     
+    var then: Kinieta {
+        self.parallel()
+        return self
+    }
+    
     // MARK: Easing Functions
     @discardableResult
     func easeIn(_ type: Easing.Types = Easing.Types.Quad) -> Kinieta {
@@ -79,16 +84,22 @@ class Kinieta: Action {
     func parallel(complete: Block? = nil) -> Kinieta {
     
         var actions = [ActionType]()
-        while let last = self.mainSequence.popLast() {
+        popFromEnd: while let last = self.mainSequence.popLast() {
             switch last {
-            case .Group: break
-            default:     actions.append(last)
+            case .Group:
+                self.mainSequence.add(last) // put back
+                break popFromEnd
+            default:
+                actions.append(last)
             }
             
         }
     
-        let group = ActionType.Group(actions, complete)
-        self.mainSequence.add(group)
+        if actions.count > 0 {
+            let group = ActionType.Group(actions, complete)
+            self.mainSequence.add(group)
+        }
+        
     
         return self
     }

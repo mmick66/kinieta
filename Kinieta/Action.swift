@@ -18,13 +18,13 @@ enum ActionType: CustomStringConvertible {
     var description: String {
         switch self {
         case .Animation(_, let moves, _, _, _):
-            return "Animation(\(moves.toString()))"
+            return "Animation (\(moves.toString()))"
         case .Pause(let time, _):
-            return "Pause(\(time))"
+            return "Pause (\(time))"
         case .Group(let types, _):
-            return "Group(\(types.count))"
+            return "Group (\(types.count))"
         case .Sequence(let types, _):
-            return "Sequence(\(types.count))"
+            return "Sequence (\(types.count))"
         }
     }
 }
@@ -56,8 +56,4 @@ class Factory {
     }
 }
 
-extension Dictionary {
-    func toString() -> String {
-        return self.map({ return "\($0):\($1)" }).joined(separator: " ")
-    }
-}
+
