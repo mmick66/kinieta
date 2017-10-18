@@ -55,8 +55,6 @@ aView.move(to: ["x": 250, "y": 500], during: 0.5).delay(for: 0.5).easeInOut(.Bac
 aView.move(to: ["x": 250, "y": 500], during: 0.5).delay(for: 0.5).easeInOut(.Back).complete { print("♥") }
 ```
 
-
-
 The UIView properties that can be animated, together with their keys are:
 
 
@@ -74,6 +72,7 @@ The UIView properties that can be animated, together with their keys are:
 | **"brw"** or **"borderWidth"**    | UIColor       | screen points |`layer.borderWidth` |
 | **"crd"** or **"cornerRadius"**   | UIColor       | bevel radius | `layer.cornerRadius` |
 
+Note: When two synonymous keys (like "bg" and "background") are passed in the same list the most verbose (ie. "background") will win over and the other will be silently ignored.
 
 ### Easing
 
