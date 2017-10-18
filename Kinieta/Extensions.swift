@@ -1,10 +1,28 @@
-//
-//  Extensions.swift
-//  Kinieta
-//
-//  Created by Michael Michailidis on 16/10/2017.
-//  Copyright © 2017 Michael Michailidis. All rights reserved.
-//
+/*
+ * Extensions.swift
+ 
+ * Created by Michael Michailidis on 16/10/2017.
+ * http://blog.karmadust.com/
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ *
+ */
 
 import UIKit
 
@@ -88,42 +106,42 @@ extension UIColor {
     typealias HSBA = (h: CGFloat, s:CGFloat, b:CGFloat, a:CGFloat)
     struct Components: CGFractionable {
         
-        var x: CGFloat, y: CGFloat, z: CGFloat, a: CGFloat
+        var c1: CGFloat, c2: CGFloat, c3: CGFloat, a: CGFloat
         enum Space {
             case RGB
             case HSB
         }
         let space: Space
-        init(x: CGFloat, y: CGFloat, z: CGFloat, a: CGFloat, space: Components.Space) {
-            self.x = x
-            self.y = y
-            self.z = z
+        init(c1: CGFloat, c2: CGFloat, c3: CGFloat, a: CGFloat, space: Components.Space) {
+            self.c1 = c1
+            self.c2 = c2
+            self.c3 = c3
             self.a = a
             self.space = space
         }
         init(rgba: RGBA) {
-            self.x = rgba.r
-            self.y = rgba.g
-            self.z = rgba.b
+            self.c1 = rgba.r
+            self.c2 = rgba.g
+            self.c3 = rgba.b
             self.a = rgba.a
             self.space = Space.RGB
         }
         init(hsba: HSBA) {
-            self.x = hsba.h
-            self.y = hsba.s
-            self.z = hsba.b
+            self.c1 = hsba.h
+            self.c2 = hsba.s
+            self.c3 = hsba.b
             self.a = hsba.a
             self.space = Space.HSB
         }
         static func *(lhs:UIColor.Components, rhs:CGFloat) -> Components {
-            return Components(x: lhs.x * rhs, y: lhs.y * rhs, z: lhs.z * rhs, a: lhs.a * rhs, space: lhs.space)
+            return Components(c1: lhs.c1 * rhs, c2: lhs.c2 * rhs, c3: lhs.c3 * rhs, a: lhs.a * rhs, space: lhs.space)
         }
         static func *(lhs:CGFloat, rhs:UIColor.Components) -> Components {
             return rhs * lhs
         }
         
         static func +(lhs:UIColor.Components, rhs:UIColor.Components) -> Components {
-            return Components(x: lhs.x + rhs.x, y: lhs.y + rhs.y, z: lhs.z + rhs.z, a: lhs.a + rhs.a, space: lhs.space)
+            return Components(c1: lhs.c1 + rhs.c1, c2: lhs.c2 + rhs.c2, c3: lhs.c3 + rhs.c3, a: lhs.a + rhs.a, space: lhs.space)
         }
     }
     
@@ -148,8 +166,8 @@ extension UIColor {
     }
     convenience init(components comps: Components) {
         switch comps.space {
-        case .RGB: self.init(red: comps.x, green: comps.y, blue: comps.z, alpha: comps.a)
-        case .HSB: self.init(hue: comps.x, saturation: comps.y, brightness: comps.z, alpha: comps.a)
+        case .RGB: self.init(red: comps.c1, green: comps.c2, blue: comps.c3, alpha: comps.a)
+        case .HSB: self.init(hue: comps.c1, saturation: comps.c2, brightness: comps.c3, alpha: comps.a)
         }
         
     }
