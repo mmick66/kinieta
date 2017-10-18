@@ -52,9 +52,7 @@ aView.move(to: ["x": 250, "y": 500], during: 0.5).delay(for: 0.5).easeInOut()
 aView.move(to: ["x": 250, "y": 500], during: 0.5).delay(for: 0.5).easeInOut(.Back)
 
 // And call the complete block when the animation is finished
-aView.move(to: ["x": 250, "y": 500], during: 0.5).delay(for: 0.5).easeInOut(.Back).complete { 
-    print("Finished") 
-}
+aView.move(to: ["x": 250, "y": 500], during: 0.5).delay(for: 0.5).easeInOut(.Back).complete { print("♥") }
 ```
 
 
