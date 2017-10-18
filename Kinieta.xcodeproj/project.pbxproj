@@ -16,6 +16,9 @@
 		BE6568FA1F652B6C007E41D2 /* Action.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE6568F91F652B6C007E41D2 /* Action.swift */; };
 		BE6568FC1F6536E0007E41D2 /* Pause.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE6568FB1F6536E0007E41D2 /* Pause.swift */; };
 		BE6568FE1F656019007E41D2 /* Group.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE6568FD1F656019007E41D2 /* Group.swift */; };
+		C7271CB51F9790C3009CA619 /* UIColor+Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7271CB41F978168009CA619 /* UIColor+Components.swift */; };
+		C7271CB61F979103009CA619 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7937B951F94BE7000B54DC0 /* Extensions.swift */; };
+		C7271CB71F979103009CA619 /* UIColor+Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7271CB41F978168009CA619 /* UIColor+Components.swift */; };
 		C76EF57D1F950DB200A25A41 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7937B951F94BE7000B54DC0 /* Extensions.swift */; };
 		C772DF781F57F33100A3F690 /* Animation.swift in Sources */ = {isa = PBXBuildFile; fileRef = C772DF771F57F33100A3F690 /* Animation.swift */; };
 		C772DF7C1F58129000A3F690 /* Bezier.swift in Sources */ = {isa = PBXBuildFile; fileRef = C772DF7B1F58129000A3F690 /* Bezier.swift */; };
@@ -29,7 +32,6 @@
 		C7937B8E1F8E301B00B54DC0 /* Collection.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7937B8D1F8E301B00B54DC0 /* Collection.swift */; };
 		C7937B901F8E30D900B54DC0 /* Kinieta.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7937B8F1F8E30D900B54DC0 /* Kinieta.swift */; };
 		C7937B921F8E4AA000B54DC0 /* Kinieta.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7937B8F1F8E30D900B54DC0 /* Kinieta.swift */; };
-		C7937B941F94BE6D00B54DC0 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7937B931F94BE6C00B54DC0 /* Extensions.swift */; };
 		C7B25AD81F5FCE9B0060071E /* Engine.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7B25AD71F5FCE9B0060071E /* Engine.swift */; };
 		C7B25ADC1F5FD0AA0060071E /* View.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7B25ADB1F5FD0AA0060071E /* View.swift */; };
 /* End PBXBuildFile section */
@@ -58,6 +60,7 @@
 		BE6568F91F652B6C007E41D2 /* Action.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Action.swift; sourceTree = "<group>"; };
 		BE6568FB1F6536E0007E41D2 /* Pause.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Pause.swift; sourceTree = "<group>"; };
 		BE6568FD1F656019007E41D2 /* Group.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Group.swift; sourceTree = "<group>"; };
+		C7271CB41F978168009CA619 /* UIColor+Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIColor+Components.swift"; sourceTree = "<group>"; };
 		C772DF771F57F33100A3F690 /* Animation.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Animation.swift; sourceTree = "<group>"; };
 		C772DF7B1F58129000A3F690 /* Bezier.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Bezier.swift; sourceTree = "<group>"; };
 		C772DF7D1F581B7B00A3F690 /* Easing.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Easing.swift; sourceTree = "<group>"; };
@@ -65,7 +68,6 @@
 		C77895861F8B6ADA004A6274 /* Sequence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sequence.swift; sourceTree = "<group>"; };
 		C7937B8D1F8E301B00B54DC0 /* Collection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Collection.swift; sourceTree = "<group>"; };
 		C7937B8F1F8E30D900B54DC0 /* Kinieta.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Kinieta.swift; sourceTree = "<group>"; };
-		C7937B931F94BE6C00B54DC0 /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
 		C7937B951F94BE7000B54DC0 /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
 		C7B25AD71F5FCE9B0060071E /* Engine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Engine.swift; sourceTree = "<group>"; };
 		C7B25ADB1F5FD0AA0060071E /* View.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = View.swift; sourceTree = "<group>"; };
@@ -117,7 +119,6 @@
 				BE6568DE1F57DE10007E41D2 /* Assets.xcassets */,
 				BE6568E01F57DE10007E41D2 /* LaunchScreen.storyboard */,
 				BE6568E31F57DE10007E41D2 /* Info.plist */,
-				C7937B931F94BE6C00B54DC0 /* Extensions.swift */,
 			);
 			path = Kinieta;
 			sourceTree = "<group>";
@@ -145,6 +146,7 @@
 				C772DF7D1F581B7B00A3F690 /* Easing.swift */,
 				C7B25ADB1F5FD0AA0060071E /* View.swift */,
 				C7937B951F94BE7000B54DC0 /* Extensions.swift */,
+				C7271CB41F978168009CA619 /* UIColor+Components.swift */,
 			);
 			name = Kinieta;
 			sourceTree = "<group>";
@@ -265,6 +267,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C7271CB61F979103009CA619 /* Extensions.swift in Sources */,
+				C7271CB71F979103009CA619 /* UIColor+Components.swift in Sources */,
 				BE6568FE1F656019007E41D2 /* Group.swift in Sources */,
 				BE6568FA1F652B6C007E41D2 /* Action.swift in Sources */,
 				C77895871F8B6ADA004A6274 /* Sequence.swift in Sources */,
@@ -274,7 +278,6 @@
 				C7B25ADC1F5FD0AA0060071E /* View.swift in Sources */,
 				C772DF7C1F58129000A3F690 /* Bezier.swift in Sources */,
 				BE6568DA1F57DE10007E41D2 /* ViewController.swift in Sources */,
-				C7937B941F94BE6D00B54DC0 /* Extensions.swift in Sources */,
 				BE6568D81F57DE10007E41D2 /* AppDelegate.swift in Sources */,
 				BE6568FC1F6536E0007E41D2 /* Pause.swift in Sources */,
 				C7B25AD81F5FCE9B0060071E /* Engine.swift in Sources */,
@@ -288,6 +291,7 @@
 			files = (
 				C772DF821F5D4FA800A3F690 /* Easing.swift in Sources */,
 				C772DF841F5D51F100A3F690 /* CalculationsTests.swift in Sources */,
+				C7271CB51F9790C3009CA619 /* UIColor+Components.swift in Sources */,
 				C7937B881F8CDF8C00B54DC0 /* Sequence.swift in Sources */,
 				C76EF57D1F950DB200A25A41 /* Extensions.swift in Sources */,
 				C772DF811F5D4FA600A3F690 /* Bezier.swift in Sources */,

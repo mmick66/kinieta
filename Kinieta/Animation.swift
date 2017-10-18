@@ -88,9 +88,8 @@ class Animation: Action {
         
         let tpoint = currentt / duration
         let ypoint = self.easing.solve(tpoint)
-        for transformation in transformations {
-            transformation(ypoint)
-        }
+        
+        for block in transformations { block(CGFloat(ypoint)) }
         
         if tpoint == 1.0 { // reached end
             self.complete?()
@@ -101,18 +100,23 @@ class Animation: Action {
         
     }
     
+    typealias TransformationBlock = (CGFloat) -> Void
     static func interpolation<T: CGFractionable>(from start:T, to end:T, block: @escaping (T) -> Void) -> TransformationBlock {
         return { factor in
-            let cgFactor = CGFloat(factor)
-            let iValue = (1.0 - cgFactor) * start + cgFactor * end
+            let iValue = (1.0 - factor) * start + factor * end
             block(iValue)
         }
     }
     
-    typealias TransformationBlock = (Double) -> Void
+    internal func clip<T: Comparable>(_ v: T, _ minimum: T, _ maximum: T) -> T {
+        return max(min(v, maximum), minimum)
+    }
+    
+    
     func transormation(in view: UIView, for property:String, with value:Any) -> TransformationBlock {
         
-        let cgValue = CGFloat.parse(value) ?? 1.0
+        let cgValue:CGFloat = CGFloat.parse(value) ?? 1.0
+        
         
         switch property {
             

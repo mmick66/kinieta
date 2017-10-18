@@ -101,78 +101,7 @@ extension Dictionary where Key == String, Value == Any {
     }
 }
 
-extension UIColor {
-    typealias RGBA = (r: CGFloat, g: CGFloat, b: CGFloat, a: CGFloat)
-    typealias HSBA = (h: CGFloat, s:CGFloat, b:CGFloat, a:CGFloat)
-    struct Components: CGFractionable {
-        
-        var c1: CGFloat, c2: CGFloat, c3: CGFloat, a: CGFloat
-        enum Space {
-            case RGB
-            case HSB
-        }
-        let space: Space
-        init(c1: CGFloat, c2: CGFloat, c3: CGFloat, a: CGFloat, space: Components.Space) {
-            self.c1 = c1
-            self.c2 = c2
-            self.c3 = c3
-            self.a = a
-            self.space = space
-        }
-        init(rgba: RGBA) {
-            self.c1 = rgba.r
-            self.c2 = rgba.g
-            self.c3 = rgba.b
-            self.a = rgba.a
-            self.space = Space.RGB
-        }
-        init(hsba: HSBA) {
-            self.c1 = hsba.h
-            self.c2 = hsba.s
-            self.c3 = hsba.b
-            self.a = hsba.a
-            self.space = Space.HSB
-        }
-        static func *(lhs:UIColor.Components, rhs:CGFloat) -> Components {
-            return Components(c1: lhs.c1 * rhs, c2: lhs.c2 * rhs, c3: lhs.c3 * rhs, a: lhs.a * rhs, space: lhs.space)
-        }
-        static func *(lhs:CGFloat, rhs:UIColor.Components) -> Components {
-            return rhs * lhs
-        }
-        
-        static func +(lhs:UIColor.Components, rhs:UIColor.Components) -> Components {
-            return Components(c1: lhs.c1 + rhs.c1, c2: lhs.c2 + rhs.c2, c3: lhs.c3 + rhs.c3, a: lhs.a + rhs.a, space: lhs.space)
-        }
-    }
-    
-    func components(for space: Components.Space) -> Components {
-        switch space {
-        case .RGB:  return Components(rgba: self.rgba)
-        case .HSB:  return Components(hsba: self.hsba)
-        }
-    }
-    
-    
-    // Component Getters
-    var rgba: RGBA {
-        var _r: CGFloat = 0, _g: CGFloat = 0, _b: CGFloat = 0, _a: CGFloat = 0
-        self.getRed(&_r, green: &_g, blue: &_b, alpha: &_a)
-        return (r: _r, g: _g, b: _b, a: _a)
-    }
-    var hsba: HSBA {
-        var _h: CGFloat = 0, _s: CGFloat = 0, _b: CGFloat = 0, _a: CGFloat = 0
-        self.getHue(&_h, saturation: &_s, brightness: &_b, alpha: &_a)
-        return (h: _h, s: _s, b: _b, a: _a)
-    }
-    convenience init(components comps: Components) {
-        switch comps.space {
-        case .RGB: self.init(red: comps.c1, green: comps.c2, blue: comps.c3, alpha: comps.a)
-        case .HSB: self.init(hue: comps.c1, saturation: comps.c2, brightness: comps.c3, alpha: comps.a)
-        }
-        
-    }
-    
-}
+
 
 extension Dictionary {
     func toString() -> String {
