@@ -111,20 +111,20 @@ class Animation: Action {
             return Animation.interpolation(from: view.frame, to: value as! CGRect) { view.frame = $0 }
   
         case "bg", "background":
-            guard
-                let valueAsColor    = value as? UIColor,
-                let fComponents     = view.backgroundColorOrClear.components,
-                let tComponents     = valueAsColor.components else { return { _ in } }
+            guard let valueAsColor = value as? UIColor else { fatalError("The \"\(property)\" key needs to be of UIColor type") }
+            
+            let fComponents     = view.backgroundColorOrClear.components(for: .HSB)
+            let tComponents     = valueAsColor.components(for: .HSB)
             
             return Animation.interpolation(from: fComponents, to: tComponents) { iComponents in
                 view.backgroundColor = UIColor(components: iComponents)
             }
             
         case "brc", "borderColor":
-            guard
-                let valueAsColor    = value as? UIColor,
-                let fComponents     = view.borderColorOrClear.components,
-                let tComponents     = valueAsColor.components else { return { _ in } }
+            guard let valueAsColor = value as? UIColor else { fatalError("The \"\(property)\" key needs to be of UIColor type") }
+            
+            let fComponents     = view.borderColorOrClear.components(for: .HSB)
+            let tComponents     = valueAsColor.components(for: .HSB)
             
             return Animation.interpolation(from: fComponents, to: tComponents) { iComponents in
                 view.layer.borderColor = UIColor(components: iComponents).cgColor

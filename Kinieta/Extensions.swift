@@ -84,51 +84,74 @@ extension Dictionary where Key == String, Value == Any {
 }
 
 extension UIColor {
+    typealias RGBA = (r: CGFloat, g: CGFloat, b: CGFloat, a: CGFloat)
+    typealias HSBA = (h: CGFloat, s:CGFloat, b:CGFloat, a:CGFloat)
     struct Components: CGFractionable {
-        var r: CGFloat
-        var g: CGFloat
-        var b: CGFloat
-        var a: CGFloat
-        static func *(lhs:CGFloat, rhs:UIColor.Components) -> Components {
-            return Components(
-                r: lhs * rhs.r,
-                g: lhs * rhs.g,
-                b: lhs * rhs.b,
-                a: lhs * rhs.a
-            )
+        
+        var x: CGFloat, y: CGFloat, z: CGFloat, a: CGFloat
+        enum Space {
+            case RGB
+            case HSB
+        }
+        let space: Space
+        init(x: CGFloat, y: CGFloat, z: CGFloat, a: CGFloat, space: Components.Space) {
+            self.x = x
+            self.y = y
+            self.z = z
+            self.a = a
+            self.space = space
+        }
+        init(rgba: RGBA) {
+            self.x = rgba.r
+            self.y = rgba.g
+            self.z = rgba.b
+            self.a = rgba.a
+            self.space = Space.RGB
+        }
+        init(hsba: HSBA) {
+            self.x = hsba.h
+            self.y = hsba.s
+            self.z = hsba.b
+            self.a = hsba.a
+            self.space = Space.HSB
         }
         static func *(lhs:UIColor.Components, rhs:CGFloat) -> Components {
-            return Components(
-                r: lhs.r * rhs,
-                g: lhs.g * rhs,
-                b: lhs.b * rhs,
-                a: lhs.a * rhs
-            )
+            return Components(x: lhs.x * rhs, y: lhs.y * rhs, z: lhs.z * rhs, a: lhs.a * rhs, space: lhs.space)
         }
+        static func *(lhs:CGFloat, rhs:UIColor.Components) -> Components {
+            return rhs * lhs
+        }
+        
         static func +(lhs:UIColor.Components, rhs:UIColor.Components) -> Components {
-            return Components(
-                r: lhs.r + rhs.r,
-                g: lhs.g + rhs.g,
-                b: lhs.b + rhs.b,
-                a: lhs.a + rhs.a
-            )
+            return Components(x: lhs.x + rhs.x, y: lhs.y + rhs.y, z: lhs.z + rhs.z, a: lhs.a + rhs.a, space: lhs.space)
         }
     }
-    var components: Components? {
-        guard let comps = self.cgColor.components else {
-            return nil
-        }
-        switch comps.count {
-        case 2:
-            return Components(r: comps[0], g: comps[0], b: comps[0], a: comps[1])
-        case 3:
-            return Components(r: comps[0], g: comps[1], b: comps[2], a: 1.0)
-        default:
-            return Components(r: comps[0], g: comps[1], b: comps[2], a: comps[3])
+    
+    func components(for space: Components.Space) -> Components {
+        switch space {
+        case .RGB:  return Components(rgba: self.rgba)
+        case .HSB:  return Components(hsba: self.hsba)
         }
     }
-    convenience init(components cmps: Components) {
-        self.init(red: cmps.r, green: cmps.g, blue: cmps.b, alpha: cmps.a)
+    
+    
+    // Component Getters
+    var rgba: RGBA {
+        var _r: CGFloat = 0, _g: CGFloat = 0, _b: CGFloat = 0, _a: CGFloat = 0
+        self.getRed(&_r, green: &_g, blue: &_b, alpha: &_a)
+        return (r: _r, g: _g, b: _b, a: _a)
+    }
+    var hsba: HSBA {
+        var _h: CGFloat = 0, _s: CGFloat = 0, _b: CGFloat = 0, _a: CGFloat = 0
+        self.getHue(&_h, saturation: &_s, brightness: &_b, alpha: &_a)
+        return (h: _h, s: _s, b: _b, a: _a)
+    }
+    convenience init(components comps: Components) {
+        switch comps.space {
+        case .RGB: self.init(red: comps.x, green: comps.y, blue: comps.z, alpha: comps.a)
+        case .HSB: self.init(hue: comps.x, saturation: comps.y, brightness: comps.z, alpha: comps.a)
+        }
+        
     }
     
 }
