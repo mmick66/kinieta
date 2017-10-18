@@ -28,19 +28,30 @@ class Animation: Action {
         self.easing     = easing ?? Easing.Linear
         self.complete   = complete
         
-        for (property, value) in moves {
+        for (property, value) in abbriviate(moves) {
             let transformation = transormation(in: view, for: property, with: value)
             transformations.append(transformation)
         }
     }
     
+    private func abbriviate(_ properties: [String: Any]) -> [String: Any] {
+        var p = properties
+        if let width = p.pop("width")           { p["w"] = width }
+        if let height = p.pop("height")         { p["h"] = height }
+        if let color = p.pop("background")      { p["bg"] = color }
+        if let color = p.pop("borderColor")     { p["brc"] = color }
+        if let width = p.pop("borderWidth")     { p["brw"] = width }
+        if let radius = p.pop("cornerRadius")   { p["crd"] = radius }
+        return p
+    }
+    
     static let FrameProperties = ["x", "y", "w", "h", "width", "height"]
-    private func packFrameProperties(_ properties: [String: Any], for view: UIView) -> [String: Any] {
+    private func pack(_ properties: [String: Any], for view: UIView) -> [String: Any] {
         var p = properties
         guard p.intersection(Animation.FrameProperties) else { return p }
         let x = CGFloat.parse(p.pop("x")) ?? view.x
         let y = CGFloat.parse(p.pop("y")) ?? view.y
-        let w = CGFloat.parse(p.pop("w")) ?? CGFloat.parse(p.pop("width")) ?? view.width
+        let w = CGFloat.parse(p.pop("w")) ?? CGFloat.parse(p.pop("width"))  ?? view.width
         let h = CGFloat.parse(p.pop("h")) ?? CGFloat.parse(p.pop("height")) ?? view.height
         p["frame"] = CGRect(x: x, y: y, width: w, height: h)
         return p
