@@ -24,7 +24,7 @@
  *
  */
 
-/* @Thanks to Gregor Aisch from https://github.com/gka/chroma.js  */
+/* Thanks to Gregor Aisch from https://github.com/gka/chroma.js  */
 
 import UIKit
 
@@ -62,20 +62,9 @@ extension UIColor {
             self.alpha  = alpha
             self.space  = space
         }
-
-        static func *(lhs:UIColor.Components, rhs:CGFloat) -> Components {
-            return Components(lhs.c1 * rhs, lhs.c2 * rhs, lhs.c3 * rhs, alpha: lhs.alpha * rhs, space: lhs.space)
-        }
-        static func *(lhs:CGFloat, rhs:UIColor.Components) -> Components {
-            return rhs * lhs
-        }
-        
-        static func +(lhs:UIColor.Components, rhs:UIColor.Components) -> Components {
-            return Components(lhs.c1 + rhs.c1, lhs.c2 + rhs.c2, lhs.c3 + rhs.c3, alpha: lhs.alpha + rhs.alpha, space: lhs.space)
-        }
     }
     
-    func components(for space: Components.Space) -> Components {
+    func components(for space: Components.Space = .RGB) -> Components {
         var data: ComponentData
         switch space {
         case .RGB:  data = self.rgba()
@@ -151,4 +140,32 @@ extension UIColor {
         self.init(red: r, green: g, blue: b, alpha: alpha)
     }
     
+}
+
+infix operator </>
+
+func </>(lhs: UIColor.Components, rhs: UIColor.Components) -> UIColor.Components {
+    guard lhs.space == rhs.space else { fatalError("Cannot average two colors with different space") }
+    let c1 = (lhs.c1 + rhs.c1) / 2.0
+    let c2 = (lhs.c1 + rhs.c1) / 2.0
+    let c3 = (lhs.c1 + rhs.c1) / 2.0
+    let ca = (lhs.alpha + rhs.alpha) / 2.0
+    return UIColor.Components(c1, c2, c3, alpha: ca, space: lhs.space)
+}
+
+func *(lhs:UIColor.Components, rhs:CGFloat) -> UIColor.Components {
+    return UIColor.Components(lhs.c1 * rhs, lhs.c2 * rhs, lhs.c3 * rhs, alpha: lhs.alpha * rhs, space: lhs.space)
+}
+func *(lhs:CGFloat, rhs:UIColor.Components) -> UIColor.Components {
+    return rhs * lhs
+}
+
+func +(lhs:UIColor.Components, rhs:UIColor.Components) -> UIColor.Components {
+    return UIColor.Components(lhs.c1 + rhs.c1, lhs.c2 + rhs.c2, lhs.c3 + rhs.c3, alpha: lhs.alpha + rhs.alpha, space: lhs.space)
+}
+
+
+func </>(lhs: UIColor, rhs: UIColor) -> UIColor {
+    let cs = lhs.components() </> rhs.components()
+    return UIColor(components: cs)
 }
