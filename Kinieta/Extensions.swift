@@ -102,7 +102,6 @@ extension Dictionary where Key == String, Value == Any {
 }
 
 
-
 extension Dictionary {
     func toString() -> String {
         return self.map({ return "\($0):\($1)" }).joined(separator: " ")

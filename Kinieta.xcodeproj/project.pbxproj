@@ -16,6 +16,14 @@
 		BE6568FA1F652B6C007E41D2 /* Action.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE6568F91F652B6C007E41D2 /* Action.swift */; };
 		BE6568FC1F6536E0007E41D2 /* Pause.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE6568FB1F6536E0007E41D2 /* Pause.swift */; };
 		BE6568FE1F656019007E41D2 /* Group.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE6568FD1F656019007E41D2 /* Group.swift */; };
+		C7202A441F98975B002A35CA /* View.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7B25ADB1F5FD0AA0060071E /* View.swift */; };
+		C7202A451F9897AD002A35CA /* Engine.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7B25AD71F5FCE9B0060071E /* Engine.swift */; };
+		C7202A461F9897B1002A35CA /* Action.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE6568F91F652B6C007E41D2 /* Action.swift */; };
+		C7202A471F9897B3002A35CA /* Collection.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7937B8D1F8E301B00B54DC0 /* Collection.swift */; };
+		C7202A481F9897B5002A35CA /* Group.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE6568FD1F656019007E41D2 /* Group.swift */; };
+		C7202A491F9897BC002A35CA /* Pause.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE6568FB1F6536E0007E41D2 /* Pause.swift */; };
+		C7202A4A1F9897C6002A35CA /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE6568D71F57DE10007E41D2 /* AppDelegate.swift */; };
+		C7202A4B1F9897C8002A35CA /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE6568D91F57DE10007E41D2 /* ViewController.swift */; };
 		C7271CB51F9790C3009CA619 /* UIColor+Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7271CB41F978168009CA619 /* UIColor+Components.swift */; };
 		C7271CB61F979103009CA619 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7937B951F94BE7000B54DC0 /* Extensions.swift */; };
 		C7271CB71F979103009CA619 /* UIColor+Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7271CB41F978168009CA619 /* UIColor+Components.swift */; };
@@ -290,12 +298,20 @@
 			buildActionMask = 2147483647;
 			files = (
 				C772DF821F5D4FA800A3F690 /* Easing.swift in Sources */,
+				C7202A461F9897B1002A35CA /* Action.swift in Sources */,
 				C772DF841F5D51F100A3F690 /* CalculationsTests.swift in Sources */,
+				C7202A441F98975B002A35CA /* View.swift in Sources */,
 				C7271CB51F9790C3009CA619 /* UIColor+Components.swift in Sources */,
 				C7937B881F8CDF8C00B54DC0 /* Sequence.swift in Sources */,
+				C7202A471F9897B3002A35CA /* Collection.swift in Sources */,
+				C7202A481F9897B5002A35CA /* Group.swift in Sources */,
+				C7202A4A1F9897C6002A35CA /* AppDelegate.swift in Sources */,
+				C7202A4B1F9897C8002A35CA /* ViewController.swift in Sources */,
+				C7202A491F9897BC002A35CA /* Pause.swift in Sources */,
 				C76EF57D1F950DB200A25A41 /* Extensions.swift in Sources */,
 				C772DF811F5D4FA600A3F690 /* Bezier.swift in Sources */,
 				C772DF801F5D4FA200A3F690 /* Animation.swift in Sources */,
+				C7202A451F9897AD002A35CA /* Engine.swift in Sources */,
 				BE6568ED1F57DE10007E41D2 /* KinietaTests.swift in Sources */,
 				C7937B921F8E4AA000B54DC0 /* Kinieta.swift in Sources */,
 			);

@@ -43,7 +43,7 @@ let LAB_CONSTANTS: LabConstantsType = (
 extension UIColor {
     
     typealias ComponentData = (c1: CGFloat, c2: CGFloat, c3: CGFloat, a: CGFloat)
-    struct Components: CGFractionable {
+    struct Components: CGFractionable, Equatable {
         
         var c1: CGFloat, c2: CGFloat, c3: CGFloat, alpha: CGFloat
         enum Space {
@@ -62,6 +62,10 @@ extension UIColor {
             self.alpha  = alpha
             self.space  = space
         }
+        
+        static func ==(lhs:Components, rhs:Components) -> Bool {
+            return (lhs.c1 == rhs.c1) && (lhs.c2 == rhs.c2) && (lhs.c3 == rhs.c3) && (lhs.alpha == rhs.alpha) && (lhs.space == rhs.space)
+        }
     }
     
     func components(as space: Components.Space = Kinieta.ColorInterpolation) -> Components {
@@ -73,7 +77,6 @@ extension UIColor {
         }
         return Components(data, space: space)
     }
-    
     
     // Component Getters
     func rgba() -> ComponentData {
@@ -95,7 +98,7 @@ extension UIColor {
             else { return pow((cn + 0.055) / 1.055, 2.4) }
         }
         let xyz2lab = { (c:CGFloat) -> CGFloat in
-            if c > LAB_CONSTANTS.t3 { return pow(c, 1 / 3) }
+            if c > LAB_CONSTANTS.t3 { return pow(c, 1.0 / 3.0) }
             else { return c / LAB_CONSTANTS.t2 + LAB_CONSTANTS.t0 }
         }
         let rgba = self.rgba()
@@ -123,7 +126,7 @@ extension UIColor {
             else { return LAB_CONSTANTS.t2 * (t - LAB_CONSTANTS.t0) }
         }
         let xyz2rgb = { (r:CGFloat) -> CGFloat in
-            return 255 * (r <= 0.00304 ? 12.92 * r : 1.055 * pow(r, 1 / 2.4) - 0.055)
+            return 255 * (r <= 0.00304 ? 12.92 * r : 1.055 * pow(r, 1.0 / 2.4) - 0.055)
         }
         var y = (lightness + 16.0) / 116.0
         var x = y + a / 500.0

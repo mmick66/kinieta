@@ -16,6 +16,9 @@ class ViewController: UIViewController {
     @IBOutlet var square: UIView!
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        Kinieta.ColorInterpolation = .HSB
+        
         self.square.layer.cornerRadius = 6.0
         self.square.backgroundColor = start
     }
