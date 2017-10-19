@@ -43,6 +43,10 @@
 		C7937B921F8E4AA000B54DC0 /* Kinieta.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7937B8F1F8E30D900B54DC0 /* Kinieta.swift */; };
 		C7B25AD81F5FCE9B0060071E /* Engine.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7B25AD71F5FCE9B0060071E /* Engine.swift */; };
 		C7B25ADC1F5FD0AA0060071E /* View.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7B25ADB1F5FD0AA0060071E /* View.swift */; };
+		C7F334F91F98B07D000D7291 /* ColorSpaces.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7F334F71F98AC6E000D7291 /* ColorSpaces.swift */; };
+		C7F334FA1F98B07D000D7291 /* ColorSpaces.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7F334F71F98AC6E000D7291 /* ColorSpaces.swift */; };
+		C7F334FB1F98B07F000D7291 /* UIColorExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7F334F81F98AD15000D7291 /* UIColorExtension.swift */; };
+		C7F334FC1F98B080000D7291 /* UIColorExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7F334F81F98AD15000D7291 /* UIColorExtension.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -81,6 +85,8 @@
 		C7937B951F94BE7000B54DC0 /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
 		C7B25AD71F5FCE9B0060071E /* Engine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Engine.swift; sourceTree = "<group>"; };
 		C7B25ADB1F5FD0AA0060071E /* View.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = View.swift; sourceTree = "<group>"; };
+		C7F334F71F98AC6E000D7291 /* ColorSpaces.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorSpaces.swift; sourceTree = "<group>"; };
+		C7F334F81F98AD15000D7291 /* UIColorExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIColorExtension.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -122,6 +128,7 @@
 		BE6568D61F57DE10007E41D2 /* Kinieta */ = {
 			isa = PBXGroup;
 			children = (
+				C7F334F61F98AC60000D7291 /* External */,
 				C772DF761F57F32400A3F690 /* Kinieta */,
 				BE6568D71F57DE10007E41D2 /* AppDelegate.swift */,
 				BE6568D91F57DE10007E41D2 /* ViewController.swift */,
@@ -170,6 +177,15 @@
 				BE6568FD1F656019007E41D2 /* Group.swift */,
 			);
 			name = Collections;
+			sourceTree = "<group>";
+		};
+		C7F334F61F98AC60000D7291 /* External */ = {
+			isa = PBXGroup;
+			children = (
+				C7F334F71F98AC6E000D7291 /* ColorSpaces.swift */,
+				C7F334F81F98AD15000D7291 /* UIColorExtension.swift */,
+			);
+			name = External;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -278,6 +294,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C7F334FB1F98B07F000D7291 /* UIColorExtension.swift in Sources */,
 				C7271CB61F979103009CA619 /* Extensions.swift in Sources */,
 				C7271CB71F979103009CA619 /* UIColor+Components.swift in Sources */,
 				BE6568FE1F656019007E41D2 /* Group.swift in Sources */,
@@ -288,6 +305,7 @@
 				C7937B8E1F8E301B00B54DC0 /* Collection.swift in Sources */,
 				C7B25ADC1F5FD0AA0060071E /* View.swift in Sources */,
 				C772DF7C1F58129000A3F690 /* Bezier.swift in Sources */,
+				C7F334F91F98B07D000D7291 /* ColorSpaces.swift in Sources */,
 				BE6568DA1F57DE10007E41D2 /* ViewController.swift in Sources */,
 				BE6568D81F57DE10007E41D2 /* AppDelegate.swift in Sources */,
 				BE6568FC1F6536E0007E41D2 /* Pause.swift in Sources */,
@@ -307,12 +325,14 @@
 				C7202A441F98975B002A35CA /* View.swift in Sources */,
 				C7271CB51F9790C3009CA619 /* UIColor+Components.swift in Sources */,
 				C7937B881F8CDF8C00B54DC0 /* Sequence.swift in Sources */,
+				C7F334FC1F98B080000D7291 /* UIColorExtension.swift in Sources */,
 				C7202A471F9897B3002A35CA /* Collection.swift in Sources */,
 				C7202A481F9897B5002A35CA /* Group.swift in Sources */,
 				C7202A4A1F9897C6002A35CA /* AppDelegate.swift in Sources */,
 				C7202A4B1F9897C8002A35CA /* ViewController.swift in Sources */,
 				C7202A491F9897BC002A35CA /* Pause.swift in Sources */,
 				C76EF57D1F950DB200A25A41 /* Extensions.swift in Sources */,
+				C7F334FA1F98B07D000D7291 /* ColorSpaces.swift in Sources */,
 				C772DF811F5D4FA600A3F690 /* Bezier.swift in Sources */,
 				C772DF801F5D4FA200A3F690 /* Animation.swift in Sources */,
 				C7202A451F9897AD002A35CA /* Engine.swift in Sources */,

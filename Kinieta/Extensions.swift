@@ -31,6 +31,7 @@ extension FloatingPoint {
     var radiansToDegrees: Self { return self * 180 / .pi }
 }
 
+
 protocol CGFractionable {
     static func *(lhs: CGFloat, rhs: Self) -> Self
     static func *(lhs: Self, rhs: CGFloat) -> Self
@@ -107,3 +108,6 @@ extension Dictionary {
         return self.map({ return "\($0):\($1)" }).joined(separator: " ")
     }
 }
+
+
+
