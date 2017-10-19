@@ -103,6 +103,16 @@ extension UIColor {
         
     }
 
+    func spectrum(to color: UIColor, steps: Int = 1, space: Components.Space = .RGB) -> [UIColor] {
+        var betweens = [UIColor]()
+        for i in 1..<(steps+1) {
+            let factor  = CGFloat(i) / CGFloat(steps)
+            let comps   = (1.0 - factor) * self.components(as: space) + factor * color.components(as: space)
+            let tweened = UIColor(components: comps)
+            betweens.append(tweened)
+        }
+        return betweens
+    }
     
 }
 
