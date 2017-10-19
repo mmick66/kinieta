@@ -144,8 +144,8 @@ class Animation: Action {
         case "bg", "background":
             guard let valueAsColor = value as? UIColor else { fatalError("The \"\(property)\" key needs to be of UIColor type") }
             
-            let fComponents     = view.backgroundColorOrClear.components(for: .HSB)
-            let tComponents     = valueAsColor.components(for: .HSB)
+            let fComponents     = view.backgroundColorOrClear.components(as: Kinieta.ColorInterpolation)
+            let tComponents     = valueAsColor.components(as: Kinieta.ColorInterpolation)
             
             return Animation.interpolation(from: fComponents, to: tComponents) { iComponents in
                 view.backgroundColor = UIColor(components: iComponents)
@@ -154,8 +154,8 @@ class Animation: Action {
         case "brc", "borderColor":
             guard let valueAsColor = value as? UIColor else { fatalError("The \"\(property)\" key needs to be of UIColor type") }
             
-            let fComponents     = view.borderColorOrClear.components(for: .HSB)
-            let tComponents     = valueAsColor.components(for: .HSB)
+            let fComponents     = view.borderColorOrClear.components(as: Kinieta.ColorInterpolation)
+            let tComponents     = valueAsColor.components(as: Kinieta.ColorInterpolation)
             
             return Animation.interpolation(from: fComponents, to: tComponents) { iComponents in
                 view.layer.borderColor = UIColor(components: iComponents).cgColor

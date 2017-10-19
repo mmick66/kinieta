@@ -27,6 +27,8 @@ import UIKit
 
 class Kinieta: Action {
     
+    static var ColorInterpolation: UIColor.Components.Space = .RGB
+    
     private(set) var mainSequence = Sequence()
     
     let view: UIView

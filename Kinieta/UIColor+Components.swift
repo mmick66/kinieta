@@ -64,7 +64,7 @@ extension UIColor {
         }
     }
     
-    func components(for space: Components.Space = .RGB) -> Components {
+    func components(as space: Components.Space = Kinieta.ColorInterpolation) -> Components {
         var data: ComponentData
         switch space {
         case .RGB:  data = self.rgba()

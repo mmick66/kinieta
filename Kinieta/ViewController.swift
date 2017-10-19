@@ -8,14 +8,16 @@
 
 import UIKit
 
+let start = UIColor(red:1.00, green:0.44, blue:0.75, alpha:1.00)
+let targt = UIColor(red:0.00, green:1.00, blue:1.00, alpha:1.00)
+
 class ViewController: UIViewController {
 
-    @IBOutlet weak var square2: UIView!
     @IBOutlet var square: UIView!
     override func viewDidLoad() {
         super.viewDidLoad()
         self.square.layer.cornerRadius = 6.0
-        self.square2.layer.cornerRadius = 6.0
+        self.square.backgroundColor = start
     }
     
     @IBOutlet weak var goButton: UIButton!
@@ -24,13 +26,10 @@ class ViewController: UIViewController {
     }
 
     @IBAction func goButtonPressed(_ sender: UIButton) {
-        let target = UIColor(red:0.45, green:0.18, blue:0.18, alpha:1.00)
-        self.square
-            .move(to: ["x": 374], during: 1.0).easeInOut(.Cubic)
-            .then
-            .move(to: ["x": 274], during: 1.0)
-            .move(to: ["bg": target], during: 0.3).easeOut()
-            .parallel().again(times: 3)
+        
+        self.square.move(to: ["bg": targt], during: 3.0).wait(for: 2.0).complete {
+            self.square.backgroundColor = start
+        }
         
         
     }
