@@ -39,18 +39,7 @@ extension UIColor {
             case HLC = "HLC"
         }
         let space: Space
-        
-        init(rgba: (red: CGFloat, green: CGFloat, blue: CGFloat, alpha: CGFloat)) {
-            self.init(rgba.red, rgba.green, rgba.blue, alpha: rgba.alpha, space: .RGB)
-        }
-        init(hsba: (hue: CGFloat, saturation: CGFloat, brightness: CGFloat, alpha: CGFloat)) {
-            self.init(hsba.hue, hsba.saturation, hsba.brightness, alpha: hsba.alpha, space: .HSB)
-        }
-        init(hlca: (hue: CGFloat, luminance: CGFloat, chroma: CGFloat, alpha: CGFloat)) {
-            self.init(hlca.hue, hlca.luminance, hlca.chroma, alpha: hlca.alpha, space: .HSB)
-        }
-        
-        init(_ c1: CGFloat, _ c2: CGFloat, _ c3: CGFloat, alpha: CGFloat, space: Components.Space) {
+        init(_ c1: CGFloat, _ c2: CGFloat, _ c3: CGFloat, _ alpha: CGFloat, space: Components.Space) {
             self.c1     = c1
             self.c2     = c2
             self.c3     = c3
@@ -59,30 +48,57 @@ extension UIColor {
         }
         
         static func ==(lhs:Components, rhs:Components) -> Bool {
-            return (lhs.c1 == rhs.c1) && (lhs.c2 == rhs.c2) && (lhs.c3 == rhs.c3) && (lhs.alpha == rhs.alpha) && (lhs.space == rhs.space)
+            guard lhs.space == rhs.space else { return false }
+            return (lhs.c1 == rhs.c1) && (lhs.c2 == rhs.c2) && (lhs.c3 == rhs.c3) && (lhs.alpha == rhs.alpha)
         }
         
         var description: String {
             return "(c1:\(c1), c2:\(c2), c3:\(c3), alpha:\(alpha), space:\(space.rawValue))"
+        }
+        
+        static func *(lhs:UIColor.Components, rhs:CGFloat) -> UIColor.Components {
+            return UIColor.Components(lhs.c1 * rhs, lhs.c2 * rhs, lhs.c3 * rhs, lhs.alpha * rhs, space: lhs.space)
+        }
+        static func *(lhs:CGFloat, rhs:UIColor.Components) -> UIColor.Components {
+            return rhs * lhs
+        }
+        
+        static func +(lhs:UIColor.Components, rhs:UIColor.Components) -> UIColor.Components {
+            guard lhs.space == rhs.space else { fatalError("Cannot multiply two colors from different spaces") }
+            return UIColor.Components(
+                lhs.c1 + rhs.c1,
+                lhs.c2 + rhs.c2,
+                lhs.c3 + rhs.c3,
+                lhs.alpha + rhs.alpha,
+                space: lhs.space
+            )
         }
     }
     
     func components(as space: Components.Space = Kinieta.ColorInterpolation) -> Components {
         
         switch space {
-        case .RGB: return Components(rgba: self.rgba)
-        case .HSB: return Components(hsba: self.hsba)
-        case .HLC: return Components(hlca: self.hlca)
+        case .RGB:
+            let (r, g, b, a) = self.rgba
+            return Components(r, g, b, a, space: .RGB)
+        case .HSB:
+            let (h, s, b, a) = self.hsba
+            return Components(h, s, b, a, space: .HSB)
+        case .HLC:
+            let (h, l, c, a) = self.hlca
+            return Components(h, l, c, a, space: .HLC)
         }
         
     }
 
-
     convenience init(components comps: Components) {
         switch comps.space {
-        case .RGB: self.init(red: comps.c1, green: comps.c2, blue: comps.c3, alpha: comps.alpha)
-        case .HSB: self.init(hue: comps.c1, saturation: comps.c2, brightness: comps.c3, alpha: comps.alpha)
-        case .HLC: self.init(hue: comps.c1, luminance: comps.c2, chroma: comps.c3, alpha: comps.alpha)
+        case .RGB:
+            self.init(red: comps.c1, green: comps.c2, blue: comps.c3, alpha: comps.alpha)
+        case .HSB:
+            self.init(hue: comps.c1, saturation: comps.c2, brightness: comps.c3, alpha: comps.alpha)
+        case .HLC:
+            self.init(hue: comps.c1, luminance: comps.c2, chroma: comps.c3, alpha: comps.alpha)
         }
         
     }
@@ -94,22 +110,13 @@ infix operator </>
 
 func </>(lhs: UIColor.Components, rhs: UIColor.Components) -> UIColor.Components {
     guard lhs.space == rhs.space else { fatalError("Cannot average two colors with different space") }
-    let c1 = (lhs.c1 + rhs.c1) / 2.0
-    let c2 = (lhs.c1 + rhs.c1) / 2.0
-    let c3 = (lhs.c1 + rhs.c1) / 2.0
-    let ca = (lhs.alpha + rhs.alpha) / 2.0
-    return UIColor.Components(c1, c2, c3, alpha: ca, space: lhs.space)
-}
-
-func *(lhs:UIColor.Components, rhs:CGFloat) -> UIColor.Components {
-    return UIColor.Components(lhs.c1 * rhs, lhs.c2 * rhs, lhs.c3 * rhs, alpha: lhs.alpha * rhs, space: lhs.space)
-}
-func *(lhs:CGFloat, rhs:UIColor.Components) -> UIColor.Components {
-    return rhs * lhs
-}
-
-func +(lhs:UIColor.Components, rhs:UIColor.Components) -> UIColor.Components {
-    return UIColor.Components(lhs.c1 + rhs.c1, lhs.c2 + rhs.c2, lhs.c3 + rhs.c3, alpha: lhs.alpha + rhs.alpha, space: lhs.space)
+    return UIColor.Components(
+        (lhs.c1 + rhs.c1) / 2.0,
+        (lhs.c2 + rhs.c2) / 2.0,
+        (lhs.c3 + rhs.c3) / 2.0,
+        (lhs.alpha + rhs.alpha) / 2.0,
+        space: lhs.space
+    )
 }
 
 

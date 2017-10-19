@@ -8,8 +8,8 @@
 
 import UIKit
 
-let start = UIColor(red:1.00, green:0.44, blue:0.75, alpha:1.00)
-let targt = UIColor(red:0.00, green:1.00, blue:1.00, alpha:1.00)
+let color1 = UIColor(red:1.00, green:0.44, blue:0.75, alpha:1.00)
+let color2 = UIColor(red:0.00, green:1.00, blue:1.00, alpha:1.00)
 
 class ViewController: UIViewController {
 
@@ -17,10 +17,10 @@ class ViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        Kinieta.ColorInterpolation = .HSB
+        Kinieta.ColorInterpolation = .HLC
         
+        self.square.backgroundColor = color1
         self.square.layer.cornerRadius = 6.0
-        self.square.backgroundColor = start
     }
     
     @IBOutlet weak var goButton: UIButton!
@@ -30,8 +30,13 @@ class ViewController: UIViewController {
 
     @IBAction func goButtonPressed(_ sender: UIButton) {
         
-        self.square.move(to: ["bg": targt], during: 3.0).wait(for: 2.0).complete {
-            self.square.backgroundColor = start
+//        let (h, l, c, _) = color1.hlca
+//        self.square.backgroundColor = UIColor(hue: h, luminance: l, chroma: c, alpha: 1.0)
+        
+        
+        
+        self.square.move(to: ["bg": color2], during: 3.0).wait(for: 2.0).complete {
+            self.square.backgroundColor = color1
         }
         
         
