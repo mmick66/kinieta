@@ -43,13 +43,14 @@ let LAB_CONSTANTS: LabConstantsType = (
 extension UIColor {
     
     typealias ComponentData = (c1: CGFloat, c2: CGFloat, c3: CGFloat, a: CGFloat)
-    struct Components: CGFractionable, Equatable {
+    struct Components: CGFractionable, Equatable, CustomStringConvertible {
+        
         
         var c1: CGFloat, c2: CGFloat, c3: CGFloat, alpha: CGFloat
-        enum Space {
-            case RGB
-            case HSB
-            case LAB
+        enum Space: String {
+            case RGB = "RGB"
+            case HSB = "HSB"
+            case LAB = "LAB"
         }
         let space: Space
         init(_ data: ComponentData, space: Components.Space) {
@@ -65,6 +66,10 @@ extension UIColor {
         
         static func ==(lhs:Components, rhs:Components) -> Bool {
             return (lhs.c1 == rhs.c1) && (lhs.c2 == rhs.c2) && (lhs.c3 == rhs.c3) && (lhs.alpha == rhs.alpha) && (lhs.space == rhs.space)
+        }
+        
+        var description: String {
+            return "(c1:\(c1), c2:\(c2), c3:\(c3), alpha:\(alpha), space:\(space.rawValue))"
         }
     }
     

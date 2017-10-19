@@ -24,6 +24,7 @@
 		C7202A491F9897BC002A35CA /* Pause.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE6568FB1F6536E0007E41D2 /* Pause.swift */; };
 		C7202A4A1F9897C6002A35CA /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE6568D71F57DE10007E41D2 /* AppDelegate.swift */; };
 		C7202A4B1F9897C8002A35CA /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE6568D91F57DE10007E41D2 /* ViewController.swift */; };
+		C7202A4D1F989E2B002A35CA /* ColorComponentsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7202A4C1F989E2B002A35CA /* ColorComponentsTests.swift */; };
 		C7271CB51F9790C3009CA619 /* UIColor+Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7271CB41F978168009CA619 /* UIColor+Components.swift */; };
 		C7271CB61F979103009CA619 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7937B951F94BE7000B54DC0 /* Extensions.swift */; };
 		C7271CB71F979103009CA619 /* UIColor+Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7271CB41F978168009CA619 /* UIColor+Components.swift */; };
@@ -68,6 +69,7 @@
 		BE6568F91F652B6C007E41D2 /* Action.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Action.swift; sourceTree = "<group>"; };
 		BE6568FB1F6536E0007E41D2 /* Pause.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Pause.swift; sourceTree = "<group>"; };
 		BE6568FD1F656019007E41D2 /* Group.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Group.swift; sourceTree = "<group>"; };
+		C7202A4C1F989E2B002A35CA /* ColorComponentsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorComponentsTests.swift; sourceTree = "<group>"; };
 		C7271CB41F978168009CA619 /* UIColor+Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIColor+Components.swift"; sourceTree = "<group>"; };
 		C772DF771F57F33100A3F690 /* Animation.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Animation.swift; sourceTree = "<group>"; };
 		C772DF7B1F58129000A3F690 /* Bezier.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Bezier.swift; sourceTree = "<group>"; };
@@ -136,6 +138,7 @@
 			children = (
 				BE6568EC1F57DE10007E41D2 /* KinietaTests.swift */,
 				C772DF831F5D51F100A3F690 /* CalculationsTests.swift */,
+				C7202A4C1F989E2B002A35CA /* ColorComponentsTests.swift */,
 				BE6568EE1F57DE10007E41D2 /* Info.plist */,
 			);
 			path = KinietaTests;
@@ -298,6 +301,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				C772DF821F5D4FA800A3F690 /* Easing.swift in Sources */,
+				C7202A4D1F989E2B002A35CA /* ColorComponentsTests.swift in Sources */,
 				C7202A461F9897B1002A35CA /* Action.swift in Sources */,
 				C772DF841F5D51F100A3F690 /* CalculationsTests.swift in Sources */,
 				C7202A441F98975B002A35CA /* View.swift in Sources */,
@@ -493,7 +497,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.karmadust.KinietaTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_SWIFT3_OBJC_INFERENCE = On;
+				SWIFT_SWIFT3_OBJC_INFERENCE = Default;
 				SWIFT_VERSION = 4.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Kinieta.app/Kinieta";
 			};
@@ -508,7 +512,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.karmadust.KinietaTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SWIFT_SWIFT3_OBJC_INFERENCE = On;
+				SWIFT_SWIFT3_OBJC_INFERENCE = Default;
 				SWIFT_VERSION = 4.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Kinieta.app/Kinieta";
 			};
