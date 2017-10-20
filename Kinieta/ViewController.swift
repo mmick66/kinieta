@@ -30,11 +30,7 @@ class ViewController: UIViewController {
 
     @IBAction func goButtonPressed(_ sender: UIButton) {
         
-//        let (h, l, c, _) = color1.hlca
-//        self.square.backgroundColor = UIColor(hue: h, luminance: l, chroma: c, alpha: 1.0)
-        
-        
-        
+
         self.square.move(to: ["bg": color2], during: 3.0).wait(for: 2.0).complete {
             self.square.backgroundColor = color1
         }

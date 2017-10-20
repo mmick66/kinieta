@@ -25,9 +25,16 @@
 
 import UIKit
 
+struct Defaults {
+    struct ColorInterpolation {
+        static var Space: UIColor.Components.Space = .RGB
+        static var Precision: Int = 2
+    }
+}
+
 class Kinieta: Action {
     
-    static var ColorInterpolation: UIColor.Components.Space = .RGB
+    
     
     private(set) var mainSequence = Sequence()
     

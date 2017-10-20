@@ -144,8 +144,8 @@ class Animation: Action {
         case "bg", "background":
             guard let valueAsColor = value as? UIColor else { fatalError("The \"\(property)\" key needs to be of UIColor type") }
             
-            let sComps     = view.backgroundColorOrClear.components(as: Kinieta.ColorInterpolation)
-            let eComps     = valueAsColor.components(as: Kinieta.ColorInterpolation)
+            let sComps     = view.backgroundColorOrClear.components()
+            let eComps     = valueAsColor.components()
 
             return Animation.interpolation(from: sComps, to: eComps) { iComps in
                 view.backgroundColor = UIColor(components: iComps)
@@ -154,8 +154,8 @@ class Animation: Action {
         case "brc", "borderColor":
             guard let valueAsColor = value as? UIColor else { fatalError("The \"\(property)\" key needs to be of UIColor type") }
             
-            let fComponents     = view.borderColorOrClear.components(as: Kinieta.ColorInterpolation)
-            let tComponents     = valueAsColor.components(as: Kinieta.ColorInterpolation)
+            let fComponents     = view.borderColorOrClear.components()
+            let tComponents     = valueAsColor.components()
             
             return Animation.interpolation(from: fComponents, to: tComponents) { iComponents in
                 view.layer.borderColor = UIColor(components: iComponents).cgColor

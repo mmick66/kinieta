@@ -75,7 +75,7 @@ extension UIColor {
         }
     }
     
-    func components(as space: Components.Space = Kinieta.ColorInterpolation) -> Components {
+    func components(as space: Components.Space = Defaults.ColorInterpolation.Space) -> Components {
         
         switch space {
         case .RGB:
@@ -103,7 +103,10 @@ extension UIColor {
         
     }
 
-    func spectrum(to color: UIColor, steps: Int = 1, space: Components.Space = .RGB) -> [UIColor] {
+    func spectrum(to color: UIColor,
+                  steps: Int = Defaults.ColorInterpolation.Precision,
+                  space: Components.Space = Defaults.ColorInterpolation.Space) -> [UIColor] {
+        
         var betweens = [UIColor]()
         for i in 1..<(steps+1) {
             let factor  = CGFloat(i) / CGFloat(steps)
