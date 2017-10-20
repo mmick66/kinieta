@@ -15,6 +15,7 @@ I decided to build an Animation Engine from scratch for the usual reason: No oth
 * A **simple API** where I could just throw in some variables and the rest would be dealt by the library
 * A **convention over configuration** approach where many variables would be assumed when not passed
 * Efficient interpolation with infinite **easing functions** based on custom Bezier curves
+* Provides **real color interpolation** using the advanced HCL color space rather than plain RGB
 * Code that was **extremely** easy to read and new developers from the community could join in in no time!
 
 ## Installation
