@@ -17,7 +17,7 @@ class ViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        Kinieta.ColorInterpolation = .HLC
+        Defaults.ColorInterpolation.Method = .RGB_HLC_Assisted
         
         self.square.backgroundColor = color1
         self.square.layer.cornerRadius = 6.0
@@ -31,7 +31,7 @@ class ViewController: UIViewController {
     @IBAction func goButtonPressed(_ sender: UIButton) {
         
 
-        self.square.move(to: ["bg": color2], during: 3.0).wait(for: 2.0).complete {
+        self.square.move(to: ["bg": color2], during: 3.0).wait(for: 4.0).complete {
             self.square.backgroundColor = color1
         }
         

@@ -36,6 +36,8 @@ protocol CGFractionable {
     static func *(lhs: CGFloat, rhs: Self) -> Self
     static func *(lhs: Self, rhs: CGFloat) -> Self
     static func +(lhs: Self, rhs: Self) -> Self
+    static func -(lhs: Self, rhs: Self) -> Self
+    static func /(lhs: Self, rhs: CGFloat) -> Self
 }
 
 extension CGRect: CGFractionable {
@@ -61,6 +63,22 @@ extension CGRect: CGFractionable {
             y: lhs.origin.y + rhs.origin.y,
             width: lhs.size.width + rhs.size.width,
             height: lhs.size.height + rhs.size.height
+        )
+    }
+    static func /(lhs:CGRect, rhs: CGFloat) -> CGRect {
+        return CGRect(
+            x: lhs.origin.x / rhs,
+            y: lhs.origin.y / rhs,
+            width: lhs.size.width / rhs,
+            height: lhs.size.height / rhs
+        )
+    }
+    static func -(lhs:CGRect, rhs:CGRect) -> CGRect {
+        return CGRect(
+            x: lhs.origin.x - rhs.origin.x,
+            y: lhs.origin.y - rhs.origin.y,
+            width: lhs.size.width - rhs.size.width,
+            height: lhs.size.height - rhs.size.height
         )
     }
 }

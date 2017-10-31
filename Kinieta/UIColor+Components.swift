@@ -56,16 +56,30 @@ extension UIColor {
             return "(c1:\(c1), c2:\(c2), c3:\(c3), alpha:\(alpha), space:\(space.rawValue))"
         }
         
-        static func *(lhs:UIColor.Components, rhs:CGFloat) -> UIColor.Components {
+        static func *(lhs:Components, rhs:CGFloat) -> Components {
             return UIColor.Components(lhs.c1 * rhs, lhs.c2 * rhs, lhs.c3 * rhs, lhs.alpha * rhs, space: lhs.space)
         }
-        static func *(lhs:CGFloat, rhs:UIColor.Components) -> UIColor.Components {
-            return rhs * lhs
+        static func /(lhs:Components, rhs:CGFloat) -> UIColor.Components {
+            return UIColor.Components(lhs.c1 / rhs, lhs.c2 / rhs, lhs.c3 / rhs, lhs.alpha / rhs, space: lhs.space)
         }
         
-        static func +(lhs:UIColor.Components, rhs:UIColor.Components) -> UIColor.Components {
+        static func *(lhs:CGFloat, rhs:Components) -> Components {
+            return rhs * lhs
+        }
+        static func -(lhs:Components, rhs: Components) -> Components {
+            guard lhs.space == rhs.space else { fatalError("Cannot subtract two colors from different spaces") }
+            return Components(
+                lhs.c1 - rhs.c1,
+                lhs.c2 - rhs.c2,
+                lhs.c3 - rhs.c3,
+                lhs.alpha - rhs.alpha,
+                space: lhs.space
+            )
+        }
+        
+        static func +(lhs:Components, rhs:Components) -> Components {
             guard lhs.space == rhs.space else { fatalError("Cannot multiply two colors from different spaces") }
-            return UIColor.Components(
+            return Components(
                 lhs.c1 + rhs.c1,
                 lhs.c2 + rhs.c2,
                 lhs.c3 + rhs.c3,
@@ -75,7 +89,7 @@ extension UIColor {
         }
     }
     
-    func components(as space: Components.Space = Defaults.ColorInterpolation.Space) -> Components {
+    func components(as space: Components.Space) -> Components {
         
         switch space {
         case .RGB:
@@ -103,37 +117,24 @@ extension UIColor {
         
     }
 
-    func spectrum(to color: UIColor,
-                  steps: Int = Defaults.ColorInterpolation.Precision,
-                  space: Components.Space = Defaults.ColorInterpolation.Space) -> [UIColor] {
+    
+    func spectrumComponentsHLC5(to toColor: UIColor) -> [UIColor] {
         
-        var betweens = [UIColor]()
-        for i in 1..<(steps+1) {
-            let factor  = CGFloat(i) / CGFloat(steps)
-            let comps   = (1.0 - factor) * self.components(as: space) + factor * color.components(as: space)
-            let tweened = UIColor(components: comps)
-            betweens.append(tweened)
+        var spectrum = [UIColor]()
+        
+        let fcomps  = self.components(as: .HLC)
+        let tcomps  = toColor.components(as: .HLC)
+        
+        for i in 0 ... 5 {
+            let factor  = CGFloat(i) / 5.0
+            let comps   = (1.0 - factor) * fcomps + factor * tcomps
+            let color   = UIColor(components: comps)
+            spectrum.append(color)
         }
-        return betweens
+        
+        return spectrum
     }
     
 }
 
-infix operator </>
 
-func </>(lhs: UIColor.Components, rhs: UIColor.Components) -> UIColor.Components {
-    guard lhs.space == rhs.space else { fatalError("Cannot average two colors with different space") }
-    return UIColor.Components(
-        (lhs.c1 + rhs.c1) / 2.0,
-        (lhs.c2 + rhs.c2) / 2.0,
-        (lhs.c3 + rhs.c3) / 2.0,
-        (lhs.alpha + rhs.alpha) / 2.0,
-        space: lhs.space
-    )
-}
-
-
-func </>(lhs: UIColor, rhs: UIColor) -> UIColor {
-    let cs = lhs.components() </> rhs.components()
-    return UIColor(components: cs)
-}

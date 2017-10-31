@@ -25,10 +25,17 @@
 
 import UIKit
 
+enum ColorInterpolationMethod {
+    case Pure(space: UIColor.Components.Space)
+    case RGB_HLC_Assisted
+}
+
 struct Defaults {
+    
     struct ColorInterpolation {
-        static var Space: UIColor.Components.Space = .RGB
-        static var Precision: Int = 2
+        
+        static var Method: ColorInterpolationMethod = .Pure(space: .RGB)
+        
     }
 }
 

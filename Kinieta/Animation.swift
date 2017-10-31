@@ -101,10 +101,10 @@ class Animation: Action {
     }
     
     typealias TransformationBlock = (CGFloat) -> Void
-    static func interpolation<T: CGFractionable>(from start:T, to end:T, block: @escaping (T) -> Void) -> TransformationBlock {
+    static func interpolation<T: CGFractionable>(from startValue:T, to endValue:T, block: @escaping (T) -> Void) -> TransformationBlock {
         return { factor in
-            let iValue = (1.0 - factor) * start + factor * end
-            block(iValue)
+            let interValue = (1.0 - factor) * startValue + factor * endValue
+            block(interValue)
         }
     }
     
@@ -142,20 +142,50 @@ class Animation: Action {
             return Animation.interpolation(from: view.frame, to: value as! CGRect) { view.frame = $0 }
   
         case "bg", "background":
-            guard let valueAsColor = value as? UIColor else { fatalError("The \"\(property)\" key needs to be of UIColor type") }
+            guard let valueAsUIColor = value as? UIColor else { fatalError("The \"\(property)\" key needs to be of UIColor type") }
             
-            let sComps     = view.backgroundColorOrClear.components()
-            let eComps     = valueAsColor.components()
-
-            return Animation.interpolation(from: sComps, to: eComps) { iComps in
-                view.backgroundColor = UIColor(components: iComps)
+            switch Defaults.ColorInterpolation.Method {
+                
+            case .Pure(let space):
+                
+                return Animation.interpolation(
+                    from: view.backgroundColorOrClear.components(as: space),
+                    to: valueAsUIColor.components(as: space),
+                    block: { iComps in view.backgroundColor = UIColor(components: iComps) })
+            
+            case .RGB_HLC_Assisted:
+                
+                let spectrum = view.backgroundColorOrClear.spectrumComponentsHLC5(to: valueAsUIColor)
+                
+                return { factor in
+                    var iComps: UIColor.Components
+                    switch factor {
+                    case 0.00 ... 0.25:
+                        let nf = factor / 0.25
+                        iComps = (1.0 - nf) * spectrum[0].components(as: .RGB) + nf * spectrum[1].components(as: .RGB)
+                    case 0.25 ... 0.50:
+                        let nf = (factor - 0.25) / 0.25
+                        iComps = (1.0 - nf) * spectrum[1].components(as: .RGB) + nf * spectrum[2].components(as: .RGB)
+                    case 0.50 ... 0.75:
+                        let nf = (factor - 0.50) / 0.25
+                        iComps = (1.0 - nf) * spectrum[2].components(as: .RGB) + nf * spectrum[3].components(as: .RGB)
+                    case 0.75 ... 1.00:
+                        let nf = (factor - 0.75) / 0.25
+                        iComps = (1.0 - nf) * spectrum[3].components(as: .RGB) + nf * spectrum[4].components(as: .RGB)
+                    default:
+                        fatalError("")
+                    }
+                    
+                    view.backgroundColor = UIColor(components: iComps)
+                }
             }
+            
             
         case "brc", "borderColor":
             guard let valueAsColor = value as? UIColor else { fatalError("The \"\(property)\" key needs to be of UIColor type") }
             
-            let fComponents     = view.borderColorOrClear.components()
-            let tComponents     = valueAsColor.components()
+            let fComponents     = view.borderColorOrClear.components(as: .RGB)
+            let tComponents     = valueAsColor.components(as: .RGB)
             
             return Animation.interpolation(from: fComponents, to: tComponents) { iComponents in
                 view.layer.borderColor = UIColor(components: iComponents).cgColor
@@ -175,5 +205,8 @@ class Animation: Action {
     
 }
 
-
-
+extension ClosedRange where Bound == CGFloat {
+    func normalize(_ value: CGFloat) -> CGFloat {
+        return (value - self.lowerBound) / (self.upperBound - self.lowerBound)
+    }
+}
