@@ -36,7 +36,7 @@ extension UIColor {
         enum Space: String {
             case RGB = "RGB"
             case HSB = "HSB"
-            case HLC = "HLC"
+            case HCL = "HCL"
         }
         let space: Space
         init(_ c1: CGFloat, _ c2: CGFloat, _ c3: CGFloat, _ alpha: CGFloat, space: Components.Space) {
@@ -98,9 +98,9 @@ extension UIColor {
         case .HSB:
             let (h, s, b, a) = self.hsba
             return Components(h, s, b, a, space: .HSB)
-        case .HLC:
+        case .HCL:
             let (h, l, c, a) = self.hlca
-            return Components(h, l, c, a, space: .HLC)
+            return Components(h, l, c, a, space: .HCL)
         }
         
     }
@@ -111,7 +111,7 @@ extension UIColor {
             self.init(red: comps.c1, green: comps.c2, blue: comps.c3, alpha: comps.alpha)
         case .HSB:
             self.init(hue: comps.c1, saturation: comps.c2, brightness: comps.c3, alpha: comps.alpha)
-        case .HLC:
+        case .HCL:
             self.init(hue: comps.c1, luminance: comps.c2, chroma: comps.c3, alpha: comps.alpha)
         }
         
@@ -122,8 +122,8 @@ extension UIColor {
         
         var spectrum = [UIColor]()
         
-        let fcomps  = self.components(as: .HLC)
-        let tcomps  = toColor.components(as: .HLC)
+        let fcomps  = self.components(as: .HCL)
+        let tcomps  = toColor.components(as: .HCL)
         
         for i in 0 ... 5 {
             let factor  = CGFloat(i) / 5.0

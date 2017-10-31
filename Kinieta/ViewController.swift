@@ -31,7 +31,7 @@ class ViewController: UIViewController {
     @IBAction func goButtonPressed(_ sender: UIButton) {
         
 
-        self.square.move(to: ["bg": color2], during: 3.0).wait(for: 4.0).complete {
+        self.square.move(to: ["x": 200, "y": 100, "bg": color2], during: 3.0).wait(for: 4.0).complete {
             self.square.backgroundColor = color1
         }
         
