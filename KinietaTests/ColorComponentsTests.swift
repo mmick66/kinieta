@@ -55,14 +55,6 @@ class ColorComponentsTests: XCTestCase {
         XCTAssert(a == 1.0, "Colors do not match")
     }
     
-    func testSpectrumNumbers() {
-        for i in 0 ... 9 {
-            let spectrum = UIColor.red.spectrum(to: UIColor.blue, steps: 1)
-           XCTAssert(spectrum.count == i + 2, "The spectrum function returned wrong number of colors")
-        }
-        
-    }
-    
     func testPerformanceExample() {
         
         self.measure {
