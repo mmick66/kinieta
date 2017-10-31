@@ -1,5 +1,5 @@
 <p align="center"> 
-  <img src="https://github.com/mmick66/kinieta/blob/master/Kinieta_Logo.png">
+  <img src="https://github.com/mmick66/kinieta/blob/master/Assets/Kinieta_Logo.png">
 </p>
 
 ## Kinieta
