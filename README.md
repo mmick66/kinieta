@@ -20,6 +20,14 @@ I decided to build an Animation Engine from scratch for the usual reason: No oth
 
 ## Installation
 
+#### Cocoa Pods
+
+```
+pod 'Kinieta', '~> 0.5'
+```
+
+#### Manual
+
 For the moment, just copy the files in the Kinieta (virtual) folder
 
 ## How to Use
