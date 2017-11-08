@@ -22,8 +22,6 @@ I decided to build an Animation Engine from scratch for the usual reason: No oth
 
 #### Cocoa Pods
 
-Please run
-
 ```
 pod 'Kinieta', '~> 0.5'
 ```
