@@ -128,9 +128,9 @@
 		BE6568D61F57DE10007E41D2 /* Kinieta */ = {
 			isa = PBXGroup;
 			children = (
+				BE6568D71F57DE10007E41D2 /* AppDelegate.swift */,
 				C7F334F61F98AC60000D7291 /* External */,
 				C772DF761F57F32400A3F690 /* Kinieta */,
-				BE6568D71F57DE10007E41D2 /* AppDelegate.swift */,
 				BE6568D91F57DE10007E41D2 /* ViewController.swift */,
 				BE6568DB1F57DE10007E41D2 /* Main.storyboard */,
 				BE6568DE1F57DE10007E41D2 /* Assets.xcassets */,

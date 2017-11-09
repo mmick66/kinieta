@@ -31,17 +31,12 @@ enum ColorInterpolationMethod {
 }
 
 struct Defaults {
-    
     struct ColorInterpolation {
-        
         static var Method: ColorInterpolationMethod = .Pure(space: .RGB)
-        
     }
 }
 
-class Kinieta: Action {
-    
-    
+class Kinieta {
     
     private(set) var mainSequence = Sequence()
     
@@ -161,8 +156,5 @@ class Kinieta: Action {
         
         return self
     }
-    
-    func update(_ frame: Engine.Frame) -> ActionResult {
-        return self.mainSequence.update(frame)
-    }
+
 }
