@@ -1,7 +1,7 @@
 Pod::Spec.new do |s|
 
   s.name         = "Kinieta"
-  s.version      = "0.5.0"
+  s.version      = "0.5.1"
   s.summary      = "An Animation Engine for iOS with an Intuitive API and Readable Code!."
 
   s.description  = <<-DESC
