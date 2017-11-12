@@ -185,6 +185,8 @@ aView.move(to: ["x": 300], during: 1.0).easeInOut()
      .move(to: ["a": 0], during: 0.2).easeOut()     
      .parallel()
 ```
+
+For more information on how the engine works to combine actions please consult the (wiki)[https://github.com/mmick66/kinieta/wiki/Parallelizing].
  
  ### Grouping
  
