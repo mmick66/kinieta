@@ -25,7 +25,7 @@
 
 import UIKit
 
-extension UIView {
+public extension UIView {
     @discardableResult
     func move(to dict: [String:Any], during duration: TimeInterval = 0.0) -> Kinieta {
         let kinieta = Kinieta(for: self)

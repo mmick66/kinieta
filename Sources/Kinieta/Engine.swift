@@ -25,7 +25,7 @@
 
 import UIKit
 
-class Engine {
+public final class Engine {
     
     struct Frame {
         var timestamp: Double
@@ -67,7 +67,7 @@ class Engine {
         }
     }
     
-    static let shared = Engine()
+    public static let shared = Engine()
     
     let displayLink = Engine.DisplayLink()
     
@@ -93,6 +93,12 @@ class Engine {
     }
     
     
+    /// Runs the timelines of several `Kinieta` handles together and calls
+    /// `complete` once when the last of them finishes.
+    public func group(_ kinietas: [Kinieta], complete: Block? = nil) {
+        group(kinietas.map { $0.mainSequence as Action }, complete: complete)
+    }
+
     func group(_ actions: [Action], complete: Block? = nil) {
         for a in actions { remove(a) }
         let g = Group(actions, complete: complete)

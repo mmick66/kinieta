@@ -25,7 +25,7 @@
 
 import UIKit
 
-typealias Block = (()->Void)
+public typealias Block = (() -> Void)
 
 enum ActionType: CustomStringConvertible {
     case Animation(UIView, Dictionary<String,Any>, TimeInterval, Bezier?, Block?)

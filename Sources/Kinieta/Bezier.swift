@@ -25,7 +25,7 @@
 import UIKit
 
 
-struct Bezier {
+public struct Bezier {
     
     static var Accuracy = 1000
     static let Factors  = Table(with: Bezier.Accuracy)
@@ -85,7 +85,7 @@ struct Bezier {
     let P3:Point = Point(1.0, 1.0)
     
     let POINTS:[Point]
-    init(_ p1x:Double, _ p1y:Double, _ p2x:Double, _ p2y:Double) {
+    public init(_ p1x:Double, _ p1y:Double, _ p2x:Double, _ p2y:Double) {
         P1 = Point(p1x, p1y)
         P2 = Point(p2x, p2y)
         let F = Bezier.Factors
@@ -97,7 +97,7 @@ struct Bezier {
     }
     
     
-    func solve(_ t:Double) -> Double {
+    public func solve(_ t:Double) -> Double {
         let T = Int(t * Double(Bezier.Accuracy))
         return POINTS[T].y
     }

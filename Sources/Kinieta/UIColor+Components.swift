@@ -30,10 +30,10 @@ import UIKit
 
 extension UIColor {
     
-    struct Components: CGFractionable, Equatable, CustomStringConvertible {
+    public struct Components: CGFractionable, Equatable, CustomStringConvertible {
         
         var c1: CGFloat, c2: CGFloat, c3: CGFloat, alpha: CGFloat
-        enum Space: String {
+        public enum Space: String {
             case RGB = "RGB"
             case HSB = "HSB"
             case HCL = "HCL"
@@ -47,12 +47,12 @@ extension UIColor {
             self.space  = space
         }
         
-        static func ==(lhs:Components, rhs:Components) -> Bool {
+        public static func ==(lhs:Components, rhs:Components) -> Bool {
             guard lhs.space == rhs.space else { return false }
             return (lhs.c1 == rhs.c1) && (lhs.c2 == rhs.c2) && (lhs.c3 == rhs.c3) && (lhs.alpha == rhs.alpha)
         }
         
-        var description: String {
+        public var description: String {
             return "(c1:\(c1), c2:\(c2), c3:\(c3), alpha:\(alpha), space:\(space.rawValue))"
         }
         

@@ -27,9 +27,9 @@ import Foundation
 
 // Easing curves are from https://github.com/ai/easings.net/
 
-struct Easing {
+public struct Easing {
     
-    enum Types {
+    public enum Types {
         case Sine
         case Quad
         case Cubic
@@ -52,7 +52,7 @@ struct Easing {
         }
     }
     
-    static let Linear = Bezier(0.250, 0.250,  0.750,  0.750)
+    public static let Linear = Bezier(0.250, 0.250,  0.750,  0.750)
     
     static private let curves: [String: Bezier] = [
         

@@ -7,6 +7,7 @@
 //
 
 import UIKit
+import Kinieta
 
 let color1 = UIColor(red:1.00, green:0.44, blue:0.75, alpha:1.00)
 let color2 = UIColor(red:0.00, green:1.00, blue:1.00, alpha:1.00)

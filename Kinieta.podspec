@@ -22,10 +22,11 @@ Pod::Spec.new do |s|
 
   s.author       = "Michael Michailidis"
 
-  s.platform     = :ios, "9.0"
+  s.platform     = :ios, "17.0"
+  s.swift_versions = ["5.9"]
 
   s.source       = { :git => "https://github.com/mmick66/kinieta.git", :tag => s.version }
 
-  s.source_files = "Kinieta/*.{swift}"
+  s.source_files = "Sources/Kinieta/**/*.swift"
 
 end

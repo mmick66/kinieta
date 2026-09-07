@@ -25,42 +25,42 @@
 
 import UIKit
 
-enum ColorInterpolationMethod {
+public enum ColorInterpolationMethod {
     case Pure(space: UIColor.Components.Space)
     case RGB_HLC_Assisted
 }
 
-struct Defaults {
-    struct ColorInterpolation {
-        static var Method: ColorInterpolationMethod = .Pure(space: .RGB)
+public struct Defaults {
+    public struct ColorInterpolation {
+        public static var Method: ColorInterpolationMethod = .Pure(space: .RGB)
     }
 }
 
-class Kinieta {
+public final class Kinieta {
     
     private(set) var mainSequence = Sequence()
     
-    let view: UIView
-    init(for view: UIView) {
+    public let view: UIView
+    public init(for view: UIView) {
         self.view = view
     }
     
     
     @discardableResult
-    func move(to moves: [String:Any], during duration: TimeInterval) -> Kinieta {
+    public func move(to moves: [String:Any], during duration: TimeInterval) -> Kinieta {
         mainSequence.add(.Animation(self.view, moves, duration, nil, nil))
         return self
     }
     
     
     @discardableResult
-    func wait(for time: TimeInterval, complete: Block? = nil) -> Kinieta {
+    public func wait(for time: TimeInterval, complete: Block? = nil) -> Kinieta {
         mainSequence.add(.Pause(time, complete))
         return self
     }
     
     @discardableResult
-    func delay(for time: TimeInterval) -> Kinieta {
+    public func delay(for time: TimeInterval) -> Kinieta {
         guard let last = self.mainSequence.popLast() else {
             return self
         }
@@ -71,7 +71,7 @@ class Kinieta {
         return self
     }
     
-    var then: Kinieta {
+    public var then: Kinieta {
         let actions = self.mainSequence.popAllUnGrouped()
         guard actions.count > 0 else { return self }
         
@@ -83,17 +83,17 @@ class Kinieta {
     
     // MARK: Easing Functions
     @discardableResult
-    func easeIn(_ type: Easing.Types = Easing.Types.Quad) -> Kinieta {
+    public func easeIn(_ type: Easing.Types = Easing.Types.Quad) -> Kinieta {
         return self.ease(type, "In")
     }
     
     @discardableResult
-    func easeOut(_ type: Easing.Types = Easing.Types.Quad) -> Kinieta {
+    public func easeOut(_ type: Easing.Types = Easing.Types.Quad) -> Kinieta {
         return self.ease(type, "Out")
     }
     
     @discardableResult
-    func easeInOut(_ type: Easing.Types = Easing.Types.Quad) -> Kinieta {
+    public func easeInOut(_ type: Easing.Types = Easing.Types.Quad) -> Kinieta {
         return self.ease(type, "InOut")
     }
     
@@ -114,7 +114,7 @@ class Kinieta {
     
 
     @discardableResult
-    func parallel() -> Kinieta {
+    public func parallel() -> Kinieta {
     
         let actions = self.mainSequence.popAllUnGrouped()
         guard actions.count > 0 else { return self }
@@ -126,7 +126,7 @@ class Kinieta {
     }
     
     @discardableResult
-    func again(times: UInt8 = 1) -> Kinieta {
+    public func again(times: UInt8 = 1) -> Kinieta {
         let typesCopy = self.mainSequence.types
         for _ in 0..<times {
             for at in typesCopy {
@@ -138,7 +138,7 @@ class Kinieta {
     
 
     @discardableResult
-    func complete(_ block: @escaping Block) -> Kinieta {
+    public func complete(_ block: @escaping Block) -> Kinieta {
         guard let last = self.mainSequence.popLast() else {
             return self
         }
