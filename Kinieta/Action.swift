@@ -51,13 +51,12 @@ enum ActionResult: String {
     case Finished   = "ActionResult.Finished"
 }
 
-protocol Action: class {
+protocol Action: AnyObject {
     func update(_ frame: Engine.Frame) -> ActionResult
 }
 
 class Factory {
     
-    let shared = Factory()
     
     static func Action(from type: ActionType) -> Action {
         switch type {

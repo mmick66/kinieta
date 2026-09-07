@@ -7,6 +7,7 @@
 //
 
 import XCTest
+@testable import Kinieta
 
 class ColorComponentsTests: XCTestCase {
     
@@ -58,7 +59,7 @@ class ColorComponentsTests: XCTestCase {
     func testPerformanceExample() {
         
         self.measure {
-            self.createDerivativeColor(space: .HLC)
+            self.createDerivativeColor(space: .HCL)
         }
     }
     

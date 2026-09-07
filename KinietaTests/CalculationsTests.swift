@@ -7,6 +7,7 @@
 //
 
 import XCTest
+@testable import Kinieta
 
 class CalculationsTests: XCTestCase {
     
@@ -32,14 +33,5 @@ class CalculationsTests: XCTestCase {
         XCTAssert(v.transform.c == t.c, "Value 'c' not calculated correctly")
         XCTAssert(v.transform.d == t.d, "Value 'd' not calculated correctly")
     }
-    
 
-    
-    func testPerformanceExample() {
-        // This is an example of a performance test case.
-        self.measure {
-            // Put the code you want to measure the time of here.
-        }
-    }
-    
 }

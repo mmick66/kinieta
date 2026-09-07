@@ -54,7 +54,7 @@ class Engine {
             }
             self.onUpdate = onUpdate
             displayLink = CADisplayLink(target: self, selector: #selector(DisplayLink.update(_:)))
-            displayLink?.add(to: RunLoop.current, forMode: RunLoopMode.commonModes)
+            displayLink?.add(to: RunLoop.current, forMode: RunLoop.Mode.common)
         }
         func stop() {
             self.displayLink?.invalidate()
@@ -83,7 +83,7 @@ class Engine {
     }
     
     func remove(_ action: Action) {
-        guard let index = actions.index(where: { $0 === action }) else {
+        guard let index = actions.firstIndex(where: { $0 === action }) else {
             return
         }
         actions.remove(at: index)

@@ -16,37 +16,20 @@
 		BE6568FA1F652B6C007E41D2 /* Action.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE6568F91F652B6C007E41D2 /* Action.swift */; };
 		BE6568FC1F6536E0007E41D2 /* Pause.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE6568FB1F6536E0007E41D2 /* Pause.swift */; };
 		BE6568FE1F656019007E41D2 /* Group.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE6568FD1F656019007E41D2 /* Group.swift */; };
-		C7202A441F98975B002A35CA /* View.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7B25ADB1F5FD0AA0060071E /* View.swift */; };
-		C7202A451F9897AD002A35CA /* Engine.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7B25AD71F5FCE9B0060071E /* Engine.swift */; };
-		C7202A461F9897B1002A35CA /* Action.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE6568F91F652B6C007E41D2 /* Action.swift */; };
-		C7202A471F9897B3002A35CA /* Collection.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7937B8D1F8E301B00B54DC0 /* Collection.swift */; };
-		C7202A481F9897B5002A35CA /* Group.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE6568FD1F656019007E41D2 /* Group.swift */; };
-		C7202A491F9897BC002A35CA /* Pause.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE6568FB1F6536E0007E41D2 /* Pause.swift */; };
-		C7202A4A1F9897C6002A35CA /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE6568D71F57DE10007E41D2 /* AppDelegate.swift */; };
-		C7202A4B1F9897C8002A35CA /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE6568D91F57DE10007E41D2 /* ViewController.swift */; };
 		C7202A4D1F989E2B002A35CA /* ColorComponentsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7202A4C1F989E2B002A35CA /* ColorComponentsTests.swift */; };
-		C7271CB51F9790C3009CA619 /* UIColor+Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7271CB41F978168009CA619 /* UIColor+Components.swift */; };
 		C7271CB61F979103009CA619 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7937B951F94BE7000B54DC0 /* Extensions.swift */; };
 		C7271CB71F979103009CA619 /* UIColor+Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7271CB41F978168009CA619 /* UIColor+Components.swift */; };
-		C76EF57D1F950DB200A25A41 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7937B951F94BE7000B54DC0 /* Extensions.swift */; };
 		C772DF781F57F33100A3F690 /* Animation.swift in Sources */ = {isa = PBXBuildFile; fileRef = C772DF771F57F33100A3F690 /* Animation.swift */; };
 		C772DF7C1F58129000A3F690 /* Bezier.swift in Sources */ = {isa = PBXBuildFile; fileRef = C772DF7B1F58129000A3F690 /* Bezier.swift */; };
 		C772DF7E1F581B7B00A3F690 /* Easing.swift in Sources */ = {isa = PBXBuildFile; fileRef = C772DF7D1F581B7B00A3F690 /* Easing.swift */; };
-		C772DF801F5D4FA200A3F690 /* Animation.swift in Sources */ = {isa = PBXBuildFile; fileRef = C772DF771F57F33100A3F690 /* Animation.swift */; };
-		C772DF811F5D4FA600A3F690 /* Bezier.swift in Sources */ = {isa = PBXBuildFile; fileRef = C772DF7B1F58129000A3F690 /* Bezier.swift */; };
-		C772DF821F5D4FA800A3F690 /* Easing.swift in Sources */ = {isa = PBXBuildFile; fileRef = C772DF7D1F581B7B00A3F690 /* Easing.swift */; };
 		C772DF841F5D51F100A3F690 /* CalculationsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C772DF831F5D51F100A3F690 /* CalculationsTests.swift */; };
 		C77895871F8B6ADA004A6274 /* Sequence.swift in Sources */ = {isa = PBXBuildFile; fileRef = C77895861F8B6ADA004A6274 /* Sequence.swift */; };
-		C7937B881F8CDF8C00B54DC0 /* Sequence.swift in Sources */ = {isa = PBXBuildFile; fileRef = C77895861F8B6ADA004A6274 /* Sequence.swift */; };
 		C7937B8E1F8E301B00B54DC0 /* Collection.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7937B8D1F8E301B00B54DC0 /* Collection.swift */; };
 		C7937B901F8E30D900B54DC0 /* Kinieta.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7937B8F1F8E30D900B54DC0 /* Kinieta.swift */; };
-		C7937B921F8E4AA000B54DC0 /* Kinieta.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7937B8F1F8E30D900B54DC0 /* Kinieta.swift */; };
 		C7B25AD81F5FCE9B0060071E /* Engine.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7B25AD71F5FCE9B0060071E /* Engine.swift */; };
 		C7B25ADC1F5FD0AA0060071E /* View.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7B25ADB1F5FD0AA0060071E /* View.swift */; };
 		C7F334F91F98B07D000D7291 /* ColorSpaces.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7F334F71F98AC6E000D7291 /* ColorSpaces.swift */; };
-		C7F334FA1F98B07D000D7291 /* ColorSpaces.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7F334F71F98AC6E000D7291 /* ColorSpaces.swift */; };
 		C7F334FB1F98B07F000D7291 /* UIColorExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7F334F81F98AD15000D7291 /* UIColorExtension.swift */; };
-		C7F334FC1F98B080000D7291 /* UIColorExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7F334F81F98AD15000D7291 /* UIColorExtension.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -318,26 +301,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C772DF821F5D4FA800A3F690 /* Easing.swift in Sources */,
 				C7202A4D1F989E2B002A35CA /* ColorComponentsTests.swift in Sources */,
-				C7202A461F9897B1002A35CA /* Action.swift in Sources */,
 				C772DF841F5D51F100A3F690 /* CalculationsTests.swift in Sources */,
-				C7202A441F98975B002A35CA /* View.swift in Sources */,
-				C7271CB51F9790C3009CA619 /* UIColor+Components.swift in Sources */,
-				C7937B881F8CDF8C00B54DC0 /* Sequence.swift in Sources */,
-				C7F334FC1F98B080000D7291 /* UIColorExtension.swift in Sources */,
-				C7202A471F9897B3002A35CA /* Collection.swift in Sources */,
-				C7202A481F9897B5002A35CA /* Group.swift in Sources */,
-				C7202A4A1F9897C6002A35CA /* AppDelegate.swift in Sources */,
-				C7202A4B1F9897C8002A35CA /* ViewController.swift in Sources */,
-				C7202A491F9897BC002A35CA /* Pause.swift in Sources */,
-				C76EF57D1F950DB200A25A41 /* Extensions.swift in Sources */,
-				C7F334FA1F98B07D000D7291 /* ColorSpaces.swift in Sources */,
-				C772DF811F5D4FA600A3F690 /* Bezier.swift in Sources */,
-				C772DF801F5D4FA200A3F690 /* Animation.swift in Sources */,
-				C7202A451F9897AD002A35CA /* Engine.swift in Sources */,
 				BE6568ED1F57DE10007E41D2 /* KinietaTests.swift in Sources */,
-				C7937B921F8E4AA000B54DC0 /* Kinieta.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -418,7 +384,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 10.3;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
@@ -469,7 +435,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 10.3;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
 				SWIFT_OPTIMIZATION_LEVEL = "-Owholemodule";
@@ -488,7 +454,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.karmadust.Kinieta;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_SWIFT3_OBJC_INFERENCE = Default;
-				SWIFT_VERSION = 4.0;
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
@@ -503,7 +469,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.karmadust.Kinieta;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_SWIFT3_OBJC_INFERENCE = Default;
-				SWIFT_VERSION = 4.0;
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
@@ -518,7 +484,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.karmadust.KinietaTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_SWIFT3_OBJC_INFERENCE = Default;
-				SWIFT_VERSION = 4.0;
+				SWIFT_VERSION = 5.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Kinieta.app/Kinieta";
 			};
 			name = Debug;
@@ -533,7 +499,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.karmadust.KinietaTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_SWIFT3_OBJC_INFERENCE = Default;
-				SWIFT_VERSION = 4.0;
+				SWIFT_VERSION = 5.0;
 				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Kinieta.app/Kinieta";
 			};
 			name = Release;
