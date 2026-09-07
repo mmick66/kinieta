@@ -25,9 +25,9 @@
 import UIKit
 
 
-public struct Bezier {
+public struct Bezier: Sendable {
     
-    static var Accuracy = 1000
+    static let Accuracy = 1000
     static let Factors  = Table(with: Bezier.Accuracy)
     
     struct Table {

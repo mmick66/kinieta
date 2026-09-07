@@ -24,7 +24,8 @@
  */
 import UIKit
 
-class Group: Collection, Action {
+@MainActor
+final class Group: Collection, Action {
     
     var currentActions: [Action]?
     let complete: Block?

@@ -24,6 +24,7 @@
  */
 import UIKit
 
+@MainActor
 class Collection {
     
     internal var types: [ActionType]

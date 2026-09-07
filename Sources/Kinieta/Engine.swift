@@ -25,6 +25,7 @@
 
 import UIKit
 
+@MainActor
 public final class Engine {
     
     struct Frame {
@@ -36,7 +37,7 @@ public final class Engine {
         }
     }
     
-    class DisplayLink {
+    final class DisplayLink {
         private var displayLink: CADisplayLink?
     
         func pause() {
@@ -54,14 +55,14 @@ public final class Engine {
             }
             self.onUpdate = onUpdate
             displayLink = CADisplayLink(target: self, selector: #selector(DisplayLink.update(_:)))
-            displayLink?.add(to: RunLoop.current, forMode: RunLoop.Mode.common)
+            displayLink?.add(to: .main, forMode: .common)
         }
         func stop() {
             self.displayLink?.invalidate()
             self.displayLink = nil
         }
         
-        @objc func update(_ displayLink: CADisplayLink) {
+        @objc private func update(_ displayLink: CADisplayLink) {
             let frame = Engine.Frame(displayLink.timestamp, displayLink.duration)
             self.onUpdate?(frame)
         }
@@ -113,10 +114,6 @@ public final class Engine {
             case .Finished: self.remove(action)
             }
         }
-    }
-    
-    deinit {
-        displayLink.stop()
     }
     
 }

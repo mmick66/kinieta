@@ -32,10 +32,11 @@ public enum ColorInterpolationMethod {
 
 public struct Defaults {
     public struct ColorInterpolation {
-        public static var Method: ColorInterpolationMethod = .Pure(space: .RGB)
+        @MainActor public static var Method: ColorInterpolationMethod = .Pure(space: .RGB)
     }
 }
 
+@MainActor
 public final class Kinieta {
     
     private(set) var mainSequence = Sequence()

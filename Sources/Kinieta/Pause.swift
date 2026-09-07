@@ -25,7 +25,8 @@
 
 import UIKit
 
-class Pause: Action {
+@MainActor
+final class Pause: Action {
     
     let duration: TimeInterval
     let complete: Block?

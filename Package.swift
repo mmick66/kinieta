@@ -20,6 +20,5 @@ let package = Package(
             path: "Tests/KinietaTests"
         )
     ],
-    // Phase 2 switches this to .v6 once the engine is main-actor isolated.
-    swiftLanguageModes: [.v5]
+    swiftLanguageModes: [.v6]
 )

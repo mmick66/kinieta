@@ -25,7 +25,8 @@
 import UIKit
 
 
-class Animation: Action {
+@MainActor
+final class Animation: Action {
     
     private var transformations:[TransformationBlock] = []
     

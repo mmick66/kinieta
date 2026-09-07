@@ -23,7 +23,7 @@ Pod::Spec.new do |s|
   s.author       = "Michael Michailidis"
 
   s.platform     = :ios, "17.0"
-  s.swift_versions = ["5.9"]
+  s.swift_versions = ["6.0"]
 
   s.source       = { :git => "https://github.com/mmick66/kinieta.git", :tag => s.version }
 

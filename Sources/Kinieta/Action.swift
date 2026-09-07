@@ -51,11 +51,13 @@ enum ActionResult: String {
     case Finished   = "ActionResult.Finished"
 }
 
+@MainActor
 protocol Action: AnyObject {
     func update(_ frame: Engine.Frame) -> ActionResult
 }
 
-class Factory {
+@MainActor
+enum Factory {
     
     
     static func Action(from type: ActionType) -> Action {
