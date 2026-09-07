@@ -41,7 +41,7 @@ final class Animation: Action {
     
     init(_ view: UIView, moves: [String: Any], duration: TimeInterval, easing: Bezier?, complete: (()->Void)?) {
         
-        self.duration   = duration
+        self.duration   = Engine.shared.shouldSkipMotion ? 0 : duration
         self.easing     = easing ?? Easing.Linear
         self.complete   = complete
         
@@ -141,28 +141,21 @@ final class Animation: Action {
             
             case .RGB_HLC_Assisted:
                 
-                let spectrum = view.backgroundColorOrClear.spectrumComponentsHLC5(to: valueAsUIColor)
-                
+                // Sample the HCL path at a few stops, then interpolate in RGB
+                // between neighbouring stops. Every stop is used, so the
+                // animation ends exactly on the target colour.
+                let stops = view.backgroundColorOrClear
+                    .spectrumComponentsHLC5(to: valueAsUIColor)
+                    .map { $0.components(as: .RGB) }
+                let segments = CGFloat(stops.count - 1)
+
                 return { factor in
-                    var iComps: UIColor.Components
-                    switch factor {
-                    case 0.00 ... 0.25:
-                        let nf = factor / 0.25
-                        iComps = (1.0 - nf) * spectrum[0].components(as: .RGB) + nf * spectrum[1].components(as: .RGB)
-                    case 0.25 ... 0.50:
-                        let nf = (factor - 0.25) / 0.25
-                        iComps = (1.0 - nf) * spectrum[1].components(as: .RGB) + nf * spectrum[2].components(as: .RGB)
-                    case 0.50 ... 0.75:
-                        let nf = (factor - 0.50) / 0.25
-                        iComps = (1.0 - nf) * spectrum[2].components(as: .RGB) + nf * spectrum[3].components(as: .RGB)
-                    case 0.75 ... 1.00:
-                        let nf = (factor - 0.75) / 0.25
-                        iComps = (1.0 - nf) * spectrum[3].components(as: .RGB) + nf * spectrum[4].components(as: .RGB)
-                    default:
-                        fatalError("")
-                    }
-                    
-                    view.backgroundColor = UIColor(components: iComps)
+                    // Colours are clamped: an overshooting easing has no meaning here.
+                    let position = min(max(factor, 0), 1) * segments
+                    let index = min(Int(position), stops.count - 2)
+                    let local = position - CGFloat(index)
+                    let comps = (1.0 - local) * stops[index] + local * stops[index + 1]
+                    view.backgroundColor = UIColor(components: comps)
                 }
             }
             
@@ -181,7 +174,7 @@ final class Animation: Action {
             return Animation.interpolation(from: view.layer.borderWidth, to: cgValue) { view.layer.borderWidth = $0 }
             
         case "crd", "cornerRadius":
-            return Animation.interpolation(from: view.layer.borderWidth, to: cgValue) { view.layer.borderWidth = $0 }
+            return Animation.interpolation(from: view.layer.cornerRadius, to: cgValue) { view.layer.cornerRadius = $0 }
             
         default:
             return { _ in }

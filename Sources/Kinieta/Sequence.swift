@@ -69,7 +69,9 @@ final class Sequence: Collection, Action {
                 return .Running
             case .Finished:
                 self.currentAction = nil
-                return self.types.count > 0 ? .Running : .Finished
+                if self.types.count > 0 { return .Running }
+                self.complete?()
+                return .Finished
             }
         }
         else if let nextAction = self.popFirstAction() {

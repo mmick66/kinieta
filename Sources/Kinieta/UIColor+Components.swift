@@ -118,21 +118,20 @@ extension UIColor {
     }
 
     
-    func spectrumComponentsHLC5(to toColor: UIColor) -> [UIColor] {
-        
-        var spectrum = [UIColor]()
-        
-        let fcomps  = self.components(as: .HCL)
-        let tcomps  = toColor.components(as: .HCL)
-        
-        for i in 0 ... 5 {
-            let factor  = CGFloat(i) / 5.0
-            let comps   = (1.0 - factor) * fcomps + factor * tcomps
-            let color   = UIColor(components: comps)
-            spectrum.append(color)
+    /// Samples the perceptual (LCH) path from this colour to `toColor` at
+    /// `stops + 1` evenly spaced points, from this colour to `toColor` inclusive.
+    ///
+    /// Hue is interpolated along the shorter arc, an achromatic endpoint adopts
+    /// the other endpoint's hue, and each sample is clamped to the sRGB gamut.
+    func spectrumComponentsHLC5(to toColor: UIColor, stops: Int = 5) -> [UIColor] {
+        var from = self.rgbColor().toLCH()
+        var to   = toColor.rgbColor().toLCH()
+        let achromatic: CGFloat = 1e-3
+        if from.c < achromatic { from = LCHColor(l: from.l, c: from.c, h: to.h, alpha: from.alpha) }
+        if to.c   < achromatic { to   = LCHColor(l: to.l,   c: to.c,   h: from.h, alpha: to.alpha) }
+        return (0 ... stops).map { i in
+            from.lerp(to, t: CGFloat(i) / CGFloat(stops)).toRGB().clamped().color()
         }
-        
-        return spectrum
     }
     
 }

@@ -77,6 +77,13 @@ struct RGBColor {
         return UIColor(red: r, green: g, blue: b, alpha: alpha)
     }
 
+    /// Clamps every channel to the sRGB range. Conversions from LCH can land
+    /// outside the gamut for saturated colours.
+    func clamped() -> RGBColor {
+        func clip(_ v: CGFloat) -> CGFloat { min(max(v, 0), 1) }
+        return RGBColor(r: clip(r), g: clip(g), b: clip(b), alpha: clip(alpha))
+    }
+
     func lerp(_ other: RGBColor, t: CGFloat) -> RGBColor {
         return RGBColor(
             r: r + (other.r - r) * t,

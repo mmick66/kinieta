@@ -97,9 +97,25 @@ public struct Bezier: Sendable {
     }
     
     
-    public func solve(_ t:Double) -> Double {
-        let T = Int(t * Double(Bezier.Accuracy))
-        return POINTS[T].y
+    /// Returns the eased progress for a time fraction `x` in 0...1.
+    ///
+    /// The curve is a CSS-style cubic Bézier: `x` is time and `y` is progress.
+    /// The baked table is searched on `x` and `y` is interpolated linearly
+    /// between the two nearest samples, so `y` can overshoot 0...1 for
+    /// curves such as `backInOut`.
+    public func solve(_ x: Double) -> Double {
+        if x <= 0 { return 0 }
+        if x >= 1 { return 1 }
+        var low = 0
+        var high = Bezier.Accuracy
+        while high - low > 1 {
+            let mid = (low + high) / 2
+            if POINTS[mid].x <= x { low = mid } else { high = mid }
+        }
+        let a = POINTS[low], b = POINTS[high]
+        let span = b.x - a.x
+        guard span > 0 else { return a.y }
+        return a.y + (b.y - a.y) * (x - a.x) / span
     }
 }
 
