@@ -1,121 +1,89 @@
-/*
- * Bezier.swift
- * Created by Michael Michailidis on 16/10/2017.
- * http://blog.karmadust.com/
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- *
- */
-import UIKit
+// Kinieta — MIT License. See LICENSE.
 
+import Foundation
 
-public struct Bezier: Sendable {
-    
-    static let Accuracy = 1000
-    static let Factors  = Table(with: Bezier.Accuracy)
-    
-    struct Table {
-        let C0:[Double]
-        let C1:[Double]
-        let C2:[Double]
-        let C3:[Double]
-        init(with steps: Int) {
-            var _C0 = [Double](repeating: 0.0, count: steps+1)
-            var _C1 = [Double](repeating: 0.0, count: steps+1)
-            var _C2 = [Double](repeating: 0.0, count: steps+1)
-            var _C3 = [Double](repeating: 0.0, count: steps+1)
+/// A cubic Bézier easing curve from (0, 0) to (1, 1), defined by its two inner
+/// control points, exactly as CSS `cubic-bezier()` and cubic-bezier.com do.
+///
+/// The curve is baked into a lookup table once at creation, so solving is a
+/// binary search rather than root finding.
+public struct Bezier: Sendable, Equatable {
+
+    static let accuracy = 1000
+    static let factors  = Table(steps: Bezier.accuracy)
+
+    /// Identity: progress equals time.
+    public static let linear = Bezier(0.25, 0.25, 0.75, 0.75)
+
+    struct Table: Sendable {
+        let c0: [Double], c1: [Double], c2: [Double], c3: [Double]
+        init(steps: Int) {
+            var c0 = [Double](repeating: 0, count: steps + 1)
+            var c1 = c0, c2 = c0, c3 = c0
             for step in 0...steps {
-                let T = Double(step)/Double(steps);
-                _C0[step] = (1.0 - T) * (1.0 - T) * (1.0 - T);
-                _C1[step] = 3.0 * (1.0 - T) * (1.0 - T) * T;
-                _C2[step] = 3.0 * (1.0 - T) * T * T;
-                _C3[step] = T * T * T;
+                let t = Double(step) / Double(steps)
+                c0[step] = (1 - t) * (1 - t) * (1 - t)
+                c1[step] = 3 * (1 - t) * (1 - t) * t
+                c2[step] = 3 * (1 - t) * t * t
+                c3[step] = t * t * t
             }
-            C0 = _C0
-            C1 = _C1
-            C2 = _C2
-            C3 = _C3
+            self.c0 = c0; self.c1 = c1; self.c2 = c2; self.c3 = c3
         }
     }
-    
-    struct Point: CustomStringConvertible {
-        
-        let x: Double
-        let y: Double
-        init(_ x: Double = 0.0, _ y: Double = 0.0) {
+
+    public struct Point: Sendable, Equatable, CustomStringConvertible {
+        public let x: Double
+        public let y: Double
+        public init(_ x: Double = 0, _ y: Double = 0) {
             self.x = x
             self.y = y
         }
-        var cgPoint: CGPoint {
-            return CGPoint(x: self.x, y: self.y)
-        }
-        static func *(lhs:Point, rhs:Double) -> Point {
-            return Point(lhs.x * rhs, lhs.y * rhs)
-        }
-        static func *(lhs:Double, rhs:Point) -> Point {
-            return Point(lhs * rhs.x, lhs * rhs.y)
-        }
-        static func +(lhs:Point, rhs:Point) -> Point {
-            return Point(lhs.x + rhs.x, lhs.y + rhs.y)
-        }
-        var description: String {
-            return "(x:\(self.x), y:\(self.y))"
-        }
+        static func * (lhs: Double, rhs: Point) -> Point { Point(lhs * rhs.x, lhs * rhs.y) }
+        static func + (lhs: Point, rhs: Point) -> Point { Point(lhs.x + rhs.x, lhs.y + rhs.y) }
+        public var description: String { "(x: \(x), y: \(y))" }
     }
-    
-    let P0:Point = Point(0.0, 0.0)
-    let P1:Point
-    let P2:Point
-    let P3:Point = Point(1.0, 1.0)
-    
-    let POINTS:[Point]
-    public init(_ p1x:Double, _ p1y:Double, _ p2x:Double, _ p2y:Double) {
-        P1 = Point(p1x, p1y)
-        P2 = Point(p2x, p2y)
-        let F = Bezier.Factors
-        var _P = [Point](repeating: Point(), count: Bezier.Accuracy+1)
-        for step in 0...Bezier.Accuracy {
-            _P[step] = F.C0[step] * P0 + F.C1[step] * P1 + F.C2[step] * P2 + F.C3[step] * P3
+
+    public let p0 = Point(0, 0)
+    public let p1: Point
+    public let p2: Point
+    public let p3 = Point(1, 1)
+
+    let points: [Point]
+
+    /// Creates a curve from the two inner control points, in the order
+    /// cubic-bezier.com lists them: `Bezier(p1x, p1y, p2x, p2y)`.
+    public init(_ p1x: Double, _ p1y: Double, _ p2x: Double, _ p2y: Double) {
+        p1 = Point(p1x, p1y)
+        p2 = Point(p2x, p2y)
+        let f = Bezier.factors
+        var baked = [Point](repeating: Point(), count: Bezier.accuracy + 1)
+        for step in 0...Bezier.accuracy {
+            baked[step] = f.c0[step] * p0 + f.c1[step] * p1 + f.c2[step] * p2 + f.c3[step] * p3
         }
-        POINTS = _P
+        points = baked
     }
-    
-    
+
+    public static func == (lhs: Bezier, rhs: Bezier) -> Bool {
+        lhs.p1 == rhs.p1 && lhs.p2 == rhs.p2
+    }
+
     /// Returns the eased progress for a time fraction `x` in 0...1.
     ///
-    /// The curve is a CSS-style cubic Bézier: `x` is time and `y` is progress.
-    /// The baked table is searched on `x` and `y` is interpolated linearly
-    /// between the two nearest samples, so `y` can overshoot 0...1 for
-    /// curves such as `backInOut`.
+    /// `x` is time and `y` is progress. The baked table is searched on `x` and
+    /// `y` is interpolated linearly between the two nearest samples, so `y` can
+    /// leave 0...1 for curves such as `backInOut`. Time outside 0...1 is clamped.
     public func solve(_ x: Double) -> Double {
         if x <= 0 { return 0 }
         if x >= 1 { return 1 }
         var low = 0
-        var high = Bezier.Accuracy
+        var high = Bezier.accuracy
         while high - low > 1 {
             let mid = (low + high) / 2
-            if POINTS[mid].x <= x { low = mid } else { high = mid }
+            if points[mid].x <= x { low = mid } else { high = mid }
         }
-        let a = POINTS[low], b = POINTS[high]
+        let a = points[low], b = points[high]
         let span = b.x - a.x
         guard span > 0 else { return a.y }
         return a.y + (b.y - a.y) * (x - a.x) / span
     }
 }
-

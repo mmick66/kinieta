@@ -18,8 +18,6 @@ class ViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        Defaults.ColorInterpolation.Method = .RGB_HLC_Assisted
-        
         self.square.backgroundColor = color1
         self.square.layer.cornerRadius = 6.0
     }
@@ -31,11 +29,9 @@ class ViewController: UIViewController {
 
     @IBAction func goButtonPressed(_ sender: UIButton) {
         
-        self.square.move(to: ["x": 200, "y": 100, "bg": color2], during: 3.0).wait(for: 4.0).complete {
-            self.square.backgroundColor = color1
-        }
-        
-        
+        square.animate(.x(200), .y(100), .background(color2), duration: 3.0).easeInOut(.cubic)
+              .wait(1.0)
+              .animate(.x(20), .y(20), .background(color1), duration: 1.5).easeInOut(.back)
     }
     
 

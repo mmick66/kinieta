@@ -112,6 +112,9 @@ public final class Engine {
 
     private var actions: [Action] = []
 
+    /// How colours are interpolated unless a property says otherwise.
+    public var colorInterpolation: ColorInterpolation = .lch
+
     /// When `true` (the default) and the user has Reduce Motion switched on,
     /// animations snap to their end state. Pauses keep their duration so the
     /// timing of sequences and completion blocks is preserved.
@@ -143,23 +146,11 @@ public final class Engine {
         }
     }
 
-    /// Runs the timelines of several `Kinieta` handles together and calls
-    /// `complete` once when the last of them finishes.
-    public func group(_ kinietas: [Kinieta], complete: Block? = nil) {
-        group(kinietas.map { $0.mainSequence as Action }, complete: complete)
-    }
-
-    func group(_ actions: [Action], complete: Block? = nil) {
-        for a in actions { remove(a) }
-        let g = Group(actions, complete: complete)
-        add(g)
-    }
-
     private func update(with frame: Frame) {
         for action in actions {
             switch action.update(frame) {
-            case .Running:  continue
-            case .Finished: remove(action)
+            case .running:  continue
+            case .finished: remove(action)
             }
         }
     }

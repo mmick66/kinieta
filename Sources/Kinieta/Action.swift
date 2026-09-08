@@ -1,6 +1,6 @@
 /*
  * Action.swift
- * Created by Michael Michailidis on 16/10/2017.
+ * Created by Michael Michailidis on 10/09/2017.
  * http://blog.karmadust.com/
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -25,53 +25,58 @@
 
 import UIKit
 
-public typealias Block = (() -> Void)
+public typealias Block = () -> Void
 
+/// A weak reference to the view an action targets, so a pending timeline never
+/// keeps a view alive. An animation whose view has gone finishes immediately.
+struct ViewRef {
+    weak var view: UIView?
+    init(_ view: UIView?) { self.view = view }
+}
+
+/// The description of an action before it runs. A timeline is a tree of these;
+/// they are turned into live `Action` objects when their turn comes.
 enum ActionType: CustomStringConvertible {
-    case Animation(UIView, Dictionary<String,Any>, TimeInterval, Bezier?, Block?)
-    case Pause(TimeInterval, Block?)
-    case Group([ActionType], Block?)
-    case Sequence([ActionType], Block?)
+    case animation(ViewRef, [Property], TimeInterval, Bezier?, Block?)
+    case pause(TimeInterval, Block?)
+    case group([ActionType], Block?)
+    case sequence([ActionType], Block?)
+
     var description: String {
         switch self {
-        case .Animation(_, let moves, _, _, _):
-            return "Animation (\(moves.toString()))"
-        case .Pause(let time, _):
+        case .animation(_, let properties, _, _, _):
+            return "Animation (\(properties.map(\.name).joined(separator: " ")))"
+        case .pause(let time, _):
             return "Pause (\(time))"
-        case .Group(let types, _):
+        case .group(let types, _):
             return "Group (\(types.count))"
-        case .Sequence(let types, _):
+        case .sequence(let types, _):
             return "Sequence (\(types.count))"
         }
     }
-}
 
-enum ActionResult: String {
-    case Running    = "ActionResult.Running"
-    case Finished   = "ActionResult.Finished"
-}
-
-@MainActor
-protocol Action: AnyObject {
-    func update(_ frame: Engine.Frame) -> ActionResult
-}
-
-@MainActor
-enum Factory {
-    
-    
-    static func Action(from type: ActionType) -> Action {
-        switch type {
-        case .Animation(let view, let moves, let duration, let easing, let block):
-            return Animation(view, moves: moves, duration: duration, easing: easing, complete: block)
-        case .Pause(let time, let block):
+    @MainActor
+    func makeAction() -> Action {
+        switch self {
+        case .animation(let ref, let properties, let duration, let easing, let block):
+            return Animation(ref, properties: properties, duration: duration, easing: easing, complete: block)
+        case .pause(let time, let block):
             return Pause(time, complete: block)
-        case .Group(let list, let block):
+        case .group(let list, let block):
             return Group(list, complete: block)
-        case .Sequence(let list, let block):
+        case .sequence(let list, let block):
             return Sequence(list, complete: block)
         }
     }
 }
 
+enum ActionResult {
+    case running
+    case finished
+}
 
+/// Something the engine advances once per frame.
+@MainActor
+protocol Action: AnyObject {
+    func update(_ frame: Engine.Frame) -> ActionResult
+}

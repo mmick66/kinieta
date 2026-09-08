@@ -84,48 +84,7 @@ extension CGRect: CGFractionable {
 }
 
 
-extension CGFloat: CGFractionable {
-    static func parse(_ any: Any?) -> CGFloat? {
-        guard let a = any else { return nil }
-        switch a {
-        case let x as CGFloat:  return CGFloat(x)
-        case let x as Float:    return CGFloat(x)
-        case let x as Int:      return CGFloat(x)
-        case let x as Double:   return CGFloat(x)
-        case let x as UInt8:    return CGFloat(x)
-        case let x as Int8:     return CGFloat(x)
-        case let x as UInt16:   return CGFloat(x)
-        case let x as Int16:    return CGFloat(x)
-        case let x as UInt32:   return CGFloat(x)
-        case let x as Int32:    return CGFloat(x)
-        case let x as UInt64:   return CGFloat(x)
-        case let x as Int64:    return CGFloat(x)
-        case let x as UInt:     return CGFloat(x)
-        default:                return nil
-        }
-    }
-}
-
-extension Dictionary where Key == String, Value == Any {
-    mutating func pop(_ key: String) -> Any? {
-        return self.removeValue(forKey: key)
-    }
-    func intersection(_ keys: [String]) -> Bool {
-        for (k,_) in self {
-            if keys.contains(k) {
-                return true
-            }
-        }
-        return false
-    }
-}
-
-
-extension Dictionary {
-    func toString() -> String {
-        return self.map({ return "\($0):\($1)" }).joined(separator: " ")
-    }
-}
+extension CGFloat: CGFractionable {}
 
 
 

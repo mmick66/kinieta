@@ -1,148 +1,63 @@
-/*
- * View.swift
- * Created by Michael Michailidis on 16/10/2017.
- * http://blog.karmadust.com/
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- *
- */
+// Kinieta — MIT License. See LICENSE.
 
 import UIKit
 
 public extension UIView {
+
+    /// Starts a timeline that animates `properties` over `duration` seconds.
+    /// Chain further calls on the returned handle to extend it.
     @discardableResult
-    func move(to dict: [String:Any], during duration: TimeInterval = 0.0) -> Kinieta {
-        let kinieta = Kinieta(for: self)
-        kinieta.move(to: dict, during: duration)
-        Engine.shared.add(kinieta.mainSequence)
-        return kinieta
+    func animate(_ properties: Property..., duration: TimeInterval = 0) -> Kinieta {
+        Kinieta(view: self).animate(properties, duration: duration)
     }
+
     @discardableResult
-    func wait(for time: TimeInterval) -> Kinieta {
-        let kinieta = Kinieta(for: self)
-        kinieta.wait(for: time)
-        Engine.shared.add(kinieta.mainSequence)
-        return kinieta
+    func animate(_ properties: [Property], duration: TimeInterval = 0) -> Kinieta {
+        Kinieta(view: self).animate(properties, duration: duration)
+    }
+
+    /// Starts a timeline with a pause, for chaining an animation after a delay.
+    @discardableResult
+    func wait(_ time: TimeInterval) -> Kinieta {
+        Kinieta(view: self).wait(time)
     }
 }
 
+// MARK: - Geometry helpers used by the interpolators
+
 extension UIView {
+
     var x: CGFloat {
-        get {
-           return self.frame.origin.x
-        }
-        set {
-            let oFrame = self.frame
-            self.frame = CGRect(
-                x: newValue, y: oFrame.origin.y, width: oFrame.size.width, height: oFrame.size.height
-            )
-        }
+        get { frame.origin.x }
+        set { frame.origin.x = newValue }
     }
+
     var y: CGFloat {
-        get {
-            return self.frame.origin.y
-        }
-        set {
-            let oFrame = self.frame
-            self.frame = CGRect(
-                x: oFrame.origin.x, y: newValue, width: oFrame.size.width, height: oFrame.size.height
-            )
-        }
+        get { frame.origin.y }
+        set { frame.origin.y = newValue }
     }
+
     var width: CGFloat {
-        get {
-            return self.frame.size.width
-        }
-        set {
-            let oFrame = self.frame
-            self.frame = CGRect(
-                x: oFrame.origin.x, y: oFrame.origin.y, width: newValue, height: oFrame.size.height
-            )
-        }
+        get { frame.size.width }
+        set { frame.size.width = newValue }
     }
+
     var height: CGFloat {
-        get {
-            return self.frame.size.height
-        }
-        set {
-            let oFrame = self.frame
-            self.frame = CGRect(
-                x: oFrame.origin.x, y: oFrame.origin.y, width: oFrame.size.width, height: newValue
-            )
-        }
+        get { frame.size.height }
+        set { frame.size.height = newValue }
     }
-    var rotation:CGFloat {
-        get {
-            return atan2(self.transform.b, self.transform.a).radiansToDegrees
-        }
-        set {
-            let rads = newValue.degreesToRadians
-            var tr_p = self.transform
-            tr_p.a =  cos(rads)
-            tr_p.b =  sin(rads)
-            tr_p.c = -sin(rads)
-            tr_p.d =  cos(rads)
-            self.transform = tr_p
 
-        }
+    /// Rotation in degrees. Setting it replaces the transform with a pure rotation.
+    var rotation: CGFloat {
+        get { atan2(transform.b, transform.a).radiansToDegrees }
+        set { transform = CGAffineTransform(rotationAngle: newValue.degreesToRadians) }
     }
-    
+
     var backgroundColorOrClear: UIColor {
-        return self.backgroundColor ?? UIColor.clear
+        backgroundColor ?? .clear
     }
+
     var borderColorOrClear: UIColor {
-        if let bc = self.layer.borderColor {
-            return UIColor(cgColor: bc)
-        }
-        return UIColor.clear
+        layer.borderColor.map { UIColor(cgColor: $0) } ?? .clear
     }
 }
-
-
-func >>(lhs: Range<TimeInterval>, rhs: TimeInterval) -> Range<TimeInterval> {
-    return (lhs.lowerBound+rhs)..<(lhs.upperBound+rhs)
-}
-
-extension UIView {
-    var properties: [String: Any] {
-        get {
-            var dict = [String: Any]()
-            
-            dict["x"] = self.frame.origin.x
-            dict["y"] = self.frame.origin.y
-            dict["w"] = self.frame.size.width
-            dict["h"] = self.frame.size.height
-            dict["r"] = self.rotation
-            dict["a"] = self.alpha
-            
-            if let bg = self.backgroundColor {
-                dict["bg"] = bg
-            }
-            
-            if let brc = self.layer.borderColor {
-                dict["brc"] = UIColor(cgColor: brc)
-            }
-            dict["brw"] = self.layer.borderWidth
-            dict["crd"] = self.layer.cornerRadius
-            
-            return dict
-        }
-    }
-}
-

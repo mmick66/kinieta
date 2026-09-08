@@ -1,161 +1,211 @@
-/*
- * Kinieta.swift
- * Created by Michael Michailidis on 16/10/2017.
- * http://blog.karmadust.com/
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
- *
- */
+// Kinieta — MIT License. See LICENSE.
 
 import UIKit
 
-public enum ColorInterpolationMethod {
-    case Pure(space: UIColor.Components.Space)
-    case RGB_HLC_Assisted
-}
-
-public struct Defaults {
-    public struct ColorInterpolation {
-        @MainActor public static var Method: ColorInterpolationMethod = .Pure(space: .RGB)
-    }
-}
-
+/// A handle to one view's timeline.
+///
+/// Every call on `UIView.animate` or `UIView.wait` creates a handle whose
+/// timeline starts on the next frame. Chain further calls to extend it, then
+/// keep the handle to `cancel()`, `pause()`, `resume()` or `await finished()`.
+///
+/// ```swift
+/// square.animate(.x(374), .background(.systemPink), duration: 1.0)
+///       .easeInOut(.back)
+///       .wait(1.0)
+///       .animate(.x(74), duration: 0.5)
+///       .onComplete { print("back home") }
+/// ```
 @MainActor
 public final class Kinieta {
-    
-    private(set) var mainSequence = Sequence()
-    
-    public let view: UIView
-    public init(for view: UIView) {
-        self.view = view
-    }
-    
-    
-    @discardableResult
-    public func move(to moves: [String:Any], during duration: TimeInterval) -> Kinieta {
-        mainSequence.add(.Animation(self.view, moves, duration, nil, nil))
-        return self
-    }
-    
-    
-    @discardableResult
-    public func wait(for time: TimeInterval, complete: Block? = nil) -> Kinieta {
-        mainSequence.add(.Pause(time, complete))
-        return self
-    }
-    
-    @discardableResult
-    public func delay(for time: TimeInterval) -> Kinieta {
-        guard let last = self.mainSequence.popLast() else {
-            return self
-        }
-        let pause = ActionType.Pause(time, nil)
-        let sequence = ActionType.Sequence([pause, last], nil)
-        self.mainSequence.add(sequence)
-        
-        return self
-    }
-    
-    public var then: Kinieta {
-        let actions = self.mainSequence.popAllUnGrouped()
-        guard actions.count > 0 else { return self }
-        
-        let sequence    = ActionType.Sequence(actions, nil)
-        let group       = ActionType.Group([sequence], nil)
-        self.mainSequence.add(group)
-        return self
-    }
-    
-    // MARK: Easing Functions
-    @discardableResult
-    public func easeIn(_ type: Easing.Types = Easing.Types.Quad) -> Kinieta {
-        return self.ease(type, "In")
-    }
-    
-    @discardableResult
-    public func easeOut(_ type: Easing.Types = Easing.Types.Quad) -> Kinieta {
-        return self.ease(type, "Out")
-    }
-    
-    @discardableResult
-    public func easeInOut(_ type: Easing.Types = Easing.Types.Quad) -> Kinieta {
-        return self.ease(type, "InOut")
-    }
-    
-    private func ease(_ type: Easing.Types, _ place: String) -> Kinieta {
-        guard let lastAction = self.mainSequence.popLast() else {
-            return self
-        }
-        switch lastAction {
-        case .Animation(let view, let moves, let duration, _, let complete):
-            let easing = Easing.Get(type, place) ?? Easing.Linear
-            self.mainSequence.add(.Animation(view, moves, duration, easing, complete))
-        default:
-            self.mainSequence.add(lastAction) // put back
-        }
-        
-        return self
-    }
-    
 
+    public enum State: Sendable {
+        case running
+        case paused
+        case finished
+        case cancelled
+    }
+
+    /// The view this timeline animates. Held weakly: a timeline never keeps a
+    /// view alive, and it finishes on its own when the view goes away.
+    public private(set) weak var view: UIView?
+
+    public private(set) var state: State = .running
+
+    public var isRunning: Bool { state == .running }
+    public var isPaused: Bool { state == .paused }
+
+    let mainSequence: Sequence
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+
+    /// Creates an empty timeline for `view` and registers it with the engine.
+    public convenience init(for view: UIView) {
+        self.init(view: view)
+    }
+
+    init(view: UIView?) {
+        self.view = view
+        mainSequence = Sequence()
+        mainSequence.complete = { [weak self] in self?.finish(as: .finished) }
+        Engine.shared.add(mainSequence)
+    }
+
+    // MARK: - Building the timeline
+
+    /// Animates `properties` to their values over `duration` seconds. A zero
+    /// duration sets them on the next frame.
+    @discardableResult
+    public func animate(_ properties: Property..., duration: TimeInterval = 0) -> Kinieta {
+        animate(properties, duration: duration)
+    }
+
+    @discardableResult
+    public func animate(_ properties: [Property], duration: TimeInterval = 0) -> Kinieta {
+        mainSequence.add(.animation(ViewRef(view), properties, duration, nil, nil))
+        return self
+    }
+
+    /// Waits for `time` seconds before the next action.
+    @discardableResult
+    public func wait(_ time: TimeInterval) -> Kinieta {
+        mainSequence.add(.pause(time, nil))
+        return self
+    }
+
+    /// Delays the start of the previous action by `time` seconds.
+    @discardableResult
+    public func delay(_ time: TimeInterval) -> Kinieta {
+        guard let last = mainSequence.popLast() else { return self }
+        mainSequence.add(.sequence([.pause(time, nil), last], nil))
+        return self
+    }
+
+    /// Seals everything before it into one step, so a following `parallel()`
+    /// only gathers the actions added after `then`.
+    public var then: Kinieta {
+        let actions = mainSequence.popAllUngrouped()
+        guard !actions.isEmpty else { return self }
+        mainSequence.add(.group([.sequence(actions, nil)], nil))
+        return self
+    }
+
+    /// Runs every action added since the last `then` or `parallel()` together.
     @discardableResult
     public func parallel() -> Kinieta {
-    
-        let actions = self.mainSequence.popAllUnGrouped()
-        guard actions.count > 0 else { return self }
-        
-        let group = ActionType.Group(actions, nil)
-        self.mainSequence.add(group)
-        
+        let actions = mainSequence.popAllUngrouped()
+        guard !actions.isEmpty else { return self }
+        mainSequence.add(.group(actions, nil))
         return self
     }
-    
-    @discardableResult
-    public func again(times: UInt8 = 1) -> Kinieta {
-        let typesCopy = self.mainSequence.types
-        for _ in 0..<times {
-            for at in typesCopy {
-                self.mainSequence.add(at)
-            }
-        }
-        return self
-    }
-    
 
+    /// Appends `times` more copies of everything in the timeline so far.
     @discardableResult
-    public func complete(_ block: @escaping Block) -> Kinieta {
-        guard let last = self.mainSequence.popLast() else {
-            return self
+    public func `repeat`(times: Int = 1) -> Kinieta {
+        let copy = mainSequence.types
+        for _ in 0..<max(times, 0) {
+            for type in copy { mainSequence.add(type) }
         }
+        return self
+    }
+
+    // MARK: Easing
+
+    /// Applies `easing` to the previous animation.
+    @discardableResult
+    public func easing(_ easing: Easing) -> Kinieta {
+        guard let last = mainSequence.popLast() else { return self }
         switch last {
-        case .Animation(let view, let moves, let duration, let easing, _):
-            self.mainSequence.add(ActionType.Animation(view, moves, duration, easing, block))
-        case .Pause(let time, _):
-            self.mainSequence.add(ActionType.Pause(time, block))
-        case .Group(let list, _):
-            self.mainSequence.add(ActionType.Group(list, block))
-        case .Sequence(let list, _):
-            self.mainSequence.add(ActionType.Sequence(list, block))
+        case .animation(let ref, let properties, let duration, _, let complete):
+            mainSequence.add(.animation(ref, properties, duration, easing.bezier, complete))
+        default:
+            mainSequence.add(last)
         }
-        
-        
         return self
     }
 
+    @discardableResult
+    public func easeIn(_ curve: Easing.Curve = .quad) -> Kinieta {
+        easing(.in(curve))
+    }
+
+    @discardableResult
+    public func easeOut(_ curve: Easing.Curve = .quad) -> Kinieta {
+        easing(.out(curve))
+    }
+
+    @discardableResult
+    public func easeInOut(_ curve: Easing.Curve = .quad) -> Kinieta {
+        easing(.inOut(curve))
+    }
+
+    // MARK: Completion
+
+    /// Calls `block` when the previous action finishes.
+    @discardableResult
+    public func onComplete(_ block: @escaping Block) -> Kinieta {
+        guard let last = mainSequence.popLast() else { return self }
+        switch last {
+        case .animation(let ref, let properties, let duration, let easing, _):
+            mainSequence.add(.animation(ref, properties, duration, easing, block))
+        case .pause(let time, _):
+            mainSequence.add(.pause(time, block))
+        case .group(let list, _):
+            mainSequence.add(.group(list, block))
+        case .sequence(let list, _):
+            mainSequence.add(.sequence(list, block))
+        }
+        return self
+    }
+
+    // MARK: - Controlling the timeline
+
+    /// Stops the timeline where it is. Views keep their current values and no
+    /// further completion blocks run.
+    public func cancel() {
+        guard state == .running || state == .paused else { return }
+        Engine.shared.remove(mainSequence)
+        finish(as: .cancelled)
+    }
+
+    public func pause() {
+        guard state == .running else { return }
+        mainSequence.isPaused = true
+        state = .paused
+    }
+
+    public func resume() {
+        guard state == .paused else { return }
+        mainSequence.isPaused = false
+        state = .running
+    }
+
+    /// Suspends until the whole timeline has finished or been cancelled.
+    public func finished() async {
+        if state == .finished || state == .cancelled { return }
+        await withCheckedContinuation { waiters.append($0) }
+    }
+
+    private func finish(as state: State) {
+        self.state = state
+        let pending = waiters
+        waiters = []
+        for waiter in pending { waiter.resume() }
+    }
+
+    // MARK: - Grouping
+
+    /// Runs several timelines together and returns one handle for all of them.
+    /// `completion` runs once, when the last of them finishes.
+    @discardableResult
+    public static func group(_ handles: [Kinieta], completion: Block? = nil) -> Kinieta {
+        let actions = handles.map { $0.mainSequence as Action }
+        for action in actions { Engine.shared.remove(action) }
+        let handle = Kinieta(view: nil)
+        handle.mainSequence.currentAction = Group(actions, complete: completion)
+        return handle
+    }
+
+    @discardableResult
+    public static func group(_ handles: Kinieta..., completion: Block? = nil) -> Kinieta {
+        group(handles, completion: completion)
+    }
 }
