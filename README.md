@@ -191,6 +191,12 @@ xcodebuild -project Example/KinietaDemo.xcodeproj -scheme KinietaDemo -destinati
 xcrun swift-format lint --recursive Sources Tests
 ```
 
+Visual regression is covered by snapshot tests: each property is rendered at five progress points, the colour paths at their midpoint, and dynamic colours in light and dark appearance. Reference images live in `Tests/KinietaTests/__Snapshots__`. After an intentional visual change, re-record them on the iPhone 17 Pro simulator and review the PNGs before committing:
+
+```
+TEST_RUNNER_SNAPSHOT_TESTING_RECORD=all xcodebuild -scheme Kinieta -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test
+```
+
 Requires Xcode 26. Documentation is a DocC catalog in `Sources/Kinieta/Kinieta.docc`, including a guide for migrating from 0.5.
 
 ## License

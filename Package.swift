@@ -9,6 +9,9 @@ let package = Package(
     products: [
         .library(name: "Kinieta", targets: ["Kinieta"])
     ],
+    dependencies: [
+        .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", from: "1.17.0")
+    ],
     targets: [
         .target(
             name: "Kinieta",
@@ -17,8 +20,12 @@ let package = Package(
         ),
         .testTarget(
             name: "KinietaTests",
-            dependencies: ["Kinieta"],
-            path: "Tests/KinietaTests"
+            dependencies: [
+                "Kinieta",
+                .product(name: "SnapshotTesting", package: "swift-snapshot-testing"),
+            ],
+            path: "Tests/KinietaTests",
+            exclude: ["__Snapshots__"]
         )
     ],
     swiftLanguageModes: [.v6]
