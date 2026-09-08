@@ -1,6 +1,7 @@
 // Kinieta — MIT License. See LICENSE.
 // Preset control points are from https://github.com/ai/easings.net/
 
+#if canImport(UIKit)
 import Foundation
 
 /// An easing curve: a cubic Bézier that maps a time fraction to progress.
@@ -80,3 +81,4 @@ public struct Easing: Sendable, Equatable {
         }
     }
 }
+#endif

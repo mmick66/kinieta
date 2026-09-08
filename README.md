@@ -73,7 +73,9 @@ view.animate(.frame(target), .alpha(0), duration: 0.3)
 | `.borderWidth` | `CGFloat` in points | `layer.borderWidth` |
 | `.cornerRadius` | `CGFloat` in points | `layer.cornerRadius` |
 
-Position and size are interpolated through `center` and `bounds`, so they stay correct while a rotation is applied.
+Position and size are interpolated through `center` and `bounds`, so they stay correct while a rotation is applied. Sizes, border width and corner radius never go below zero, even with an overshooting curve.
+
+**Auto Layout.** Kinieta sets geometry directly. A view positioned by constraints snaps back on the next layout pass, which device rotation, size class changes and the keyboard all trigger. Animate unconstrained views, or animate constraint constants yourself.
 
 ### Easing
 
@@ -158,7 +160,7 @@ Handles hold their view weakly. A timeline finishes on its own when its view is 
 
 ### Colour
 
-Colours interpolate through the perceptual CIE LCH space by default, with hue taking the shorter arc. Choose per property or change the engine default:
+Colours interpolate through the perceptual CIE LCH space by default, with hue taking the shorter arc. Choose per property or change the engine default. The endpoints are assigned exactly as given, so a dynamic colour such as `.systemBackground` keeps adapting to Dark Mode after the animation, and a Display P3 colour keeps its gamut. Fading to or from `.clear` fades alpha instead of passing through black.
 
 ```swift
 view.animate(.background(.systemBlue, interpolation: .rgb), duration: 1.0)
@@ -168,6 +170,14 @@ Engine.shared.colorInterpolation = .hsb   // .rgb, .hsb or .lch
 ### Reduce Motion
 
 When the user has Reduce Motion on, animations snap to their end state and completion blocks still run. Pauses keep their duration so sequence timing is preserved. Opt out with `Engine.shared.respectsReduceMotion = false`.
+
+### Frame rate
+
+The engine advances by real elapsed time, so it stays on schedule through dropped frames and on 60 Hz and 120 Hz displays alike. It asks for 120 Hz on ProMotion devices; iPhones only honour that when the app's Info.plist sets `CADisableMinimumFrameDurationOnPhone` to `YES`.
+
+### Platforms
+
+iOS 17 and later, UIKit only. The sources are guarded with `canImport(UIKit)`, so the package resolves and builds as an empty module on other platforms, which keeps tooling happy but is not a supported target.
 
 ## Example app
 

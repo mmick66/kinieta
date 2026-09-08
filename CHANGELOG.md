@@ -21,7 +21,8 @@ The modernisation release. Swift 6, Swift Package Manager, iOS 17 and up.
   their timing. `Engine.shared.respectsReduceMotion` opts out.
 - The engine requests 120 Hz on ProMotion displays.
 - Swift Package Manager manifest, privacy manifest, DocC catalog, GitHub
-  Actions CI, Swift Testing suite.
+  Actions CI, Swift Testing suite. Sources are guarded with `canImport(UIKit)`
+  so the package builds as an empty module on non-UIKit hosts.
 - Example app on the UIScene lifecycle with an easing and colour gallery.
 
 ### Changed
@@ -54,6 +55,18 @@ The modernisation release. Swift 6, Swift Package Manager, iOS 17 and up.
 - Moving or resizing a rotated view sent it off screen.
 - Zero-duration animations skipped their completion block.
 - An overshooting easing on a colour animation hit a `fatalError`.
+- Cancelling a handle that had been passed to a group did nothing.
+- Easing applied after `delay` was silently dropped.
+- Colour animations ended on a frozen colour, losing Dark Mode adaptation
+  and wide gamut; the target is now assigned exactly.
+- Overshooting curves could drive width, height, border width or corner
+  radius negative.
+- Each action boundary in a sequence cost up to one frame; the unused part
+  of a frame now carries into the next action.
+- Custom Béziers with control x outside 0...1 solved to nonsense; x is
+  clamped as in CSS.
+- HSB interpolation from a grey swept through the hue wheel.
+- Fading from `.clear` passed through black.
 - The README grouping example did not compile.
 - The podspec shipped the demo's app delegate into every consumer.
 

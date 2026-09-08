@@ -1,5 +1,6 @@
 // Kinieta — MIT License. See LICENSE.
 
+#if canImport(UIKit)
 import Foundation
 
 /// An ordered list of pending action descriptions, shared by `Sequence` and
@@ -48,3 +49,4 @@ class ActionQueue {
         return actions
     }
 }
+#endif

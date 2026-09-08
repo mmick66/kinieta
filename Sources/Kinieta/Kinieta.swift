@@ -1,5 +1,6 @@
 // Kinieta — MIT License. See LICENSE.
 
+#if canImport(UIKit)
 import UIKit
 
 /// A handle to one view's timeline.
@@ -109,17 +110,26 @@ public final class Kinieta {
 
     // MARK: Easing
 
-    /// Applies `easing` to the previous animation.
+    /// Applies `easing` to the previous animation, including one wrapped by `delay`.
     @discardableResult
     public func easing(_ easing: Easing) -> Kinieta {
         guard let last = mainSequence.popLast() else { return self }
-        switch last {
-        case .animation(let ref, let properties, let duration, _, let complete):
-            mainSequence.add(.animation(ref, properties, duration, easing.bezier, complete))
-        default:
-            mainSequence.add(last)
-        }
+        mainSequence.add(Kinieta.applying(easing.bezier, to: last) ?? last)
         return self
+    }
+
+    /// Rewrites the last animation inside `type` with `bezier`; nil if there is none.
+    private static func applying(_ bezier: Bezier, to type: ActionType) -> ActionType? {
+        switch type {
+        case .animation(let ref, let properties, let duration, _, let complete):
+            return .animation(ref, properties, duration, bezier, complete)
+        case .sequence(var list, let complete):
+            guard let last = list.popLast(), let rewritten = applying(bezier, to: last) else { return nil }
+            list.append(rewritten)
+            return .sequence(list, complete)
+        case .pause, .group:
+            return nil
+        }
     }
 
     @discardableResult
@@ -162,6 +172,7 @@ public final class Kinieta {
     /// further completion blocks run.
     public func cancel() {
         guard state == .running || state == .paused else { return }
+        mainSequence.isCancelled = true  // also stops it when a group is driving it
         Engine.shared.remove(mainSequence)
         finish(as: .cancelled)
     }
@@ -209,3 +220,4 @@ public final class Kinieta {
         group(handles, completion: completion)
     }
 }
+#endif

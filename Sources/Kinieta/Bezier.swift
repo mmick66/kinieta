@@ -1,5 +1,6 @@
 // Kinieta — MIT License. See LICENSE.
 
+#if canImport(UIKit)
 import Foundation
 
 /// A cubic Bézier easing curve from (0, 0) to (1, 1), defined by its two inner
@@ -52,9 +53,12 @@ public struct Bezier: Sendable, Equatable {
 
     /// Creates a curve from the two inner control points, in the order
     /// cubic-bezier.com lists them: `Bezier(p1x, p1y, p2x, p2y)`.
+    ///
+    /// As in CSS, `p1x` and `p2x` are clamped to 0...1 so that time stays
+    /// monotonic. The y values may leave that range to overshoot.
     public init(_ p1x: Double, _ p1y: Double, _ p2x: Double, _ p2y: Double) {
-        p1 = Point(p1x, p1y)
-        p2 = Point(p2x, p2y)
+        p1 = Point(min(max(p1x, 0), 1), p1y)
+        p2 = Point(min(max(p2x, 0), 1), p2y)
         let f = Bezier.factors
         var baked = [Point](repeating: Point(), count: Bezier.accuracy + 1)
         for step in 0...Bezier.accuracy {
@@ -87,3 +91,4 @@ public struct Bezier: Sendable, Equatable {
         return a.y + (b.y - a.y) * (x - a.x) / span
     }
 }
+#endif

@@ -128,6 +128,35 @@ struct EngineTests {
         #expect(clock.frame(at: 5.5, nominalDuration: 1.0 / 60).duration == 1.0 / 60)
     }
 
+    // MARK: Frame remainder
+
+    @Test func sequenceHandsTheUnusedPartOfAFrameToTheNextAction() {
+        // Two half-second pauses driven by 0.3 s frames end after 1.2 s, not 1.5 s.
+        let pauses = Sequence([.pause(0.5, nil), .pause(0.5, nil)])
+        #expect(pauses.update(frame(0.3)) == .running)
+        #expect(pauses.update(frame(0.3)) == .running)  // first ends here, second gets 0.1 s
+        #expect(pauses.update(frame(0.3)) == .running)
+        guard case .finished(let overshoot) = pauses.update(frame(0.3)) else { Issue.record("not finished"); return }
+        #expect(approx(overshoot, 0.2, 1e-9))
+
+        // An animation that starts mid-frame has already progressed by the remainder.
+        let view = makeView()
+        let mixed = Sequence([.pause(0.5, nil), .animation(ViewRef(view), [.x(100)], 1.0, nil, nil)])
+        #expect(mixed.update(frame(0.75)) == .running)
+        #expect(approx(view.frame.origin.x, 25, 0.5))
+    }
+
+    @Test func bezierClampsControlPointTimeToTheUnitInterval() {
+        let curve = Bezier(-1, 0, 2, 1)
+        #expect(curve.p1.x == 0 && curve.p2.x == 1)
+        var previous = 0.0
+        for i in 1...20 {
+            let y = curve.solve(Double(i) / 20)
+            #expect(y >= previous && y <= 1)
+            previous = y
+        }
+    }
+
     // MARK: Pause
 
     @Test func pauseRunsForItsDurationThenCompletesOnce() {
@@ -136,14 +165,14 @@ struct EngineTests {
         #expect(pause.update(frame(0.25)) == .running)
         #expect(pause.update(frame(0.25)) == .running)
         #expect(pause.update(frame(0.25)) == .running)
-        #expect(pause.update(frame(0.25)) == .finished)
+        #expect(pause.update(frame(0.25)).isFinished)
         #expect(completions == 1)
     }
 
     @Test func zeroDurationPauseFinishesImmediately() {
         var completed = false
         let pause = Pause(0.0, complete: { completed = true })
-        #expect(pause.update(frame(0.016)) == .finished)
+        #expect(pause.update(frame(0.016)).isFinished)
         #expect(completed)
     }
 
@@ -158,7 +187,7 @@ struct EngineTests {
         #expect(approx(view.frame.origin.x, 50, 0.5))
         #expect(!completed)
 
-        #expect(a.update(frame(0.5)) == .finished)
+        #expect(a.update(frame(0.5)).isFinished)
         #expect(approx(view.frame.origin.x, 100))
         #expect(completed)
     }
@@ -166,7 +195,7 @@ struct EngineTests {
     @Test func overshootingFramesClampToTheEndValue() {
         let view = makeView()
         let a = animation(view, [.y(80)], duration: 0.5)
-        #expect(a.update(frame(2.0)) == .finished)
+        #expect(a.update(frame(2.0)).isFinished)
         #expect(approx(view.frame.origin.y, 80))
     }
 
@@ -174,7 +203,7 @@ struct EngineTests {
         let view = makeView()
         var completed = false
         let a = animation(view, [.x(42), .alpha(0.5)], duration: 0.0, complete: { completed = true })
-        #expect(a.update(frame(0.016)) == .finished)
+        #expect(a.update(frame(0.016)).isFinished)
         #expect(view.frame.origin.x == 42)
         #expect(approx(view.alpha, 0.5))
         #expect(completed)
@@ -206,6 +235,20 @@ struct EngineTests {
         #expect(approx(view.rotation, 45, 1e-4))
     }
 
+    @Test func overshootingEasingNeverProducesNegativeSizes() {
+        let view = makeView()
+        view.layer.borderWidth = 2
+        view.layer.cornerRadius = 3
+        let a = animation(
+            view, [.width(0), .height(0), .borderWidth(0), .cornerRadius(0)], duration: 1.0, easing: .inOut(.back))
+        for _ in 0..<10 {
+            _ = a.update(frame(0.1))
+            #expect(view.bounds.width >= 0 && view.bounds.height >= 0)
+            #expect(view.layer.borderWidth >= 0 && view.layer.cornerRadius >= 0)
+        }
+        #expect(view.bounds.size == .zero)
+    }
+
     @Test func lastValueForARepeatedPropertyWins() {
         let view = makeView()
         _ = animation(view, [.width(20), .width(60)], duration: 1.0).update(frame(1.0))
@@ -227,7 +270,7 @@ struct EngineTests {
             a = animation(view, [.x(100)], duration: 1.0, complete: { completed = true })
             #expect(a.update(frame(0.1)) == .running)
         }
-        #expect(a.update(frame(0.1)) == .finished)
+        #expect(a.update(frame(0.1)).isFinished)
         #expect(!completed)
     }
 
@@ -237,7 +280,7 @@ struct EngineTests {
         let view = makeView()
         var completed = false
         let a = animation(view, [.x(100)], duration: 1.0, complete: { completed = true })
-        #expect(a.update(frame(0.016)) == .finished)
+        #expect(a.update(frame(0.016)).isFinished)
         #expect(view.frame.origin.x == 100)
         #expect(completed)
         let pause = Pause(1.0, complete: nil)
@@ -302,6 +345,35 @@ struct EngineTests {
         #expect(sameColour(rgb(UIColor(cgColor: view.layer.borderColor!)), rgb(.white), 0.01))
     }
 
+    @Test func dynamicColourTargetSurvivesTheAnimation() {
+        let view = makeView()
+        view.backgroundColor = .red
+        let adaptive = UIColor { $0.userInterfaceStyle == .dark ? .white : .black }
+        _ = animation(view, [.background(adaptive)], duration: 1.0).update(frame(1.0))
+        let light = view.backgroundColor!.resolvedColor(with: UITraitCollection(userInterfaceStyle: .light))
+        let dark = view.backgroundColor!.resolvedColor(with: UITraitCollection(userInterfaceStyle: .dark))
+        #expect(sameColour(rgb(light), rgb(.black), 1e-6))
+        #expect(sameColour(rgb(dark), rgb(.white), 1e-6))
+    }
+
+    @Test func hsbFromGreyDoesNotSweepTheHueWheel() {
+        let view = makeView()
+        view.backgroundColor = .gray
+        let a = animation(view, [.background(.blue, interpolation: .hsb)], duration: 1.0)
+        _ = a.update(frame(0.5))
+        #expect(approx(view.backgroundColor!.hsba.hue, 2.0 / 3.0, 0.01))  // blue's hue, not a sweep from 0
+    }
+
+    @Test func fadingFromClearKeepsTheTargetColour() {
+        let view = makeView()
+        view.backgroundColor = .clear
+        let a = animation(view, [.background(.white, interpolation: .rgb)], duration: 1.0)
+        _ = a.update(frame(0.5))
+        let mid = rgb(view.backgroundColor)
+        #expect(approx(mid.c1, 1, 1e-6) && approx(mid.c2, 1, 1e-6) && approx(mid.c3, 1, 1e-6))
+        #expect(approx(mid.alpha, 0.5, 1e-6))
+    }
+
     @Test func hsbHueTakesTheShorterArc() {
         // Hue 0.95 to 0.05 must pass through red (hue 0), not through cyan.
         let view = makeView()
@@ -327,7 +399,7 @@ struct EngineTests {
         #expect(sequence.update(frame(0.5)) == .running)  // pause ends
         #expect(sequence.update(frame(0.5)) == .running)  // animation half way
         #expect(approx(view.frame.origin.x, 50, 0.5))
-        #expect(sequence.update(frame(0.5)) == .finished)
+        #expect(sequence.update(frame(0.5)).isFinished)
         #expect(approx(view.frame.origin.x, 100))
     }
 
@@ -336,7 +408,7 @@ struct EngineTests {
         let sequence = Sequence([.pause(0.5, nil), .pause(0.5, nil)], complete: { completions += 1 })
         #expect(sequence.update(frame(0.6)) == .running)
         #expect(completions == 0)
-        #expect(sequence.update(frame(0.6)) == .finished)
+        #expect(sequence.update(frame(0.6)).isFinished)
         #expect(completions == 1)
     }
 
@@ -348,7 +420,7 @@ struct EngineTests {
         #expect(sequence.update(frame(0.5)) == .running)
         #expect(approx(view.frame.origin.x, 50, 0.5))
         sequence.isPaused = false
-        #expect(sequence.update(frame(0.5)) == .finished)
+        #expect(sequence.update(frame(0.5)).isFinished)
         #expect(approx(view.frame.origin.x, 100))
     }
 
@@ -366,7 +438,7 @@ struct EngineTests {
         #expect(approx(b.frame.origin.x, 50, 0.5))
         #expect(!completed)
 
-        #expect(group.update(frame(0.5)) == .finished)
+        #expect(group.update(frame(0.5)).isFinished)
         #expect(approx(b.frame.origin.x, 100))
         #expect(completed)
     }
@@ -442,6 +514,23 @@ struct EngineTests {
         #expect(descriptions(k) == ["Animation (x)", "Pause (1.0)"])
     }
 
+    @Test func easingReachesAnAnimationWrappedByDelay() {
+        let view = makeView()
+        let k = Kinieta(for: view).animate(.x(100), duration: 1).delay(0.5).easeIn(.cubic)
+        defer { k.cancel() }
+        guard case .sequence(let inner, _)? = k.mainSequence.types.first,
+            case .animation(_, _, _, let bezier?, _)? = inner.last
+        else {
+            Issue.record("easing was not applied inside the delay wrapper"); return
+        }
+        #expect(bezier == Easing.in(.cubic).bezier)
+
+        let run = Sequence(inner)
+        _ = run.update(frame(0.5))  // the delay
+        _ = run.update(frame(0.5))  // half the animation
+        #expect(approx(view.frame.origin.x, 14.5, 0.5))  // cubicIn(0.5), not linear 50
+    }
+
     @Test func onCompleteAttachesToTheLastAction() {
         let k = Kinieta(for: makeView()).animate(.x(1), duration: 1).wait(1).onComplete {}
         defer { k.cancel() }
@@ -508,6 +597,22 @@ struct EngineTests {
         #expect(completions == 1)
         #expect(approx(a.frame.origin.x, 100))
         #expect(approx(b.frame.origin.y, 100))
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func cancellingAGroupedHandleStopsOnlyThatChild() async {
+        let a = makeView(), b = makeView()
+        let first = a.animate(.x(100), duration: 0.5)
+        let second = b.animate(.x(100), duration: 0.5)
+        let group = Kinieta.group(first, second)
+        try? await Task.sleep(for: .milliseconds(120))
+        first.cancel()
+        let held = a.frame.origin.x
+        #expect(held > 0 && held < 100)
+        await group.finished()
+        #expect(a.frame.origin.x == held)
+        #expect(approx(b.frame.origin.x, 100))
+        #expect(first.state == .cancelled && second.state == .finished)
     }
 
     @Test(.timeLimit(.minutes(1)))
