@@ -1,5 +1,6 @@
 // Kinieta — MIT License. See LICENSE.
 
+#if canImport(UIKit)
 import Foundation
 
 /// Runs its actions at the same time and finishes when the last one does.
@@ -27,16 +28,25 @@ final class Group: ActionQueue, Action {
         }
         guard let actions = running else {
             complete?()
-            return .finished
+            return .finished(overshoot: frame.duration)
         }
 
-        let stillRunning = actions.filter { $0.update(frame) == .running }
+        var stillRunning: [Action] = []
+        var overshoot = frame.duration
+        for action in actions {
+            switch action.update(frame) {
+            case .running: stillRunning.append(action)
+            case .finished(let unused): overshoot = min(overshoot, unused)
+            }
+        }
         running = stillRunning
 
         if stillRunning.isEmpty {
             complete?()
-            return .finished
+            // The group ends when its last child ends, so the smallest remainder wins.
+            return .finished(overshoot: overshoot)
         }
         return .running
     }
 }
+#endif

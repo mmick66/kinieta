@@ -23,6 +23,7 @@
  *
  */
 
+#if canImport(UIKit)
 import UIKit
 
 @MainActor
@@ -147,11 +148,9 @@ public final class Engine {
     }
 
     private func update(with frame: Frame) {
-        for action in actions {
-            switch action.update(frame) {
-            case .running: continue
-            case .finished: remove(action)
-            }
+        for action in actions where action.update(frame).isFinished {
+            remove(action)
         }
     }
 }
+#endif

@@ -24,6 +24,7 @@
  *
  */
 
+#if canImport(UIKit)
 import UIKit
 
 extension FloatingPoint {
@@ -83,3 +84,4 @@ extension CGRect: CGFractionable {
 }
 
 extension CGFloat: CGFractionable {}
+#endif

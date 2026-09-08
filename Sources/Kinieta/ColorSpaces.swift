@@ -23,6 +23,7 @@
 
 /* Original source: https://github.com/timrwood/ColorSpaces  */
 
+#if canImport(UIKit)
 import UIKit
 
 // MARK: - Constants
@@ -261,3 +262,4 @@ struct LCHColor {
         )
     }
 }
+#endif

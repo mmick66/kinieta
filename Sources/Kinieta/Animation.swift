@@ -1,5 +1,6 @@
 // Kinieta — MIT License. See LICENSE.
 
+#if canImport(UIKit)
 import UIKit
 
 /// Interpolates a set of properties on one view over a duration.
@@ -36,21 +37,22 @@ final class Animation: Action {
 
     func update(_ frame: Engine.Frame) -> ActionResult {
         // The view was deallocated: there is nothing left to animate.
-        guard let view = ref.view else { return .finished }
+        guard let view = ref.view else { return .finished(overshoot: frame.duration) }
 
         guard duration > 0 else {
             apply(1.0, to: view)
             complete?()
-            return .finished
+            return .finished(overshoot: frame.duration)
         }
 
-        elapsed = min(elapsed + frame.duration, duration)
+        let total = elapsed + frame.duration
+        elapsed = min(total, duration)
         let progress = easing.solve(elapsed / duration)
         apply(CGFloat(progress), to: view)
 
         if elapsed >= duration {
             complete?()
-            return .finished
+            return .finished(overshoot: total - duration)
         }
         return .running
     }
@@ -61,3 +63,4 @@ final class Animation: Action {
         }
     }
 }
+#endif

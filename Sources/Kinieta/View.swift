@@ -1,5 +1,6 @@
 // Kinieta — MIT License. See LICENSE.
 
+#if canImport(UIKit)
 import UIKit
 
 public extension UIView {
@@ -74,3 +75,4 @@ extension UIView {
         layer.borderColor.map { UIColor(cgColor: $0) } ?? .clear
     }
 }
+#endif

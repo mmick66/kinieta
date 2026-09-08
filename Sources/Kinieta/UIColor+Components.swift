@@ -26,6 +26,7 @@
 
 /* Thanks to Gregor Aisch from https://github.com/gka/chroma.js  */
 
+#if canImport(UIKit)
 import UIKit
 
 extension UIColor {
@@ -116,3 +117,4 @@ extension UIColor {
         }
     }
 }
+#endif

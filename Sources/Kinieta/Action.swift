@@ -23,6 +23,7 @@
  *
  */
 
+#if canImport(UIKit)
 import UIKit
 
 public typealias Block = () -> Void
@@ -70,9 +71,16 @@ enum ActionType: CustomStringConvertible {
     }
 }
 
-enum ActionResult {
+enum ActionResult: Equatable {
     case running
-    case finished
+    /// The action ended during this frame; `overshoot` is the part of the
+    /// frame it did not use, so the next action can start on time.
+    case finished(overshoot: TimeInterval)
+
+    var isFinished: Bool {
+        if case .finished = self { return true }
+        return false
+    }
 }
 
 /// Something the engine advances once per frame.
@@ -80,3 +88,4 @@ enum ActionResult {
 protocol Action: AnyObject {
     func update(_ frame: Engine.Frame) -> ActionResult
 }
+#endif

@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  */
 
+#if canImport(UIKit)
 import UIKit
 
 /// A list of changeable attributes of the UIColor.
@@ -209,3 +210,4 @@ extension UIColor {
         return UIColor(red: newRgba.red, green: newRgba.green, blue: newRgba.blue, alpha: newRgba.alpha)
     }
 }
+#endif

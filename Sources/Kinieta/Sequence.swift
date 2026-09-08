@@ -1,5 +1,6 @@
 // Kinieta — MIT License. See LICENSE.
 
+#if canImport(UIKit)
 import Foundation
 
 /// Runs its actions one after another.
@@ -11,6 +12,10 @@ final class Sequence: ActionQueue, Action {
     /// While paused the sequence reports `.running` without advancing.
     var isPaused = false
 
+    /// A cancelled sequence finishes on its next update without running any
+    /// completion block, whether the engine or a group is driving it.
+    var isCancelled = false
+
     var currentAction: Action?
 
     init(_ types: [ActionType] = [], complete: Block? = nil) {
@@ -19,26 +24,31 @@ final class Sequence: ActionQueue, Action {
     }
 
     func update(_ frame: Engine.Frame) -> ActionResult {
+        if isCancelled { return .finished(overshoot: 0) }
         if isPaused { return .running }
 
-        if let current = currentAction {
+        var frame = frame
+        while true {
+            if currentAction == nil { currentAction = popFirstAction() }
+            guard let current = currentAction else {
+                complete?()
+                return .finished(overshoot: frame.duration)
+            }
             switch current.update(frame) {
             case .running:
                 return .running
-            case .finished:
+            case .finished(let overshoot):
                 currentAction = nil
-                if !isEmpty { return .running }
-                complete?()
-                return .finished
+                if isEmpty {
+                    complete?()
+                    return .finished(overshoot: overshoot)
+                }
+                // Hand the unused part of the frame to the next action so a
+                // boundary never costs a frame. Nothing left: wait for the next one.
+                guard overshoot > 0 else { return .running }
+                frame = Engine.Frame(frame.timestamp, overshoot)
             }
         }
-
-        if let next = popFirstAction() {
-            currentAction = next
-            return update(frame)
-        }
-
-        complete?()
-        return .finished
     }
 }
+#endif

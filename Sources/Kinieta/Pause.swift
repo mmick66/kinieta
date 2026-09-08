@@ -1,5 +1,6 @@
 // Kinieta — MIT License. See LICENSE.
 
+#if canImport(UIKit)
 import Foundation
 
 /// Does nothing for a while.
@@ -19,8 +20,9 @@ final class Pause: Action {
         elapsed += frame.duration
         if elapsed >= duration {
             complete?()
-            return .finished
+            return .finished(overshoot: elapsed - duration)
         }
         return .running
     }
 }
+#endif
