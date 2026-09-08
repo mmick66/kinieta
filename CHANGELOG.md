@@ -4,6 +4,15 @@ All notable changes to Kinieta are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- Snapshot tests with swift-snapshot-testing: every property at five
+  progress points, the three colour paths at their midpoint, transparent and
+  grey endpoints, an overshooting curve, and dynamic colours in light and
+  dark appearance. 72 reference images, 57 tests in total.
+
 ## [1.0.0] - 2026-09-08
 
 The modernisation release. Swift 6, Swift Package Manager, iOS 17 and up.
