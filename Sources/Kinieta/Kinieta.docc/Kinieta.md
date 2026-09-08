@@ -1,0 +1,47 @@
+# ``Kinieta``
+
+A timeline animation engine for UIKit with a typed, chainable API.
+
+## Overview
+
+Kinieta animates `UIView` properties on a display link and composes those
+animations into timelines: one after another, side by side, grouped across
+several views with a single completion.
+
+```swift
+square.animate(.x(374), .background(.systemPink), duration: 1.0)
+      .easeInOut(.back)
+      .wait(1.0)
+      .animate(.x(74), duration: 0.5)
+      .onComplete { print("back home") }
+```
+
+Every timeline is a ``Kinieta`` handle. Keep it to ``Kinieta/cancel()``,
+``Kinieta/pause()``, ``Kinieta/resume()`` or `await` ``Kinieta/finished()``.
+
+Colours interpolate through the perceptual LCH space by default, so a
+transition from pink to cyan never passes through grey. Easing curves are cubic
+Béziers with the same semantics as CSS and cubic-bezier.com.
+
+## Topics
+
+### Starting a timeline
+
+Call `animate(_:duration:)` or `wait(_:)` on any `UIView`; both return a ``Kinieta`` handle.
+
+- ``Property``
+
+### Shaping it
+
+- ``Kinieta``
+- ``Easing``
+- ``Bezier``
+- ``ColorInterpolation``
+
+### Engine settings
+
+- ``Engine``
+
+### Migrating
+
+- <doc:MigratingFrom0.5>
