@@ -1,5 +1,5 @@
-import UIKit
 import Kinieta
+import UIKit
 
 /// A gallery of what Kinieta does: every easing preset on its own track, the
 /// three colour interpolation modes side by side, and a composed timeline.
@@ -19,8 +19,10 @@ final class DemoViewController: UIViewController {
         super.viewDidLoad()
         title = "Kinieta"
         view.backgroundColor = .systemBackground
-        navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Play", style: .done, target: self, action: #selector(playAll))
-        navigationItem.leftBarButtonItem = UIBarButtonItem(title: "Reset", style: .plain, target: self, action: #selector(reset))
+        navigationItem.rightBarButtonItem = UIBarButtonItem(
+            title: "Play", style: .done, target: self, action: #selector(playAll))
+        navigationItem.leftBarButtonItem = UIBarButtonItem(
+            title: "Reset", style: .plain, target: self, action: #selector(reset))
         buildLayout()
     }
 
@@ -81,7 +83,8 @@ final class DemoViewController: UIViewController {
             colourSwatches.append((mode, swatch))
         }
 
-        addHeader("Timeline", detail: "The first square moves, then the other two move together, then one completion fires.")
+        addHeader(
+            "Timeline", detail: "The first square moves, then the other two move together, then one completion fires.")
         let row = UIView()
         row.heightAnchor.constraint(equalToConstant: 44).isActive = true
         for i in 0..<3 {

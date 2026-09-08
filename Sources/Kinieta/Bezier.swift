@@ -10,7 +10,7 @@ import Foundation
 public struct Bezier: Sendable, Equatable {
 
     static let accuracy = 1000
-    static let factors  = Table(steps: Bezier.accuracy)
+    static let factors = Table(steps: Bezier.accuracy)
 
     /// Identity: progress equals time.
     public static let linear = Bezier(0.25, 0.25, 0.75, 0.75)

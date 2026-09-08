@@ -1,209 +1,188 @@
-<p align="center"> 
-  <img src="https://github.com/mmick66/kinieta/blob/master/Assets/Kinieta_Logo.png">
+<p align="center">
+  <img src="Assets/Kinieta_Logo.png" alt="Kinieta">
 </p>
 
-## Kinieta
-An Animation Engine for iOS with an Intuitive API and Readable Code! (Written in Swift 4.0.)
+# Kinieta
 
-## Why another?
+A timeline animation engine for UIKit with a typed, chainable API.
 
-I decided to build an Animation Engine from scratch for the usual reason: No other did what I wanted **how** I wanted it! While there are some great libraries out there, my requiremenets where pretty restrictive as what I wanted was:
+- **Timelines.** Animations run one after another, side by side, or grouped across views with a single completion.
+- **Typed properties.** `.x(250)`, `.background(.systemPink)`, `.rotation(degrees: 30)`. Wrong types are compile errors.
+- **Real easing.** Cubic Bézier curves with the same semantics as CSS and cubic-bezier.com, plus presets from sine to back.
+- **Perceptual colour.** Colours interpolate through LCH by default, so pink to cyan never passes through grey.
+- **Handles.** Every timeline can be cancelled, paused, resumed or awaited.
+- **Swift 6, iOS 17+.** Main-actor isolated, Sendable where it matters, Reduce Motion aware.
 
-* A library written in **Swift 4.0**
-* With a **timeline** approach where animations can run in **parallel** at different start and end points
-* The ability to **group** various animations from different views with a single complete block
-* A **simple API** where I could just throw in some variables and the rest would be dealt by the library
-* A **convention over configuration** approach where many variables would be assumed when not passed
-* Efficient interpolation with infinite **easing functions** based on custom Bezier curves
-* Provides **real color interpolation** using the advanced HCL color space rather than plain RGB
-* Code that was **extremely** easy to read and new developers from the community could join in in no time!
+```swift
+square.animate(.x(374), .background(.systemPink), duration: 1.0)
+      .easeInOut(.back)
+      .wait(1.0)
+      .animate(.x(74), duration: 0.5)
+      .onComplete { print("back home") }
+```
+
+<p align="center">
+  <img src="Assets/demo.gif" alt="The example app playing every easing preset" width="360">
+</p>
 
 ## Installation
 
-#### Cocoa Pods
+### Swift Package Manager
+
+In Xcode choose File, then Add Package Dependencies, and enter:
 
 ```
-pod 'Kinieta', '~> 0.5'
+https://github.com/mmick66/kinieta
 ```
 
-#### Manual
-
-For the moment, just copy the files in the Kinieta (virtual) folder
-
-## How to Use
+Or in `Package.swift`:
 
 ```swift
-square.move(to: ["x": 374], during: 1.0).easeInOut(.Back).wait(for: 1.0).complete {
-    square.move(to: ["x": 74])
-}
+.package(url: "https://github.com/mmick66/kinieta", from: "1.0.0")
 ```
 
-![Basic Move with Ease](https://github.com/mmick66/kinieta/blob/master/Assets/move.easeInOut.Back.gif)
+### CocoaPods
 
-### Basic Usage
+1.0.0 is the final CocoaPods release. Prefer Swift Package Manager.
 
-An extension on `UIView` that is included in the code will provide the entry point for the animations. The interface object is the `Kinieta` and there is one for every view.
+```ruby
+pod 'Kinieta', '~> 1.0'
+```
+
+## Usage
+
+### Animating
+
+`animate` sets properties over a duration. Omit the duration to set them on the next frame.
 
 ```swift
-// This will snap the view to the given coordinates
-aView.move(to: ["x": 250, "y": 500])
-
-// This will animate the same view to the coordinates in 0.5 seconds
-aView.move(to: ["x": 250, "y": 500], during: 0.5)
-
-// This will delay the start of the animation by 0.5 seconds
-aView.move(to: ["x": 250, "y": 500], during: 0.5).delay(for: 0.5)
-
-// And this will ease the whole thing
-aView.move(to: ["x": 250, "y": 500], during: 0.5).delay(for: 0.5).easeInOut()
-
-// While this will ease it with a bounce-back
-aView.move(to: ["x": 250, "y": 500], during: 0.5).delay(for: 0.5).easeInOut(.Back)
-
-// And call the complete block when the animation is finished
-aView.move(to: ["x": 250, "y": 500], during: 0.5).delay(for: 0.5).easeInOut(.Back).complete { print("♥") }
+view.animate(.x(250), .y(500))                      // next frame
+view.animate(.x(250), .y(500), duration: 0.5)       // half a second
+view.animate(.frame(target), .alpha(0), duration: 0.3)
 ```
 
-The UIView properties that can be animated, together with their keys are:
+| Property | Value | Animates |
+| --- | --- | --- |
+| `.x`, `.y` | `CGFloat` in points | position of the top-left corner |
+| `.width`, `.height` | `CGFloat` in points | size, keeping the top-left corner fixed |
+| `.frame` | `CGRect` | `frame` |
+| `.alpha` | `0...1` | `alpha` |
+| `.rotation(degrees:)` | degrees | `transform` (replaces any scale) |
+| `.background` | `UIColor` | `backgroundColor` |
+| `.borderColor` | `UIColor` | `layer.borderColor` |
+| `.borderWidth` | `CGFloat` in points | `layer.borderWidth` |
+| `.cornerRadius` | `CGFloat` in points | `layer.cornerRadius` |
 
-
-| Key                       | Value Type    |   Metric    | Property Animated  |
-| -------------             |:-------------:|:-------------:|               -----:|
-| **"x"**                       | Any Numeric   | screen points |   `frame.origin.x` |
-| **"y"**                       | Any Numeric   | screen points  |  `frame.origin.y` |
-| **"w"** or **"width"**            | Any Numeric   |  screen points |`frame.size.width` |
-| **"h"** or **"height"**           | Any Numeric   | screen points |`frame.size.height` |
-| **"a"** or **"alpha"**            | Any Numeric   |  0 to 1 transparency |           `alpha` |
-| **"r"** or **"rotation"**            | Any Numeric   |  **degrees** |           `transform` |
-| **"frame"**                   | CGRect        |  composite  |         `frame` |
-| **"bg"** or **"background"**      | UIColor       | color |  `backgroundColor` |
-| **"brc"** or **"borderColor"**    | UIColor       | color |`layer.borderColor` |
-| **"brw"** or **"borderWidth"**    | UIColor       | screen points |`layer.borderWidth` |
-| **"crd"** or **"cornerRadius"**   | UIColor       | bevel radius | `layer.cornerRadius` |
-
-Note: When two synonymous keys (like "bg" and "background") are passed in the same list the most **verbose** (ie. "background") will win over and the other will be silently ignored.
+Position and size are interpolated through `center` and `bounds`, so they stay correct while a rotation is applied.
 
 ### Easing
 
-Every move can be smoothed by calling one of the 3 easing functions and pass:
+Apply an easing to the previous animation. The default is linear.
 
 ```swift
-// When no curve is passed `.Quad` is used
-aView.move(to: ["x": 250, "y": 500], during: 0.5).easeIn()
-
-// Ease at start, end and both ends respectively
-aView.move(to: ["x": 250, "y": 500], during: 0.5).easeIn(.Cubic)
-aView.move(to: ["x": 250, "y": 500], during: 0.5).easeOut(.Cubic)
-aView.move(to: ["x": 250, "y": 500], during: 0.5).easeInOut(.Cubic)
+view.animate(.x(250), duration: 0.5).easeIn()             // quad
+view.animate(.x(250), duration: 0.5).easeOut(.cubic)
+view.animate(.x(250), duration: 0.5).easeInOut(.back)
+view.animate(.x(250), duration: 0.5).easing(.inOut(.expo))
 ```
 
-An default argument can be passed to provide an easing functions to be used, Quad being the default. All easing is based on Bezier curves and many are provided by default as seen in the `Easing.Types` enum. 
+Curves: `.sine`, `.quad`, `.cubic`, `.quart`, `.quint`, `.expo`, `.back`, and `.custom(Bezier)`. A `Bezier` takes the two inner control points in the order [cubic-bezier.com](https://cubic-bezier.com/#.16,.73,.89,.24) lists them:
 
 ```swift
-enum Types {
-    case Sine
-    case Quad
-    case Cubic
-    case Quart
-    case Quint
-    case Expo
-    case Back 
-    case Custom(Bezier)
-}
- ```
- 
-The last type `.Custom` will capture a custom Bezier curve and use that as an easing function. A 3rd degree (or cubic) Bezier curve is composed of 4 points called control points. The first and last is by convetion (0.0, 0.0) and (1.0, 1.0) while the other 2 define the curvature. You will not have to figure out these numbers by hand of course as they are useful tools throughout the web to help with that, [cubic-bezier](http://cubic-bezier.com/) being one of them. 
+let snap = Bezier(0.16, 0.73, 0.89, 0.24)
+view.animate(.x(250), duration: 1.0).easing(.custom(snap))
+```
 
-For example, for a very fast start and sudden slow down animation I used [this curve](http://cubic-bezier.com/#.16,.73,.89,.24) as taken from the site, and plugged the numbers in a Bezier instance:
-
-```swift
-let myBezier = Bezier(0.16, 0.73, 0.89, 0.24)
-aView.move(to: ["x": 250, "y": 500], during: 1.0).easeInOut(.Custom(myBezier))
- ```
- 
- ![Move with Custom Ease](https://github.com/mmick66/kinieta/blob/master/Assets/move.easeInOut.Custom.gif)
- 
- All the curves passed are **prebaked** into tables for fast resolution!
+Curves are baked into a lookup table once and solved at time `x`, exactly like CSS `cubic-bezier()`. Curves such as `back` overshoot on purpose.
 
 ### Sequencing
 
-You can string a few animations together very easily:
+Chained calls run one after another. `wait` inserts a pause; `delay` postpones the previous action; `repeat` appends copies of the whole chain.
 
 ```swift
-let start = ["x": aView.x, "y": aView.y]
-aView.move(to: ["x": 250, "y": 500], during: 0.5).easeInOut(.Cubic)
-     .move(to: ["x": 300, "y": 200], during: 0.5).easeInOut(.Cubic)
-     .move(to: start, during: 0.5).easeInOut(.Cubic)
+view.animate(.x(250), .y(500), duration: 0.5).easeInOut(.cubic)
+    .wait(0.5)
+    .animate(.x(300), .y(200), duration: 0.5).easeInOut(.cubic)
+    .animate(.x(0), .y(0), duration: 0.5).delay(0.2)
+    .repeat(times: 1)
 ```
 
-The dictionary with the animations can be saved and passed later as the example above shows. You can also add a pause between animations by calling the `wait(for time: TimeInterval)` function:
+### Parallel actions
+
+`parallel()` gathers everything added since the last `then` or `parallel()` and runs it together.
 
 ```swift
-aView.move(to: ["x": 250, "y": 500], during: 0.5).easeInOut(.Cubic)
-     .wait(for: 0.5)
-     .move(to: ["x": 300, "y": 200], during: 0.5).easeInOut(.Cubic)
+view.animate(.x(200), duration: 1.0).easeInOut(.cubic)
+    .animate(.alpha(0), duration: 0.2).delay(0.8).easeOut()
+    .parallel()
+    .onComplete { print("moved and faded") }
 ```
 
-Finally, you can repeat the animation sequence with the `again(times: Int = 1)` function.
+Use `then` to seal a step before starting a parallel block:
 
 ```swift
-aView.move(to: ["x": 250, "y": 500], during: 0.5).easeInOut(.Cubic)
-     .move(to: ["x": 300, "y": 200], during: 0.5).easeInOut(.Cubic)
-     .again()
+view.animate(.x(300), duration: 1.0)      // first, on its own
+    .then
+    .animate(.x(200), duration: 1.0)      // then these two
+    .animate(.alpha(0), duration: 0.2)    // together
+    .parallel()
 ```
 
-### Parallelizing
+### Grouping views
 
-You can run various animations together to achieve more complicated effects. For example, we can add a short fade at the end of a move and have a single callback when everything finishes:
+`Kinieta.group` runs several timelines together and calls its completion once, when the last one finishes. It returns a handle for the whole group.
 
 ```swift
-aView.move(to: ["x": 200, "y": 500], during: 1.0).easeInOut(.Cubic)
-     .move(to: ["a": 0], during: 0.2).delay(for: 0.8).easeOut()
-     .parallel()
-     .complete { print("Finished All") }
+let slide = card.animate(.x(374), duration: 1.0).easeInOut(.cubic)
+let spin  = badge.animate(.rotation(degrees: 360), .alpha(0), duration: 1.2)
+
+Kinieta.group(slide, spin) { print("both finished") }
 ```
 
- ![Move with Custom Ease](https://github.com/mmick66/kinieta/blob/master/Assets/move.easeInOut.fade.gif)
- 
- #### Potential Pitfalls in Combining Groups
- 
- What `.parallel()` does is to create an internal group with all the actions **that preceded the call** added inside. This might cause a problem when two or more parallel groups need to be run sequencially. For example:
- 
- ```swift
-aView.move(to: ["x": 300], during: 1.0).easeInOut() // this needs to run first,
-     .move(to: ["x": 200], during: 1.0).easeInOut() // then this...
-     .move(to: ["a": 0], during: 0.2).easeOut()     // ...parallel with this!
-     .parallel()
+### Controlling a timeline
+
+Every call returns a `Kinieta` handle.
+
+```swift
+let handle = view.animate(.x(250), duration: 2.0)
+
+handle.pause()
+handle.resume()
+handle.cancel()          // stops where it is; no further completions run
+handle.state             // .running, .paused, .finished or .cancelled
+
+await handle.finished()  // suspends until the timeline finishes or is cancelled
 ```
 
-The code above will take **all three moves** and run then in parallel, esentially ignoring the first. What we wanted however is for the first move to run on its own **followed** by the other 2 in parallel. To achive this we call the `then` property as follows:
+Handles hold their view weakly. A timeline finishes on its own when its view is deallocated and never keeps it alive.
 
- ```swift
-aView.move(to: ["x": 300], during: 1.0).easeInOut() 
-     .then        
-     .move(to: ["x": 200], during: 1.0).easeInOut() 
-     .move(to: ["a": 0], during: 0.2).easeOut()     
-     .parallel()
+### Colour
+
+Colours interpolate through the perceptual CIE LCH space by default, with hue taking the shorter arc. Choose per property or change the engine default:
+
+```swift
+view.animate(.background(.systemBlue, interpolation: .rgb), duration: 1.0)
+Engine.shared.colorInterpolation = .hsb   // .rgb, .hsb or .lch
 ```
 
-For more information on how the engine works to combine actions please consult the [wiki](https://github.com/mmick66/kinieta/wiki/Parallelizing).
- 
- ### Grouping
- 
- You can group multiple animation of different views and get a common complete handler when they all finish.
- 
- ```swift
- Engine.shared.group([
-     aView.move(to: ["x": 374], during: 1.0).easeInOut(.Cubic)
-          .move(to: ["a": 0], during: 0.2).delay(for: 0.8).easeOut().parallel(),
-     otherView.move(to: ["x": 100, "r": 30], during: 1.0).easeInOut(.Cubic)
-]) { print("Both Finished") }
+### Reduce Motion
+
+When the user has Reduce Motion on, animations snap to their end state and completion blocks still run. Pauses keep their duration so sequence timing is preserved. Opt out with `Engine.shared.respectsReduceMotion = false`.
+
+## Example app
+
+`Example/KinietaDemo.xcodeproj` is a gallery: every easing preset on its own track, the three colour spaces side by side, and a composed timeline with a grouped completion. Launch it with the `-autoplay` argument to start playing on launch.
+
+## Development
+
+```
+xcodebuild -scheme Kinieta -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test
+xcodebuild -project Example/KinietaDemo.xcodeproj -scheme KinietaDemo -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build
+xcrun swift-format lint --recursive Sources Tests
 ```
 
-Remember that calls to the Kinieta API return an object so one could also do:
+Requires Xcode 26. Documentation is a DocC catalog in `Sources/Kinieta/Kinieta.docc`, including a guide for migrating from 0.5.
 
- ```swift
- let move1 = aView.move(to: ["x": 374], during: 1.0).easeInOut(.Cubic)
- let move2 = otherView.move(to: ["x": 100, "r": 30], during: 1.0).easeInOut(.Cubic)
- Engine.shared.group([move1, move2]) { print("Both Finished") }
-```
+## License
+
+MIT. See [LICENSE](LICENSE).

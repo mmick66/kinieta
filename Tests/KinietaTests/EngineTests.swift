@@ -1,5 +1,6 @@
 import Testing
 import UIKit
+
 @testable import Kinieta
 
 /// Engine tests. Actions are driven with synthetic `Engine.Frame` values so no
@@ -18,8 +19,10 @@ struct EngineTests {
         UIView(frame: CGRect(x: 0, y: 0, width: 10, height: 10))
     }
 
-    private func animation(_ view: UIView, _ properties: [Property], duration: TimeInterval,
-                           easing: Easing? = nil, complete: Block? = nil) -> Animation {
+    private func animation(
+        _ view: UIView, _ properties: [Property], duration: TimeInterval,
+        easing: Easing? = nil, complete: Block? = nil
+    ) -> Animation {
         Animation(ViewRef(view), properties: properties, duration: duration, easing: easing?.bezier, complete: complete)
     }
 
@@ -63,7 +66,9 @@ struct EngineTests {
     }
 
     @Test func tableSolverMatchesExactBezierEvaluation() {
-        let curves = [(0.55, 0.055, 0.675, 0.19), (0.68, -0.55, 0.265, 1.55), (0.16, 0.73, 0.89, 0.24), (1.0, 0.0, 0.0, 1.0)]
+        let curves = [
+            (0.55, 0.055, 0.675, 0.19), (0.68, -0.55, 0.265, 1.55), (0.16, 0.73, 0.89, 0.24), (1.0, 0.0, 0.0, 1.0),
+        ]
         for (a, b, c, d) in curves {
             let table = Bezier(a, b, c, d)
             let exact = exactBezier(a, b, c, d)
@@ -79,15 +84,15 @@ struct EngineTests {
         // functions; the approximation itself is off by up to about 0.06.
         let c1 = 1.70158, c3 = c1 + 1
         let reference: [(Easing, String, (Double) -> Double)] = [
-            (.in(.quad),     "quadIn",     { t in t * t }),
-            (.out(.quad),    "quadOut",    { t in 1 - (1 - t) * (1 - t) }),
-            (.in(.cubic),    "cubicIn",    { t in t * t * t }),
-            (.out(.cubic),   "cubicOut",   { t in 1 - pow(1 - t, 3) }),
+            (.in(.quad), "quadIn", { t in t * t }),
+            (.out(.quad), "quadOut", { t in 1 - (1 - t) * (1 - t) }),
+            (.in(.cubic), "cubicIn", { t in t * t * t }),
+            (.out(.cubic), "cubicOut", { t in 1 - pow(1 - t, 3) }),
             (.inOut(.cubic), "cubicInOut", { t in t < 0.5 ? 4 * t * t * t : 1 - pow(-2 * t + 2, 3) / 2 }),
-            (.in(.quart),    "quartIn",    { t in t * t * t * t }),
-            (.in(.expo),     "expoIn",     { t in pow(2, 10 * t - 10) }),
-            (.in(.sine),     "sineIn",     { t in 1 - cos(t * .pi / 2) }),
-            (.in(.back),     "backIn",     { t in c3 * t * t * t - c1 * t * t }),
+            (.in(.quart), "quartIn", { t in t * t * t * t }),
+            (.in(.expo), "expoIn", { t in pow(2, 10 * t - 10) }),
+            (.in(.sine), "sineIn", { t in 1 - cos(t * .pi / 2) }),
+            (.in(.back), "backIn", { t in c3 * t * t * t - c1 * t * t }),
         ]
         for (easing, name, function) in reference {
             for t in [0.25, 0.5, 0.75] {
@@ -109,10 +114,10 @@ struct EngineTests {
 
     @Test func frameClockAdvancesByRealElapsedTime() {
         var clock = Engine.FrameClock()
-        #expect(clock.frame(at: 10.000, nominalDuration: 1.0 / 60).duration == 1.0 / 60)   // first frame: nominal
+        #expect(clock.frame(at: 10.000, nominalDuration: 1.0 / 60).duration == 1.0 / 60)  // first frame: nominal
         #expect(approx(clock.frame(at: 10.020, nominalDuration: 1.0 / 60).duration, 0.020))
         #expect(approx(clock.frame(at: 10.100, nominalDuration: 1.0 / 60).duration, 0.080))  // dropped frames catch up
-        #expect(approx(clock.frame(at: 10.108, nominalDuration: 1.0 / 120).duration, 0.008)) // ProMotion frame
+        #expect(approx(clock.frame(at: 10.108, nominalDuration: 1.0 / 120).duration, 0.008))  // ProMotion frame
     }
 
     @Test func frameClockTreatsLongGapsAsOneFrame() {
@@ -177,7 +182,9 @@ struct EngineTests {
 
     @Test func everyPropertyIsAnimatable() {
         let view = makeView()
-        let a = animation(view, [.x(30), .y(30), .width(30), .height(30), .alpha(0.3), .borderWidth(3), .cornerRadius(4)], duration: 1.0)
+        let a = animation(
+            view, [.x(30), .y(30), .width(30), .height(30), .alpha(0.3), .borderWidth(3), .cornerRadius(4)],
+            duration: 1.0)
         _ = a.update(frame(1.0))
         #expect(view.frame == CGRect(x: 30, y: 30, width: 30, height: 30))
         #expect(approx(view.alpha, 0.3))
@@ -209,7 +216,7 @@ struct EngineTests {
         let view = makeView()
         let a = animation(view, [.x(100)], duration: 1.0, easing: .in(.cubic))
         _ = a.update(frame(0.5))
-        #expect(approx(view.frame.origin.x, 14.5, 0.5))   // cubicIn(0.5) = 0.145
+        #expect(approx(view.frame.origin.x, 14.5, 0.5))  // cubicIn(0.5) = 0.145
     }
 
     @Test func animationFinishesQuietlyWhenItsViewIsGone() {
@@ -238,7 +245,7 @@ struct EngineTests {
 
         Engine.shared.respectsReduceMotion = false
         defer { Engine.shared.respectsReduceMotion = true }
-        let forcedView = makeView()   // keep a strong reference: the animation holds the view weakly
+        let forcedView = makeView()  // keep a strong reference: the animation holds the view weakly
         let forced = animation(forcedView, [.x(100)], duration: 1.0)
         #expect(forced.update(frame(0.5)) == .running)
     }
@@ -255,14 +262,16 @@ struct EngineTests {
 
     @Test func backgroundReachesTargetInEveryColourSpace() {
         let from = UIColor(red: 1.00, green: 0.44, blue: 0.75, alpha: 1.00)
-        let to   = UIColor(red: 0.00, green: 1.00, blue: 1.00, alpha: 1.00)
+        let to = UIColor(red: 0.00, green: 1.00, blue: 1.00, alpha: 1.00)
         for mode in [ColorInterpolation.rgb, .hsb, .lch] {
             let view = makeView()
             view.backgroundColor = from
             let a = animation(view, [.background(to, interpolation: mode)], duration: 1.0)
             _ = a.update(frame(0.5))
             let mid = rgb(view.backgroundColor)
-            #expect(!sameColour(mid, rgb(from), 0.05) && !sameColour(mid, rgb(to), 0.05), "\(mode): half way must be neither endpoint")
+            #expect(
+                !sameColour(mid, rgb(from), 0.05) && !sameColour(mid, rgb(to), 0.05),
+                "\(mode): half way must be neither endpoint")
             _ = a.update(frame(0.5))
             #expect(sameColour(rgb(view.backgroundColor), rgb(to), 0.01), "\(mode)")
         }
@@ -297,7 +306,9 @@ struct EngineTests {
         // Hue 0.95 to 0.05 must pass through red (hue 0), not through cyan.
         let view = makeView()
         view.backgroundColor = UIColor(hue: 0.95, saturation: 1, brightness: 1, alpha: 1)
-        let a = animation(view, [.background(UIColor(hue: 0.05, saturation: 1, brightness: 1, alpha: 1), interpolation: .hsb)], duration: 1.0)
+        let a = animation(
+            view, [.background(UIColor(hue: 0.05, saturation: 1, brightness: 1, alpha: 1), interpolation: .hsb)],
+            duration: 1.0)
         _ = a.update(frame(0.5))
         #expect(sameColour(rgb(view.backgroundColor), rgb(.red), 0.02))
     }
@@ -308,13 +319,13 @@ struct EngineTests {
         let view = makeView()
         let sequence = Sequence([
             .pause(1.0, nil),
-            .animation(ViewRef(view), [.x(100)], 1.0, nil, nil)
+            .animation(ViewRef(view), [.x(100)], 1.0, nil, nil),
         ])
 
         #expect(sequence.update(frame(0.5)) == .running)
         #expect(view.frame.origin.x == 0, "animation must not start during the pause")
-        #expect(sequence.update(frame(0.5)) == .running)   // pause ends
-        #expect(sequence.update(frame(0.5)) == .running)   // animation half way
+        #expect(sequence.update(frame(0.5)) == .running)  // pause ends
+        #expect(sequence.update(frame(0.5)) == .running)  // animation half way
         #expect(approx(view.frame.origin.x, 50, 0.5))
         #expect(sequence.update(frame(0.5)) == .finished)
         #expect(approx(view.frame.origin.x, 100))
@@ -344,10 +355,11 @@ struct EngineTests {
     @Test func groupFinishesWhenTheLongestChildFinishes() {
         let a = makeView(), b = makeView()
         var completed = false
-        let group = Group([
-            .animation(ViewRef(a), [.x(100)], 0.5, nil, nil),
-            .animation(ViewRef(b), [.x(100)], 1.0, nil, nil)
-        ], complete: { completed = true })
+        let group = Group(
+            [
+                .animation(ViewRef(a), [.x(100)], 0.5, nil, nil),
+                .animation(ViewRef(b), [.x(100)], 1.0, nil, nil),
+            ], complete: { completed = true })
 
         #expect(group.update(frame(0.5)) == .running)
         #expect(approx(a.frame.origin.x, 100))
@@ -401,7 +413,8 @@ struct EngineTests {
         defer { k.cancel() }
         #expect(descriptions(k) == ["Group (1)", "Group (2)"])
         guard case .group(let sealed, _)? = k.mainSequence.types.first,
-              case .sequence(let steps, _)? = sealed.first else {
+            case .sequence(let steps, _)? = sealed.first
+        else {
             Issue.record("expected a Group holding a Sequence"); return
         }
         #expect(steps.map { $0.description } == ["Animation (x)", "Pause (1.0)"], "then must keep the original order")
@@ -413,7 +426,10 @@ struct EngineTests {
             .wait(1)
             .repeat(times: 2)
         defer { k.cancel() }
-        #expect(descriptions(k) == ["Animation (x)", "Pause (1.0)", "Animation (x)", "Pause (1.0)", "Animation (x)", "Pause (1.0)"])
+        #expect(
+            descriptions(k) == [
+                "Animation (x)", "Pause (1.0)", "Animation (x)", "Pause (1.0)", "Animation (x)", "Pause (1.0)",
+            ])
     }
 
     @Test func easingAttachesToTheLastAnimationOnly() {
@@ -427,7 +443,7 @@ struct EngineTests {
     }
 
     @Test func onCompleteAttachesToTheLastAction() {
-        let k = Kinieta(for: makeView()).animate(.x(1), duration: 1).wait(1).onComplete { }
+        let k = Kinieta(for: makeView()).animate(.x(1), duration: 1).wait(1).onComplete {}
         defer { k.cancel() }
         guard case .pause(_, let block)? = k.mainSequence.types.last else {
             Issue.record("expected a Pause"); return
@@ -447,7 +463,7 @@ struct EngineTests {
         #expect(handle.state == .finished)
         #expect(completed)
         #expect(approx(view.frame.origin.x, 100))
-        await handle.finished()   // already finished: returns immediately
+        await handle.finished()  // already finished: returns immediately
     }
 
     @Test(.timeLimit(.minutes(1)))

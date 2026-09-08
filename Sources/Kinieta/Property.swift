@@ -32,16 +32,16 @@ public enum Property: Sendable {
     /// listed twice in one animation the last value wins.
     var name: String {
         switch self {
-        case .x:            return "x"
-        case .y:            return "y"
-        case .width:        return "width"
-        case .height:       return "height"
-        case .frame:        return "frame"
-        case .alpha:        return "alpha"
-        case .rotation:     return "rotation"
-        case .background:   return "background"
-        case .borderColor:  return "borderColor"
-        case .borderWidth:  return "borderWidth"
+        case .x: return "x"
+        case .y: return "y"
+        case .width: return "width"
+        case .height: return "height"
+        case .frame: return "frame"
+        case .alpha: return "alpha"
+        case .rotation: return "rotation"
+        case .background: return "background"
+        case .borderColor: return "borderColor"
+        case .borderWidth: return "borderWidth"
         case .cornerRadius: return "cornerRadius"
         }
     }
@@ -92,8 +92,10 @@ public enum Property: Sendable {
 
     /// Colour progress is clamped to 0...1: an overshooting easing has no
     /// meaning outside the gamut.
-    private func colorLerp(from: UIColor, to: UIColor, mode: ColorInterpolation,
-                           apply: @escaping (UIView, UIColor) -> Void) -> Transformation {
+    private func colorLerp(
+        from: UIColor, to: UIColor, mode: ColorInterpolation,
+        apply: @escaping (UIView, UIColor) -> Void
+    ) -> Transformation {
         switch mode {
         case .rgb:
             let f = from.components(as: .RGB), t = to.components(as: .RGB)

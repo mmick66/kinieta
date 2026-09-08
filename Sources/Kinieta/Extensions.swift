@@ -1,6 +1,6 @@
 /*
  * Extensions.swift
- 
+
  * Created by Michael Michailidis on 16/10/2017.
  * http://blog.karmadust.com/
  *
@@ -31,17 +31,16 @@ extension FloatingPoint {
     var radiansToDegrees: Self { return self * 180 / .pi }
 }
 
-
 protocol CGFractionable {
-    static func *(lhs: CGFloat, rhs: Self) -> Self
-    static func *(lhs: Self, rhs: CGFloat) -> Self
-    static func +(lhs: Self, rhs: Self) -> Self
-    static func -(lhs: Self, rhs: Self) -> Self
-    static func /(lhs: Self, rhs: CGFloat) -> Self
+    static func * (lhs: CGFloat, rhs: Self) -> Self
+    static func * (lhs: Self, rhs: CGFloat) -> Self
+    static func + (lhs: Self, rhs: Self) -> Self
+    static func - (lhs: Self, rhs: Self) -> Self
+    static func / (lhs: Self, rhs: CGFloat) -> Self
 }
 
 extension CGRect: CGFractionable {
-    static func *(lhs:CGFloat, rhs:CGRect) -> CGRect {
+    static func * (lhs: CGFloat, rhs: CGRect) -> CGRect {
         return CGRect(
             x: lhs * rhs.origin.x,
             y: lhs * rhs.origin.y,
@@ -49,7 +48,7 @@ extension CGRect: CGFractionable {
             height: lhs * rhs.size.height
         )
     }
-    static func *(lhs:CGRect, rhs:CGFloat) -> CGRect {
+    static func * (lhs: CGRect, rhs: CGFloat) -> CGRect {
         return CGRect(
             x: lhs.origin.x * rhs,
             y: lhs.origin.y * rhs,
@@ -57,7 +56,7 @@ extension CGRect: CGFractionable {
             height: lhs.size.height * rhs
         )
     }
-    static func +(lhs:CGRect, rhs:CGRect) -> CGRect {
+    static func + (lhs: CGRect, rhs: CGRect) -> CGRect {
         return CGRect(
             x: lhs.origin.x + rhs.origin.x,
             y: lhs.origin.y + rhs.origin.y,
@@ -65,7 +64,7 @@ extension CGRect: CGFractionable {
             height: lhs.size.height + rhs.size.height
         )
     }
-    static func /(lhs:CGRect, rhs: CGFloat) -> CGRect {
+    static func / (lhs: CGRect, rhs: CGFloat) -> CGRect {
         return CGRect(
             x: lhs.origin.x / rhs,
             y: lhs.origin.y / rhs,
@@ -73,7 +72,7 @@ extension CGRect: CGFractionable {
             height: lhs.size.height / rhs
         )
     }
-    static func -(lhs:CGRect, rhs:CGRect) -> CGRect {
+    static func - (lhs: CGRect, rhs: CGRect) -> CGRect {
         return CGRect(
             x: lhs.origin.x - rhs.origin.x,
             y: lhs.origin.y - rhs.origin.y,
@@ -83,8 +82,4 @@ extension CGRect: CGFractionable {
     }
 }
 
-
 extension CGFloat: CGFractionable {}
-
-
-

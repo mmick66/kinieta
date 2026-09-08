@@ -1,8 +1,8 @@
 Pod::Spec.new do |s|
 
   s.name         = "Kinieta"
-  s.version      = "0.5.1"
-  s.summary      = "An Animation Engine for iOS with an Intuitive API and Readable Code!."
+  s.version      = "1.0.0"
+  s.summary      = "A timeline animation engine for UIKit with a typed, chainable API. Prefer Swift Package Manager; CocoaPods support ends after 1.0."
 
   s.description  = <<-DESC
  I decided to build an Animation Engine from scratch for the usual reason: No other did what I wanted how I wanted it! While there are some great libraries out there, my requiremenets where pretty restrictive as what I wanted was:

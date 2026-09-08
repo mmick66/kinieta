@@ -1,6 +1,6 @@
 /*
  * UIColor+Components.swift
- 
+
  * Created by Michael Michailidis on 16/10/2017.
  * http://blog.karmadust.com/
  *
@@ -29,9 +29,9 @@
 import UIKit
 
 extension UIColor {
-    
+
     public struct Components: CGFractionable, Equatable, CustomStringConvertible {
-        
+
         var c1: CGFloat, c2: CGFloat, c3: CGFloat, alpha: CGFloat
         public enum Space: String {
             case RGB = "RGB"
@@ -40,33 +40,33 @@ extension UIColor {
         }
         let space: Space
         init(_ c1: CGFloat, _ c2: CGFloat, _ c3: CGFloat, _ alpha: CGFloat, space: Components.Space) {
-            self.c1     = c1
-            self.c2     = c2
-            self.c3     = c3
-            self.alpha  = alpha
-            self.space  = space
+            self.c1 = c1
+            self.c2 = c2
+            self.c3 = c3
+            self.alpha = alpha
+            self.space = space
         }
-        
-        public static func ==(lhs:Components, rhs:Components) -> Bool {
+
+        public static func == (lhs: Components, rhs: Components) -> Bool {
             guard lhs.space == rhs.space else { return false }
             return (lhs.c1 == rhs.c1) && (lhs.c2 == rhs.c2) && (lhs.c3 == rhs.c3) && (lhs.alpha == rhs.alpha)
         }
-        
+
         public var description: String {
             return "(c1:\(c1), c2:\(c2), c3:\(c3), alpha:\(alpha), space:\(space.rawValue))"
         }
-        
-        static func *(lhs:Components, rhs:CGFloat) -> Components {
+
+        static func * (lhs: Components, rhs: CGFloat) -> Components {
             return UIColor.Components(lhs.c1 * rhs, lhs.c2 * rhs, lhs.c3 * rhs, lhs.alpha * rhs, space: lhs.space)
         }
-        static func /(lhs:Components, rhs:CGFloat) -> UIColor.Components {
+        static func / (lhs: Components, rhs: CGFloat) -> UIColor.Components {
             return UIColor.Components(lhs.c1 / rhs, lhs.c2 / rhs, lhs.c3 / rhs, lhs.alpha / rhs, space: lhs.space)
         }
-        
-        static func *(lhs:CGFloat, rhs:Components) -> Components {
+
+        static func * (lhs: CGFloat, rhs: Components) -> Components {
             return rhs * lhs
         }
-        static func -(lhs:Components, rhs: Components) -> Components {
+        static func - (lhs: Components, rhs: Components) -> Components {
             guard lhs.space == rhs.space else { fatalError("Cannot subtract two colors from different spaces") }
             return Components(
                 lhs.c1 - rhs.c1,
@@ -76,8 +76,8 @@ extension UIColor {
                 space: lhs.space
             )
         }
-        
-        static func +(lhs:Components, rhs:Components) -> Components {
+
+        static func + (lhs: Components, rhs: Components) -> Components {
             guard lhs.space == rhs.space else { fatalError("Cannot multiply two colors from different spaces") }
             return Components(
                 lhs.c1 + rhs.c1,
@@ -88,9 +88,9 @@ extension UIColor {
             )
         }
     }
-    
+
     func components(as space: Components.Space) -> Components {
-        
+
         switch space {
         case .RGB:
             let (r, g, b, a) = self.rgba
@@ -102,7 +102,7 @@ extension UIColor {
             let (h, l, c, a) = self.hlca
             return Components(h, l, c, a, space: .HCL)
         }
-        
+
     }
 
     convenience init(components comps: Components) {
@@ -116,5 +116,3 @@ extension UIColor {
         }
     }
 }
-
-

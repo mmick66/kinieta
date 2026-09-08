@@ -16,9 +16,9 @@ final class Animation: Action {
     let complete: Block?
 
     init(_ ref: ViewRef, properties: [Property], duration: TimeInterval, easing: Bezier?, complete: Block?) {
-        self.ref      = ref
+        self.ref = ref
         self.duration = Engine.shared.shouldSkipMotion ? 0 : duration
-        self.easing   = easing ?? .linear
+        self.easing = easing ?? .linear
         self.complete = complete
 
         guard let view = ref.view else { return }

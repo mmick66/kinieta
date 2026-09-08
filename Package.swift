@@ -12,7 +12,8 @@ let package = Package(
     targets: [
         .target(
             name: "Kinieta",
-            path: "Sources/Kinieta"
+            path: "Sources/Kinieta",
+            resources: [.copy("PrivacyInfo.xcprivacy")]
         ),
         .testTarget(
             name: "KinietaTests",

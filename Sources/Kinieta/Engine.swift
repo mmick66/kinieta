@@ -36,7 +36,7 @@ public final class Engine {
         var duration: TimeInterval
         init(_ timestamp: TimeInterval, _ duration: TimeInterval) {
             self.timestamp = timestamp
-            self.duration  = duration
+            self.duration = duration
         }
     }
 
@@ -149,7 +149,7 @@ public final class Engine {
     private func update(with frame: Frame) {
         for action in actions {
             switch action.update(frame) {
-            case .running:  continue
+            case .running: continue
             case .finished: remove(action)
             }
         }

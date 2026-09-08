@@ -37,12 +37,12 @@ private let LAB_Z: CGFloat = 1.088_83
 
 // MARK: - RGB
 struct RGBColor {
-    let r: CGFloat     // 0..1
-    let g: CGFloat     // 0..1
-    let b: CGFloat     // 0..1
-    let alpha: CGFloat // 0..1
+    let r: CGFloat  // 0..1
+    let g: CGFloat  // 0..1
+    let b: CGFloat  // 0..1
+    let alpha: CGFloat  // 0..1
 
-    init (r: CGFloat, g: CGFloat, b: CGFloat, alpha: CGFloat) {
+    init(r: CGFloat, g: CGFloat, b: CGFloat, alpha: CGFloat) {
         self.r = r
         self.g = g
         self.b = b
@@ -103,12 +103,12 @@ extension UIColor {
 // MARK: - XYZ
 
 struct XYZColor {
-    let x: CGFloat     // 0..0.95047
-    let y: CGFloat     // 0..1
-    let z: CGFloat     // 0..1.08883
-    let alpha: CGFloat // 0..1
+    let x: CGFloat  // 0..0.95047
+    let y: CGFloat  // 0..1
+    let z: CGFloat  // 0..1.08883
+    let alpha: CGFloat  // 0..1
 
-    init (x: CGFloat, y: CGFloat, z: CGFloat, alpha: CGFloat) {
+    init(x: CGFloat, y: CGFloat, z: CGFloat, alpha: CGFloat) {
         self.x = x
         self.y = y
         self.z = z
@@ -164,12 +164,12 @@ struct XYZColor {
 // MARK: - LAB
 
 struct LABColor {
-    let l: CGFloat     //    0..100
-    let a: CGFloat     // -128..128
-    let b: CGFloat     // -128..128
-    let alpha: CGFloat //    0..1
+    let l: CGFloat  //    0..100
+    let a: CGFloat  // -128..128
+    let b: CGFloat  // -128..128
+    let alpha: CGFloat  //    0..1
 
-    init (l: CGFloat, a: CGFloat, b: CGFloat, alpha: CGFloat) {
+    init(l: CGFloat, a: CGFloat, b: CGFloat, alpha: CGFloat) {
         self.l = l
         self.a = a
         self.b = b
@@ -217,17 +217,17 @@ struct LABColor {
 // MARK: - LCH
 
 struct LCHColor {
-    
+
     static let MaxL: CGFloat = 100.0
     static let MaxC: CGFloat = 128.0
     static let MaxH: CGFloat = 360.0
-    
-    let l: CGFloat     // 0..100
-    let c: CGFloat     // 0..128
-    let h: CGFloat     // 0..360
-    let alpha: CGFloat // 0..1
 
-    init (l: CGFloat, c: CGFloat, h: CGFloat, alpha: CGFloat) {
+    let l: CGFloat  // 0..100
+    let c: CGFloat  // 0..128
+    let h: CGFloat  // 0..360
+    let alpha: CGFloat  // 0..1
+
+    init(l: CGFloat, c: CGFloat, h: CGFloat, alpha: CGFloat) {
         self.l = l
         self.c = c
         self.h = h
@@ -250,7 +250,9 @@ struct LCHColor {
     }
 
     func lerp(_ other: LCHColor, t: CGFloat) -> LCHColor {
-        let angle = (((((other.h - h).truncatingRemainder(dividingBy: 360)) + 540).truncatingRemainder(dividingBy: 360)) - 180) * t
+        let angle =
+            (((((other.h - h).truncatingRemainder(dividingBy: 360)) + 540).truncatingRemainder(dividingBy: 360)) - 180)
+            * t
         return LCHColor(
             l: l + (other.l - l) * t,
             c: c + (other.c - c) * t,
