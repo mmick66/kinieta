@@ -1,3 +1,4 @@
+#if canImport(UIKit)
 import Testing
 import UIKit
 
@@ -631,3 +632,4 @@ struct EngineTests {
 func approx<T: BinaryFloatingPoint>(_ a: T, _ b: T, _ tolerance: T = 1e-6) -> Bool {
     abs(a - b) <= tolerance
 }
+#endif

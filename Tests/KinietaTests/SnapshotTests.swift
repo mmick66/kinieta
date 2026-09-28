@@ -1,3 +1,4 @@
+#if canImport(UIKit)
 import SnapshotTesting
 import Testing
 import UIKit
@@ -115,3 +116,4 @@ struct SnapshotTests {
         assertSnapshot(of: greyStage, as: image(), named: "grey-to-blue-hsb")
     }
 }
+#endif

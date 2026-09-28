@@ -1,3 +1,4 @@
+#if canImport(UIKit)
 import Testing
 import UIKit
 
@@ -49,3 +50,4 @@ struct ColorTests {
         #expect(v.transform.d == t.d)
     }
 }
+#endif
