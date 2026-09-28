@@ -11,6 +11,9 @@ final class PauseAction: Action {
     let completion: Block?
     private var elapsed: TimeInterval = 0
 
+    /// A wait of `.infinity` never ends, so no frame can advance it.
+    var isIdle: Bool { duration == .infinity }
+
     init(_ duration: TimeInterval, completion: Block?) {
         self.duration = duration
         self.completion = completion

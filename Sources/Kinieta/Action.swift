@@ -139,5 +139,12 @@ enum ActionResult: Equatable {
 @MainActor
 protocol Action: AnyObject {
     func update(_ frame: Engine.Frame) -> ActionResult
+    /// `true` while no frame can change anything: the action is paused or
+    /// waiting forever. The engine stops its driver when every action is idle.
+    var isIdle: Bool { get }
+}
+
+extension Action {
+    var isIdle: Bool { false }
 }
 #endif

@@ -93,7 +93,7 @@ public final class Kinieta {
     /// Waits for `time` seconds before the next action.
     ///
     /// A negative or NaN time is treated as zero and logs a warning.
-    /// `.infinity` waits until the timeline is cancelled.
+    /// `.infinity` waits until the timeline is cancelled, without costing frames.
     @discardableResult
     public func wait(_ time: TimeInterval) -> Kinieta {
         let time = Kinieta.sanitized(time, in: "wait(_:)", allowsInfinity: true)
@@ -186,6 +186,7 @@ public final class Kinieta {
         state = .running
         if let owner, owner.members?.adopt(mainSequence) == true {
             if owner.isPaused { pause() }
+            Engine.shared.refreshDriver()
             return
         }
         owner?.children.removeAll { $0 === self }
@@ -245,15 +246,19 @@ public final class Kinieta {
         Engine.shared.remove(mainSequence)
         finish(as: .cancelled)
         for child in children { child.cancel() }
+        Engine.shared.refreshDriver()  // a cancelled child finishes its group's next frame
     }
 
     /// Holds the timeline where it is. Pausing a group handle also pauses every
     /// timeline in the group.
+    ///
+    /// While every timeline is paused the engine stops requesting frames.
     public func pause() {
         guard state == .running else { return }
         mainSequence.isPaused = true
         state = .paused
         for child in children { child.pause() }
+        Engine.shared.refreshDriver()
     }
 
     /// Continues a paused timeline. Resuming a group handle also resumes every
@@ -263,6 +268,7 @@ public final class Kinieta {
         mainSequence.isPaused = false
         state = .running
         for child in children { child.resume() }
+        Engine.shared.refreshDriver()
     }
 
     /// Suspends until the whole timeline has finished or been cancelled.

@@ -14,7 +14,7 @@ import Foundation
 /// ```
 ///
 /// Like a display link, the driver only delivers frames while the engine has
-/// actions registered: `step` does nothing when `isRunning` is `false`.
+/// actions that can make progress: `step` does nothing when `isRunning` is `false`.
 @MainActor
 final class ManualFrameDriver: FrameDriver {
     private var onFrame: ((Engine.Frame) -> Void)?

@@ -22,6 +22,10 @@ final class SequenceAction: Action {
 
     var currentAction: Action?
 
+    var isIdle: Bool {
+        !isCancelled && (isPaused || currentAction?.isIdle == true)
+    }
+
     init(_ types: [ActionType] = [], completion: Block? = nil) {
         self.pending = ActionQueue(types)
         self.completion = completion

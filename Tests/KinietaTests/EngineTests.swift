@@ -671,6 +671,50 @@ struct EngineTests {
         #expect(approx(view.frame.origin.x, 100))
     }
 
+    @Test func pausingTheOnlyTimelineStopsTheDriverUntilResumed() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        let handle = view.animate(.x(100), duration: 1)
+        frames.step(0.25)
+        handle.pause()
+        #expect(!frames.isRunning)
+        handle.resume()
+        #expect(frames.isRunning)
+        frames.step(0.25)
+        #expect(approx(view.frame.origin.x, 50, 0.5))
+        frames.step(0.5)
+        #expect(handle.state == .finished && !frames.isRunning)
+    }
+
+    @Test func driverRunsWhileAnyTimelineCanMove() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let a = makeView(), b = makeView()
+        let first = a.animate(.x(100), duration: 1)
+        let second = b.animate(.x(100), duration: 2)
+        frames.step(0.5)
+        second.pause()
+        #expect(frames.isRunning)
+        frames.step(0.5)
+        #expect(first.state == .finished)
+        #expect(!frames.isRunning)  // only the paused timeline is left
+        second.resume()
+        frames.step(1.5)
+        #expect(second.state == .finished && !frames.isRunning)
+        #expect(approx(b.frame.origin.x, 100))
+    }
+
+    @Test func pausingFromACompletionBlockStopsTheDriverInThatFrame() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        let handle = view.animate(.x(100), duration: 1)
+        handle.onComplete { handle.pause() }.animate(.y(100), duration: 1)
+        frames.step(1)
+        #expect(handle.isPaused && !frames.isRunning)
+    }
+
     @Test func groupOfHandlesCompletesOnceWhenTheLastFinishes() {
         let frames = ManualFrameDriver.install()
         defer { frames.uninstall() }
@@ -751,8 +795,9 @@ struct EngineTests {
         frames.step(0.25)
         group.pause()
         #expect(group.isPaused && first.isPaused && second.isPaused)
+        #expect(!frames.isRunning)
         first.resume()  // cannot run ahead of its paused group
-        #expect(first.isPaused)
+        #expect(first.isPaused && !frames.isRunning)
         frames.step(0.25, count: 4)
         #expect(approx(a.frame.origin.x, 25, 0.5))
         group.resume()
@@ -760,6 +805,27 @@ struct EngineTests {
         frames.step(0.75)
         #expect(group.state == .finished && first.state == .finished && second.state == .finished)
         #expect(approx(a.frame.origin.x, 100) && approx(b.frame.origin.x, 100))
+    }
+
+    @Test func cancellingAPausedChildLetsItsGroupMoveOn() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let a = makeView(), b = makeView()
+        let first = a.animate(.x(100), duration: 1)
+        let second = b.animate(.x(100), duration: 1)
+        let group = Kinieta.group(first, second)
+        frames.step(0.25)
+        first.pause()
+        second.pause()
+        #expect(group.isRunning && !frames.isRunning)
+        first.cancel()
+        #expect(frames.isRunning)  // the group has to drop it
+        frames.step()
+        #expect(group.isRunning && !frames.isRunning)
+        second.resume()
+        frames.step(0.75)
+        #expect(group.state == .finished && second.state == .finished)
+        #expect(approx(b.frame.origin.x, 100))
     }
 
     @Test func aHandleListedTwiceRunsAtNormalSpeed() {
@@ -1096,8 +1162,27 @@ struct EngineTests {
         frames.step(1, count: 100)
         #expect(handle.isRunning)
         #expect(view.frame.origin.x == 0)
+        #expect(!frames.isRunning)  // nothing can change until it is cancelled
         handle.cancel()
         #expect(!frames.isRunning)
+        #expect(handle.state == .cancelled)
+    }
+
+    @Test func infiniteWaitInAGroupStopsTheDriverOnceTheOthersFinish() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        let waiting = view.wait(.infinity)
+        let group = Kinieta.group(waiting, view.animate(.x(100), duration: 1))
+        frames.step(0.5)
+        #expect(frames.isRunning)
+        frames.step(0.5)
+        #expect(approx(view.frame.origin.x, 100))
+        #expect(group.isRunning && !frames.isRunning)
+        waiting.cancel()
+        #expect(frames.isRunning)
+        frames.step()
+        #expect(group.state == .finished && !frames.isRunning)
     }
 
     // MARK: Smoke test on the real display link

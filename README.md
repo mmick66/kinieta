@@ -185,6 +185,8 @@ When the user has Reduce Motion on, animations snap to their end state and compl
 
 The engine advances by real elapsed time, so it stays on schedule through dropped frames and on 60 Hz and 120 Hz displays alike. It asks for 120 Hz on ProMotion devices; iPhones only honour that when the app's Info.plist sets `CADisableMinimumFrameDurationOnPhone` to `YES`.
 
+The display link only runs while something can move. When every timeline is paused, or waiting on `wait(.infinity)`, the engine stops it, so a paused handle you let go of costs no frames; `resume()`, `cancel()` or a new animation starts it again.
+
 ### Platforms
 
 iOS 17 and later, UIKit only. The sources are guarded with `canImport(UIKit)`, so the package resolves and builds as an empty module on other platforms, which keeps tooling happy but is not a supported target.

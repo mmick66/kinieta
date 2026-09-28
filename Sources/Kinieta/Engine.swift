@@ -26,7 +26,7 @@
 #if canImport(UIKit)
 import UIKit
 
-/// Delivers frames to the engine while it has actions to run.
+/// Delivers frames to the engine while it has actions that can make progress.
 ///
 /// Production uses `Engine.DisplayLinkDriver`; tests install a manual driver
 /// and step frames by hand so timelines run deterministically.
@@ -116,10 +116,10 @@ public final class Engine {
     public static let shared = Engine()
 
     /// The source of frames. Swapping it stops the old driver and, if any
-    /// actions are registered, hands them to the new one.
+    /// registered action can make progress, hands them to the new one.
     var driver: any FrameDriver = DisplayLinkDriver() {
         willSet { driver.stop() }
-        didSet { startDriverIfNeeded() }
+        didSet { refreshDriver() }
     }
 
     private var actions: [Action] = []
@@ -143,7 +143,7 @@ public final class Engine {
 
     func add(_ action: Action) {
         actions.append(action)
-        startDriverIfNeeded()
+        refreshDriver()
     }
 
     func remove(_ action: Action) {
@@ -151,13 +151,18 @@ public final class Engine {
             return
         }
         actions.remove(at: index)
-        if actions.isEmpty {
-            driver.stop()
-        }
+        refreshDriver()
     }
 
-    private func startDriverIfNeeded() {
-        guard !actions.isEmpty else { return }
+    /// Runs the driver while any action can make progress and stops it when
+    /// every action is idle (paused, or waiting forever), so a held timeline
+    /// costs no frames. Call it whenever an action is paused, resumed or
+    /// cancelled outside a frame.
+    func refreshDriver() {
+        guard actions.contains(where: { !$0.isIdle }) else {
+            driver.stop()
+            return
+        }
         driver.start { [weak self] frame in
             self?.update(with: frame)
         }
@@ -167,6 +172,8 @@ public final class Engine {
         for action in actions where action.update(frame).isFinished {
             remove(action)
         }
+        // An action may have become idle this frame without finishing.
+        refreshDriver()
     }
 }
 #endif
