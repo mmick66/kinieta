@@ -45,9 +45,16 @@ as zero.
 - ``Bezier``
 - ``ColorInterpolation``
 
+### Controlling it
+
+- ``Kinieta/State``
+- ``Kinieta/state``
+
 ### Engine settings
 
 - ``Engine``
+- ``Engine/shared``
+- ``Engine/colorInterpolation``
 - ``Engine/preferredFrameRateRange``
 - ``Engine/defaultFrameRateRange``
 

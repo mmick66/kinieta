@@ -132,6 +132,7 @@ public final class Engine {
         }
     }
 
+    /// The engine every timeline runs on. Change its settings here.
     public static let shared = Engine()
 
     /// The source of frames. Swapping it stops the old driver and, if any

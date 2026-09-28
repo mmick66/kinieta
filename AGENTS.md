@@ -47,6 +47,67 @@ cp -rf source dest          # NOT: cp -r source dest
 - `apt-get` - use `-y` flag
 - `brew` - use `HOMEBREW_NO_AUTO_UPDATE=1` env var
 
+## Build & Test
+
+Requires Xcode 26.6 with the iOS 26.5 simulator runtime. Tests run on the pinned destination
+**iPhone 17 Pro, iOS 26.5**: the snapshot references are only valid for that runtime.
+
+```bash
+scripts/ci-local.sh                  # every CI job except tvOS, stops at the first failure
+scripts/ci-local.sh lint ios         # a subset: lint, spm-macos, ios, catalyst, spm-linux (needs Docker)
+
+# The same checks by hand
+xcrun swift-format lint --strict --recursive Sources Tests Example/KinietaDemo
+xcodebuild -scheme Kinieta -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5' test
+xcodebuild -scheme Kinieta -destination 'platform=macOS,variant=Mac Catalyst' test
+xcodebuild -project Example/KinietaDemo.xcodeproj -scheme KinietaDemo \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5' CODE_SIGNING_ALLOWED=NO build
+swift build && swift test            # builds an empty module and runs 0 tests off UIKit
+
+# Re-record snapshots after an intentional visual change, then review the PNGs
+TEST_RUNNER_SNAPSHOT_TESTING_RECORD=all xcodebuild -scheme Kinieta \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5' test
+
+# Build the DocC catalog; it should produce no warnings
+xcodebuild docbuild -scheme Kinieta -destination 'generic/platform=iOS Simulator'
+```
+
+The tvOS build (`-destination 'generic/platform=tvOS Simulator' build`) runs in CI only. CI is
+`.github/workflows/ci.yml`; keep it, `scripts/ci-local.sh` and README "Development" in sync.
+
+## Architecture Overview
+
+A UIKit animation library (iOS, tvOS, Mac Catalyst 17+), Swift 6, main-actor isolated. All
+sources are behind `canImport(UIKit)`.
+
+- `View.swift`: `UIView.animate(...)` / `wait(_:)` entry points; geometry goes through
+  `center` and `bounds`, not `frame`.
+- `Kinieta.swift`: the public handle. Each handle owns a `SequenceAction` (its timeline) and
+  exposes the chain API (`easing`, `delay`, `then()`, `parallel()`, `repeat`, `onComplete`),
+  control (`cancel`, `pause`, `resume`, `finished()`) and `Kinieta.group`.
+- Actions: the `Action` protocol, with `SequenceAction` (one after another), `GroupAction`
+  (together), `PropertyAnimation` (interpolates `Property` values on one view) and
+  `PauseAction` (`wait`; `delay` is a pause sequenced before the action). A sequence's
+  `ActionQueue` holds `ActionType` descriptions that become live actions only when they start,
+  which is why chain calls can still edit actions that have not started.
+- `Engine.swift`: `Engine.shared` advances registered actions by real elapsed time from a
+  `FrameDriver` (a `CADisplayLink` in production, `ManualFrameDriver` in tests) and holds the
+  global settings (colour interpolation, Reduce Motion, frame rate range).
+- Easing: `Bezier` (baked lookup table, CSS `cubic-bezier()` semantics) and `Easing` presets.
+- Colour: `ColorMath.swift` (RGB/HSB/LCH interpolation, sRGB and Display P3).
+- `IgnoredCall.swift`: debug-only warnings for chain calls that do nothing.
+- Docs: `Sources/Kinieta/Kinieta.docc`. Demo: `Example/KinietaDemo.xcodeproj`.
+- Tests (Swift Testing) in `Tests/KinietaTests`, snapshots in `__Snapshots__`.
+
+## Conventions & Patterns
+
+- Formatting follows `.swift-format` (4 spaces, 120 columns); lint must pass with `--strict`.
+- User-visible changes update `CHANGELOG.md` (Keep a Changelog, under `[Unreleased]`) and the
+  README; public API changes also update the DocC catalog.
+- Commits are per Beads ticket, with the ticket ID as the message prefix
+  (`kinieta-xyz: summary`).
+- Tests drive the engine frame by frame with `ManualFrameDriver` rather than waiting on real time.
+
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:46cd31e7 -->
 ## Beads Issue Tracker
 

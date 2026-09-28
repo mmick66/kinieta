@@ -28,10 +28,16 @@ import os
 @MainActor
 public final class Kinieta {
 
+    /// Where a timeline is in its life. Read it from ``state``.
     public enum State: Sendable {
+        /// Playing, or waiting for its next frame. A new handle starts here.
         case running
+        /// Stopped by ``pause()`` until ``resume()`` or ``cancel()``.
         case paused
+        /// Every action has run. Adding an action starts it again.
         case finished
+        /// Stopped by ``cancel()`` or because its view was deallocated. Final:
+        /// no further actions or completion blocks run.
         case cancelled
     }
 
@@ -41,6 +47,7 @@ public final class Kinieta {
     /// are called and `state` becomes `.cancelled`.
     public private(set) weak var view: UIView?
 
+    /// The timeline's current state.
     public private(set) var state: State = .running
 
     public var isRunning: Bool { state == .running }
