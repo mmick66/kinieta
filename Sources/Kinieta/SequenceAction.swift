@@ -13,12 +13,22 @@ final class SequenceAction: Action {
 
     var completion: Block?
 
+    /// Shared with the timeline this sequence belongs to: a main sequence
+    /// makes its own and hands it to every sequence and group nested in it.
+    let control: TimelineControl
+
     /// While paused the sequence reports `.running` without advancing.
-    var isPaused = false
+    var isPaused: Bool {
+        get { control.isPaused }
+        set { control.isPaused = newValue }
+    }
 
     /// A cancelled sequence finishes on its next update without running any
     /// completion block, whether the engine or a group is driving it.
-    var isCancelled = false
+    var isCancelled: Bool {
+        get { control.isCancelled }
+        set { control.isCancelled = newValue }
+    }
 
     var currentAction: Action?
 
@@ -36,8 +46,9 @@ final class SequenceAction: Action {
         target.map { $0.view == nil } ?? false
     }
 
-    init(_ types: [ActionType] = [], completion: Block? = nil) {
+    init(_ types: [ActionType] = [], control: TimelineControl = TimelineControl(), completion: Block? = nil) {
         self.pending = ActionQueue(types)
+        self.control = control
         self.completion = completion
     }
 
@@ -47,7 +58,7 @@ final class SequenceAction: Action {
 
         var frame = frame
         while true {
-            if currentAction == nil { currentAction = pending.popFirstAction() }
+            if currentAction == nil { currentAction = pending.popFirstAction(control: control) }
             guard let current = currentAction else {
                 completion?()
                 return .finished(overshoot: frame.duration)
@@ -58,7 +69,7 @@ final class SequenceAction: Action {
             case .finished(let overshoot):
                 currentAction = nil
                 // The child's completion block may have cancelled or paused
-                // this sequence; honour that before anything else runs.
+                // the timeline; honour that before anything else runs.
                 if isCancelled { return .finished(overshoot: 0) }
                 if isPaused { return .running }
                 if pending.isEmpty {

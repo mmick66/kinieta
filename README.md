@@ -174,7 +174,7 @@ handle.state             // .running, .paused, .finished or .cancelled
 await handle.finished()  // suspends until the timeline finishes or is cancelled
 ```
 
-`cancel()` and `pause()` take effect immediately, even from inside an `onComplete` block: the next action does not start in that frame, and a cancelled timeline stays `.cancelled`.
+`cancel()` and `pause()` take effect immediately, even from inside an `onComplete` block, at any depth of `then`, `delay`, `parallel` or `Kinieta.group`: the next action does not start in that frame, the other members of a group are not advanced, and a cancelled timeline stays `.cancelled` and runs no further completion blocks, including the group's.
 
 A handle can be extended at any time, not only while chaining. Actions added to a running timeline play after the ones already there; actions added to a finished timeline start it again on the next frame, and `finished()` waits for them. `Kinieta(for: view)` gives an empty handle to build later. Easing, `delay`, `onComplete`, `then` and `parallel` only reach actions that have not started yet, and a cancelled timeline ignores further calls. A finished timeline forgets its actions, so a later `repeat` copies only what was added since.
 

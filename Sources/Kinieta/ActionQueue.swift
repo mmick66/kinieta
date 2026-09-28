@@ -26,9 +26,9 @@ struct ActionQueue {
         types.popLast()
     }
 
-    mutating func popFirstAction() -> Action? {
+    mutating func popFirstAction(control: TimelineControl) -> Action? {
         guard !types.isEmpty else { return nil }
-        return types.removeFirst().makeAction()
+        return types.removeFirst().makeAction(control: control)
     }
 
     /// Removes and returns every trailing action up to, but not including,

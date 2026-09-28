@@ -1313,6 +1313,136 @@ struct EngineTests {
         #expect(approx(view.frame.origin.y, 100))
     }
 
+    @Test func cancelFromACompletionBlockInsideThenStopsTheTimelineInThatFrame() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        var laterCompleted = false
+        let handle = view.animate(.x(100), duration: 1)
+        handle.onComplete { handle.cancel() }
+            .animate(.alpha(0))
+            .onComplete { laterCompleted = true }
+            .then
+        frames.step(1.5)
+        #expect(approx(view.frame.origin.x, 100))
+        #expect(view.alpha == 1)
+        #expect(!laterCompleted)
+        #expect(handle.state == .cancelled)
+        #expect(!frames.isRunning)
+    }
+
+    @Test func cancelFromACompletionBlockInsideDelayRunsNoLaterCompletion() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        var delayedCompleted = false
+        let handle = view.animate(.x(100), duration: 1)
+        handle.onComplete { handle.cancel() }
+            .delay(0.5)
+            .onComplete { delayedCompleted = true }
+        frames.step(1.5)
+        #expect(approx(view.frame.origin.x, 100))
+        #expect(!delayedCompleted)
+        #expect(handle.state == .cancelled)
+    }
+
+    @Test func cancelFromACompletionBlockInsideParallelLeavesTheOtherMembers() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        var otherCompleted = false, groupCompleted = false
+        let handle = view.animate(.x(100), duration: 1)
+        handle.onComplete { handle.cancel() }
+            .animate(.y(100), duration: 1)
+            .onComplete { otherCompleted = true }
+            .parallel()
+            .onComplete { groupCompleted = true }
+        frames.step(0.5)
+        #expect(approx(view.frame.origin.y, 50, 0.5))
+        frames.step(0.5)
+        #expect(approx(view.frame.origin.x, 100))
+        #expect(approx(view.frame.origin.y, 50, 0.5))
+        #expect(!otherCompleted && !groupCompleted)
+        #expect(handle.state == .cancelled)
+    }
+
+    @Test func pauseFromACompletionBlockInsideThenHoldsTheNextActionAtItsStart() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        let handle = view.animate(.x(100), duration: 1)
+        handle.onComplete { handle.pause() }
+            .animate(.y(100), duration: 1)
+            .then
+        frames.step(1.5)
+        #expect(view.frame.origin.y == 0)
+        #expect(handle.isPaused && !frames.isRunning)
+        handle.resume()
+        frames.step(0.25)
+        #expect(approx(view.frame.origin.y, 25, 0.5))
+        frames.step(0.75)
+        #expect(approx(view.frame.origin.y, 100))
+        #expect(handle.state == .finished)
+    }
+
+    @Test func pauseFromACompletionBlockInsideParallelHoldsTheOtherMembers() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        var groupCompletions = 0
+        let handle = view.animate(.x(100), duration: 1)
+        handle.onComplete { handle.pause() }
+            .animate(.y(100), duration: 2)
+            .parallel()
+            .onComplete { groupCompletions += 1 }
+        frames.step(1)
+        #expect(approx(view.frame.origin.x, 100))
+        #expect(view.frame.origin.y == 0)
+        #expect(handle.isPaused)
+        handle.resume()
+        frames.step(1)
+        #expect(approx(view.frame.origin.y, 50, 0.5))
+        frames.step(1)
+        #expect(approx(view.frame.origin.y, 100))
+        #expect(groupCompletions == 1)
+        #expect(handle.state == .finished)
+    }
+
+    @Test func pauseFromTheLastCompletionBlockInAGroupHoldsItsCompletion() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        var groupCompletions = 0
+        let handle = view.animate(.x(100), duration: 1)
+        handle.onComplete { handle.pause() }
+            .parallel()
+            .onComplete { groupCompletions += 1 }
+        frames.step(1)
+        #expect(groupCompletions == 0)
+        #expect(handle.isPaused)
+        handle.resume()
+        frames.step()
+        #expect(groupCompletions == 1)
+        #expect(handle.state == .finished)
+    }
+
+    @Test func cancellingAGroupHandleFromAMemberCompletionSkipsTheGroupCompletion() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let a = makeView(), b = makeView()
+        var group: Kinieta?
+        var groupCompleted = false
+        let first = a.animate(.x(100), duration: 1).onComplete { group?.cancel() }
+        let second = b.animate(.x(100), duration: 1)
+        group = Kinieta.group(first, second) { groupCompleted = true }
+        frames.step(1)
+        #expect(approx(a.frame.origin.x, 100))
+        #expect(b.frame.origin.x == 0)
+        #expect(!groupCompleted)
+        #expect(group?.state == .cancelled && second.state == .cancelled)
+        #expect(!frames.isRunning)
+    }
+
     // MARK: Extending a started or finished timeline
 
     @Test(.timeLimit(.minutes(1)))

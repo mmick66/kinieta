@@ -15,19 +15,24 @@ final class GroupAction: Action {
     }
 
     var completion: Block?
+    /// The timeline this group runs in. A group of timelines is handed the
+    /// group handle's when it is made live; see `ActionType.makeAction(control:)`.
+    var control: TimelineControl
     private var phase: Phase
     /// Actions that joined since the last update, or during it.
     private var joining: [Action] = []
     private var hasEnded = false
 
-    init(pending types: [ActionType], completion: Block? = nil) {
+    init(pending types: [ActionType], control: TimelineControl = TimelineControl(), completion: Block? = nil) {
         self.phase = .pending(types)
+        self.control = control
         self.completion = completion
     }
 
     /// Groups actions that are already live, such as the sequences of other handles.
-    init(running actions: [Action], completion: Block? = nil) {
+    init(running actions: [Action], control: TimelineControl = TimelineControl(), completion: Block? = nil) {
         self.phase = .running(actions)
+        self.control = control
         self.completion = completion
     }
 
@@ -50,7 +55,7 @@ final class GroupAction: Action {
     func update(_ frame: Engine.Frame) -> ActionResult {
         var actions: [Action]
         switch phase {
-        case .pending(let types): actions = types.map { $0.makeAction() }
+        case .pending(let types): actions = types.map { $0.makeAction(control: control) }
         case .running(let live): actions = live
         }
         actions += joining
@@ -58,7 +63,13 @@ final class GroupAction: Action {
 
         var stillRunning: [Action] = []
         var overshoot = frame.duration
-        for action in actions {
+        for (index, action) in actions.enumerated() {
+            // A member's completion block may have cancelled or paused the
+            // timeline: leave the members after it as they are.
+            if control.isHalted {
+                stillRunning += actions[index...]
+                break
+            }
             switch action.update(frame) {
             case .running: stillRunning.append(action)
             case .finished(let unused): overshoot = min(overshoot, unused)
@@ -68,6 +79,13 @@ final class GroupAction: Action {
         stillRunning += joining
         joining = []
         phase = .running(stillRunning)
+
+        if control.isCancelled {
+            hasEnded = true
+            return .finished(overshoot: 0)
+        }
+        // Paused after the last member finished: complete on resume, as a sequence does.
+        if control.isPaused { return .running }
 
         if stillRunning.isEmpty {
             hasEnded = true

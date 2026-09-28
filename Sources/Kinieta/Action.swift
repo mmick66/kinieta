@@ -130,22 +130,37 @@ enum ActionType: CustomStringConvertible {
         }
     }
 
+    /// The live action, answering to `control`: nested sequences and groups
+    /// stop as soon as the timeline they belong to is cancelled or paused.
     @MainActor
-    func makeAction() -> Action {
+    func makeAction(control: TimelineControl) -> Action {
         switch self {
         case .animation(let spec):
             return PropertyAnimation(spec)
         case .pause(let duration, let completion):
             return PauseAction(duration, completion: completion)
         case .group(let types, let completion):
-            return GroupAction(pending: types, completion: completion)
+            return GroupAction(pending: types, control: control, completion: completion)
         case .sequence(let types, let completion):
-            return SequenceAction(types, completion: completion)
+            return SequenceAction(types, control: control, completion: completion)
         case .timelines(let action, let completion):
             action.completion = completion
+            action.control = control
             return action
         }
     }
+}
+
+/// Whether a timeline has been cancelled or paused, shared by its main
+/// sequence and every sequence and group nested in it. A completion block can
+/// cancel or pause the timeline at any depth, so each of them checks this after
+/// every child it updates and stops there, in that same frame.
+@MainActor
+final class TimelineControl {
+    var isCancelled = false
+    var isPaused = false
+
+    var isHalted: Bool { isCancelled || isPaused }
 }
 
 enum ActionResult: Equatable {
