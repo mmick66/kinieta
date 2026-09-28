@@ -23,6 +23,12 @@ All notable changes to Kinieta are documented here. The format follows
   grey endpoints, an overshooting curve, and dynamic colours in light and
   dark appearance. 72 reference images, 57 tests in total.
 
+### Changed
+
+- CocoaPods: this release, not 1.0.0, is the final podspec release. It is
+  published to trunk before trunk becomes read-only in December 2026. Use
+  Swift Package Manager.
+
 ### Deprecated
 
 - The `UIColor` helpers vendored from HandyUIKit: `ChangeableColorComponent`,
@@ -51,9 +57,8 @@ All notable changes to Kinieta are documented here. The format follows
   other colour's hue; colours with chroma of 20 or more are unaffected.
 - The podspec shipped no privacy manifest; CocoaPods consumers now get
   `PrivacyInfo.xcprivacy` in a `Kinieta_Privacy` resource bundle. Its
-  description, still the Swift 4 one, now matches the README. This is not a
-  1.0.1: 1.0.0 stays the last version on CocoaPods trunk until the next
-  release is published there.
+  description, still the Swift 4 one, now matches the README. There is no
+  1.0.1: the fix reaches CocoaPods with this release.
 
 ## [1.0.0] - 2026-09-08
 

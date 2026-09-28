@@ -43,7 +43,7 @@ Or in `Package.swift`:
 
 ### CocoaPods
 
-1.0.0 is the final CocoaPods release. Prefer Swift Package Manager.
+1.1.0 is the final CocoaPods release: CocoaPods trunk becomes read-only in December 2026. Until 1.1.0 is published there, trunk has 1.0.0, which lacks the privacy manifest. Prefer Swift Package Manager.
 
 ```ruby
 pod 'Kinieta', '~> 1.0'
