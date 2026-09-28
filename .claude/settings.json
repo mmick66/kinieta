@@ -11,7 +11,21 @@
       "Bash(git commit:*)",
       "Bash(git push origin wt/*)",
       "Bash(git push -u origin wt/*)",
-      "Edit(.claude/orchestrate.sh)"
+      "Edit(.claude/orchestrate.sh)",
+      "Bash(git grep:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git tag)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(bd show:*)",
+      "Bash(bd update:*)",
+      "Bash(bd create:*)",
+      "Bash(bd dep add:*)",
+      "Bash(bd close:*)",
+      "Bash(bd defer:*)",
+      "Bash(scripts/ci-local.sh:*)",
+      "mcp__firecrawl__firecrawl_search"
     ],
     "deny": [
       "Bash(git push:*)"
