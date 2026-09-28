@@ -16,6 +16,9 @@ final class GroupAction: Action {
 
     let completion: Block?
     private var phase: Phase
+    /// Actions that joined since the last update, or during it.
+    private var joining: [Action] = []
+    private var hasEnded = false
 
     init(pending types: [ActionType], completion: Block? = nil) {
         self.phase = .pending(types)
@@ -28,12 +31,22 @@ final class GroupAction: Action {
         self.completion = completion
     }
 
+    /// Adds an action that is already live, such as a grouped timeline that
+    /// was extended after it finished. Returns `false` once the group has ended.
+    func adopt(_ action: Action) -> Bool {
+        guard !hasEnded else { return false }
+        joining.append(action)
+        return true
+    }
+
     func update(_ frame: Engine.Frame) -> ActionResult {
-        let actions: [Action]
+        var actions: [Action]
         switch phase {
         case .pending(let types): actions = types.map { $0.makeAction() }
         case .running(let live): actions = live
         }
+        actions += joining
+        joining = []
 
         var stillRunning: [Action] = []
         var overshoot = frame.duration
@@ -43,9 +56,13 @@ final class GroupAction: Action {
             case .finished(let unused): overshoot = min(overshoot, unused)
             }
         }
+        // A completion block may have extended a member that finished this frame.
+        stillRunning += joining
+        joining = []
         phase = .running(stillRunning)
 
         if stillRunning.isEmpty {
+            hasEnded = true
             completion?()
             // The group ends when its last child ends, so the smallest remainder wins.
             return .finished(overshoot: overshoot)

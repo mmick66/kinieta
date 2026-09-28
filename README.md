@@ -99,7 +99,7 @@ Curves are baked into a lookup table once and solved at time `x`, exactly like C
 
 ### Sequencing
 
-Chained calls run one after another. `wait` inserts a pause; `delay` postpones the previous action; `repeat` appends copies of the whole chain.
+Chained calls run one after another. `wait` inserts a pause; `delay` postpones the previous action; `repeat` appends copies of the whole chain, including the actions already running or done.
 
 ```swift
 view.animate(.x(250), .y(500), duration: 0.5).easeInOut(.cubic)
@@ -145,7 +145,7 @@ Kinieta.group(slide, spin) { print("both finished") }
 
 The group handle controls its members: `cancel()` cancels every timeline in the group (their `finished()` calls return), and `pause()` and `resume()` pause and resume them all. A member can still be cancelled or paused on its own, but cannot resume while its group is paused.
 
-A timeline belongs to at most one group. `Kinieta.group` leaves out, with a logged warning, any timeline that is already in a group or has already finished or been cancelled; a timeline listed twice runs once.
+A timeline belongs to at most one group. `Kinieta.group` leaves out, with a logged warning, any timeline that is already in a group or has already finished or been cancelled; a timeline listed twice runs once. A member extended after it finished rejoins its group if the group is still running, and otherwise runs on its own.
 
 ### Controlling a timeline
 
@@ -163,6 +163,8 @@ await handle.finished()  // suspends until the timeline finishes or is cancelled
 ```
 
 `cancel()` and `pause()` take effect immediately, even from inside an `onComplete` block: the next action does not start in that frame, and a cancelled timeline stays `.cancelled`.
+
+A handle can be extended at any time, not only while chaining. Actions added to a running timeline play after the ones already there; actions added to a finished timeline start it again on the next frame, and `finished()` waits for them. `Kinieta(for: view)` gives an empty handle to build later. Easing, `delay`, `onComplete`, `then` and `parallel` only reach actions that have not started yet, and a cancelled timeline ignores further calls. A finished timeline forgets its actions, so a later `repeat` copies only what was added since.
 
 Handles hold their view weakly. A timeline finishes on its own when its view is deallocated and never keeps it alive.
 

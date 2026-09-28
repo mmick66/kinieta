@@ -10,6 +10,10 @@ import os
 /// timeline starts on the next frame. Chain further calls to extend it, then
 /// keep the handle to `cancel()`, `pause()`, `resume()` or `await finished()`.
 ///
+/// A handle can be extended at any time. Actions added to a running timeline
+/// play after the ones already there; actions added to a finished timeline
+/// start it again on the next frame. A cancelled timeline stays cancelled.
+///
 /// ```swift
 /// square.animate(.x(374), .background(.systemPink), duration: 1.0)
 ///       .easeInOut(.back)
@@ -36,7 +40,13 @@ public final class Kinieta {
     public var isRunning: Bool { state == .running }
     public var isPaused: Bool { state == .paused }
 
+    /// The running instance. Its queue holds the steps of `timeline` that have
+    /// not started yet, always as a suffix of `timeline`.
     let mainSequence: SequenceAction
+    /// Every step added since the handle was made or last finished, including the ones
+    /// already running or done, so `repeat` can copy the whole chain. Emptied
+    /// when the timeline ends, which releases the completion blocks it holds.
+    private(set) var timeline: [ActionType] = []
     private var waiters: [CheckedContinuation<Void, Never>] = []
 
     /// The group driving this timeline, if any. A timeline is driven either by
@@ -44,8 +54,13 @@ public final class Kinieta {
     private weak var owner: Kinieta?
     /// The timelines this group handle drives. Empty for an ordinary timeline.
     private var children: [Kinieta] = []
+    /// The action running this group handle's members; `nil` for an ordinary timeline.
+    private var members: GroupAction?
 
     /// Creates an empty timeline for `view` and registers it with the engine.
+    ///
+    /// An empty timeline finishes on the next frame. Adding to it afterwards
+    /// starts it again, so the handle can be built later.
     public convenience init(for view: UIView) {
         self.init(view: view)
     }
@@ -71,7 +86,7 @@ public final class Kinieta {
     @discardableResult
     public func animate(_ properties: [Property], duration: TimeInterval = 0) -> Kinieta {
         let duration = Kinieta.sanitized(duration, in: "animate(duration:)", allowsInfinity: false)
-        mainSequence.pending.add(.animation(AnimationSpec(view, properties, duration: duration)))
+        editUnstarted { $0.add(.animation(AnimationSpec(view, properties, duration: duration))) }
         return self
     }
 
@@ -81,18 +96,22 @@ public final class Kinieta {
     /// `.infinity` waits until the timeline is cancelled.
     @discardableResult
     public func wait(_ time: TimeInterval) -> Kinieta {
-        mainSequence.pending.add(.pause(Kinieta.sanitized(time, in: "wait(_:)", allowsInfinity: true)))
+        let time = Kinieta.sanitized(time, in: "wait(_:)", allowsInfinity: true)
+        editUnstarted { $0.add(.pause(time)) }
         return self
     }
 
-    /// Delays the start of the previous action by `time` seconds.
+    /// Delays the start of the previous action by `time` seconds. Does nothing
+    /// once that action has started.
     ///
     /// Accepts the same times as ``wait(_:)``.
     @discardableResult
     public func delay(_ time: TimeInterval) -> Kinieta {
-        guard let last = mainSequence.pending.popLast() else { return self }
         let time = Kinieta.sanitized(time, in: "delay(_:)", allowsInfinity: true)
-        mainSequence.pending.add(.sequence([.pause(time), last]))
+        editUnstarted { queue in
+            guard let last = queue.popLast() else { return }
+            queue.add(.sequence([.pause(time), last]))
+        }
         return self
     }
 
@@ -109,29 +128,69 @@ public final class Kinieta {
     /// Seals everything before it into one step, so a following `parallel()`
     /// only gathers the actions added after `then`.
     public var then: Kinieta {
-        let actions = mainSequence.pending.popAllUngrouped()
-        guard !actions.isEmpty else { return self }
-        mainSequence.pending.add(.group([.sequence(actions)]))
+        editUnstarted { queue in
+            let actions = queue.popAllUngrouped()
+            guard !actions.isEmpty else { return }
+            queue.add(.group([.sequence(actions)]))
+        }
         return self
     }
 
     /// Runs every action added since the last `then` or `parallel()` together.
+    /// Actions that have already started are left out.
     @discardableResult
     public func parallel() -> Kinieta {
-        let actions = mainSequence.pending.popAllUngrouped()
-        guard !actions.isEmpty else { return self }
-        mainSequence.pending.add(.group(actions))
+        editUnstarted { queue in
+            let actions = queue.popAllUngrouped()
+            guard !actions.isEmpty else { return }
+            queue.add(.group(actions))
+        }
         return self
     }
 
-    /// Appends `times` more copies of everything in the timeline so far.
+    /// Appends `times` more copies of everything in the timeline so far,
+    /// including actions that are already running or done.
+    ///
+    /// A finished timeline forgets its actions, so repeating one that was
+    /// extended after it finished copies only what was added since.
     @discardableResult
     public func `repeat`(times: Int = 1) -> Kinieta {
-        let copy = mainSequence.pending.types
-        for _ in 0..<max(times, 0) {
-            for type in copy { mainSequence.pending.add(type) }
+        let copy = timeline
+        editUnstarted { queue in
+            for _ in 0..<max(times, 0) {
+                for type in copy { queue.add(type) }
+            }
         }
         return self
+    }
+
+    /// Edits the steps that have not started yet and hands them back to the
+    /// running sequence. Steps already started are out of reach, so easing,
+    /// `delay`, `onComplete`, `then` and `parallel` never touch them.
+    ///
+    /// If the edit adds steps to a finished timeline, the timeline starts again.
+    private func editUnstarted(_ edit: (inout ActionQueue) -> Void) {
+        guard state != .cancelled else { return }
+        let started = timeline.count - mainSequence.pending.count
+        var queue = mainSequence.pending
+        edit(&queue)
+        timeline.replaceSubrange(started..., with: queue.types)
+        mainSequence.pending = queue
+        if state == .finished && !queue.isEmpty { restart() }
+    }
+
+    /// Runs a finished timeline again from the steps waiting in its queue.
+    /// A timeline whose group is still running rejoins it; otherwise it
+    /// leaves the group and the engine drives it.
+    private func restart() {
+        state = .running
+        if let owner, owner.members?.adopt(mainSequence) == true {
+            if owner.isPaused { pause() }
+            return
+        }
+        owner?.children.removeAll { $0 === self }
+        owner = nil
+        Engine.shared.add(mainSequence)
     }
 
     // MARK: Easing
@@ -139,8 +198,10 @@ public final class Kinieta {
     /// Applies `easing` to the previous animation, including one wrapped by `delay`.
     @discardableResult
     public func easing(_ easing: Easing) -> Kinieta {
-        guard let last = mainSequence.pending.popLast() else { return self }
-        mainSequence.pending.add(last.withEasing(easing.bezier) ?? last)
+        editUnstarted { queue in
+            guard let last = queue.popLast() else { return }
+            queue.add(last.withEasing(easing.bezier) ?? last)
+        }
         return self
     }
 
@@ -161,11 +222,14 @@ public final class Kinieta {
 
     // MARK: Completion
 
-    /// Calls `block` when the previous action finishes.
+    /// Calls `block` when the previous action finishes. Does nothing once
+    /// that action has started.
     @discardableResult
     public func onComplete(_ block: @escaping Block) -> Kinieta {
-        guard let last = mainSequence.pending.popLast() else { return self }
-        mainSequence.pending.add(last.withCompletion(block))
+        editUnstarted { queue in
+            guard let last = queue.popLast() else { return }
+            queue.add(last.withCompletion(block))
+        }
         return self
     }
 
@@ -202,6 +266,9 @@ public final class Kinieta {
     }
 
     /// Suspends until the whole timeline has finished or been cancelled.
+    ///
+    /// Actions added while waiting are waited for too. Actions added to a
+    /// finished timeline start it again, and a later call waits for them.
     public func finished() async {
         if state == .finished || state == .cancelled { return }
         await withCheckedContinuation { waiters.append($0) }
@@ -212,6 +279,12 @@ public final class Kinieta {
     private func finish(as state: State) {
         guard self.state == .running || self.state == .paused else { return }
         self.state = state
+        // Drop what has run: a completion block that captures this handle, or
+        // an owner of it, would otherwise keep both alive.
+        timeline = []
+        mainSequence.pending = ActionQueue()
+        mainSequence.currentAction = nil
+        members = nil
         let pending = waiters
         waiters = []
         for waiter in pending { waiter.resume() }
@@ -245,9 +318,10 @@ public final class Kinieta {
             child.owner = handle
             Engine.shared.remove(child.mainSequence)
         }
+        let action = GroupAction(running: members.map { $0.mainSequence }, completion: completion)
         handle.children = members
-        handle.mainSequence.currentAction = GroupAction(
-            running: members.map { $0.mainSequence }, completion: completion)
+        handle.members = action
+        handle.mainSequence.currentAction = action
         return handle
     }
 

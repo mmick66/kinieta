@@ -7,8 +7,8 @@ import Foundation
 @MainActor
 final class SequenceAction: Action {
 
-    /// The actions still to come, as descriptions. `Kinieta` builds the
-    /// timeline by editing this queue.
+    /// The actions still to come, as descriptions. `Kinieta` keeps this in
+    /// step with the unstarted end of its timeline.
     var pending: ActionQueue
 
     var completion: Block?

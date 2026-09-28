@@ -16,6 +16,8 @@ struct ActionQueue {
 
     var isEmpty: Bool { types.isEmpty }
 
+    var count: Int { types.count }
+
     mutating func add(_ type: ActionType) {
         types.append(type)
     }

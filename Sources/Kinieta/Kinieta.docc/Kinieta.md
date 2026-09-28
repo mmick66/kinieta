@@ -18,6 +18,8 @@ square.animate(.x(374), .background(.systemPink), duration: 1.0)
 
 Every timeline is a ``Kinieta`` handle. Keep it to ``Kinieta/cancel()``,
 ``Kinieta/pause()``, ``Kinieta/resume()`` or `await` ``Kinieta/finished()``.
+A handle can be extended at any time: actions added to a finished timeline
+start it again, while a cancelled timeline stays cancelled.
 
 Colours interpolate through the perceptual LCH space by default, so a
 transition from pink to cyan never passes through grey. Easing curves are cubic

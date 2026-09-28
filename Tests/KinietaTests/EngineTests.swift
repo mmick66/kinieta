@@ -486,7 +486,7 @@ struct EngineTests {
     // MARK: Kinieta chain building
 
     private func descriptions(_ k: Kinieta) -> [String] {
-        k.mainSequence.pending.types.map { $0.description }
+        k.timeline.map { $0.description }
     }
 
     @Test func animateAppendsAnAnimation() {
@@ -499,7 +499,7 @@ struct EngineTests {
         let k = Kinieta(for: makeView()).animate(.x(1), duration: 1).delay(0.5)
         defer { k.cancel() }
         #expect(descriptions(k) == ["Sequence (2)"])
-        guard case .sequence(let inner, _)? = k.mainSequence.pending.types.first else {
+        guard case .sequence(let inner, _)? = k.timeline.first else {
             Issue.record("expected a Sequence"); return
         }
         #expect(inner.map { $0.description } == ["Pause (0.5)", "Animation (x)"])
@@ -524,7 +524,7 @@ struct EngineTests {
             .parallel()
         defer { k.cancel() }
         #expect(descriptions(k) == ["Group (1)", "Group (2)"])
-        guard case .group(let sealed, _)? = k.mainSequence.pending.types.first,
+        guard case .group(let sealed, _)? = k.timeline.first,
             case .sequence(let steps, _)? = sealed.first
         else {
             Issue.record("expected a Group holding a Sequence"); return
@@ -547,7 +547,7 @@ struct EngineTests {
     @Test func easingAttachesToTheLastAnimationOnly() {
         let k = Kinieta(for: makeView()).animate(.x(1), duration: 1).easeInOut(.back).wait(1).easeIn()
         defer { k.cancel() }
-        guard case .animation(let spec)? = k.mainSequence.pending.types.first, let bezier = spec.easing else {
+        guard case .animation(let spec)? = k.timeline.first, let bezier = spec.easing else {
             Issue.record("no easing attached"); return
         }
         #expect(bezier == Easing.inOut(.back).bezier)
@@ -558,7 +558,7 @@ struct EngineTests {
         let view = makeView()
         let k = Kinieta(for: view).animate(.x(100), duration: 1).delay(0.5).easeIn(.cubic)
         defer { k.cancel() }
-        guard case .sequence(let inner, _)? = k.mainSequence.pending.types.first,
+        guard case .sequence(let inner, _)? = k.timeline.first,
             case .animation(let spec)? = inner.last, let bezier = spec.easing
         else {
             Issue.record("easing was not applied inside the delay wrapper"); return
@@ -574,7 +574,7 @@ struct EngineTests {
     @Test func onCompleteAttachesToTheLastAction() {
         let k = Kinieta(for: makeView()).animate(.x(1), duration: 1).wait(1).onComplete {}
         defer { k.cancel() }
-        guard case .pause(_, let block)? = k.mainSequence.pending.types.last else {
+        guard case .pause(_, let block)? = k.timeline.last else {
             Issue.record("expected a Pause"); return
         }
         #expect(block != nil)
@@ -877,6 +877,173 @@ struct EngineTests {
         frames.step(0.25)
         #expect(approx(view.frame.origin.y, 25, 0.5))
         frames.step(0.75)
+        #expect(handle.state == .finished)
+        #expect(approx(view.frame.origin.y, 100))
+    }
+
+    // MARK: Extending a started or finished timeline
+
+    @Test(.timeLimit(.minutes(1)))
+    func appendingToAFinishedHandleRunsItAgain() async {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        let handle = view.animate(.x(10), duration: 0.1)
+        frames.step(0.1)
+        #expect(handle.state == .finished)
+        #expect(!frames.isRunning)
+
+        handle.animate(.x(100), duration: 1)
+        #expect(handle.isRunning)
+        #expect(frames.isRunning)
+        frames.step(0.5)
+        #expect(approx(view.frame.origin.x, 55, 0.5))
+        // Runs once the test is suspended in finished(), so the waiter is resumed by the frame.
+        Task { frames.step(0.5) }
+        await handle.finished()
+        #expect(handle.state == .finished)
+        #expect(approx(view.frame.origin.x, 100))
+    }
+
+    @Test func emptyHandleBuiltAFrameLaterStillAnimates() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        let handle = Kinieta(for: view)
+        frames.step()
+        #expect(handle.state == .finished)
+        handle.animate(.x(100), duration: 1)
+        frames.step(0.5)
+        #expect(approx(view.frame.origin.x, 50, 0.5))
+        frames.step(0.5)
+        #expect(handle.state == .finished)
+        #expect(approx(view.frame.origin.x, 100))
+    }
+
+    @Test func repeatAfterTheFirstFramePlaysTheWholeChainTwice() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        var laps = 0
+        let handle = view.animate(.x(100), duration: 1)
+            .animate(.x(0), duration: 1)
+            .onComplete { laps += 1 }
+        frames.step(0.5)
+        handle.repeat(times: 1)
+        #expect(handle.timeline.map { $0.description } == Array(repeating: "Animation (x)", count: 4))
+        frames.step(0.5)
+        #expect(approx(view.frame.origin.x, 100))
+        frames.step(1)
+        #expect(approx(view.frame.origin.x, 0))
+        #expect(laps == 1)
+        frames.step(1)
+        #expect(approx(view.frame.origin.x, 100))
+        frames.step(1)
+        #expect(approx(view.frame.origin.x, 0))
+        #expect(laps == 2)
+        #expect(handle.state == .finished)
+    }
+
+    @Test func modifiersNeverReachAnActionThatHasStarted() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        var completed = false
+        let handle = view.animate(.x(100), duration: 1)
+        frames.step(0.25)
+        handle.easeIn(.cubic).onComplete { completed = true }.delay(1)
+        frames.step(0.25)
+        #expect(approx(view.frame.origin.x, 50, 0.5))  // still linear, not delayed
+        handle.animate(.y(100), duration: 1).easeIn(.cubic)
+        frames.step(0.5)
+        #expect(approx(view.frame.origin.x, 100))
+        #expect(!completed)
+        frames.step(0.5)
+        #expect(approx(view.frame.origin.y, 14.5, 0.5))  // cubicIn(0.5), not linear 50
+    }
+
+    @Test func extendingFromItsOwnLastCompletionBlockContinuesInTheSameFrame() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        let handle = view.animate(.x(100), duration: 1)
+        handle.onComplete { handle.animate(.y(100), duration: 1) }
+        frames.step(1.5)
+        #expect(approx(view.frame.origin.x, 100))
+        #expect(approx(view.frame.origin.y, 50, 0.5))
+        frames.step(0.5)
+        #expect(handle.state == .finished)
+    }
+
+    @Test func cancelledHandleIgnoresAppends() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        let handle = view.animate(.x(100), duration: 1)
+        handle.cancel()
+        handle.animate(.y(100), duration: 1).repeat(times: 2)
+        #expect(handle.state == .cancelled)
+        #expect(handle.timeline.isEmpty)
+        #expect(!frames.isRunning)
+        frames.step(1)
+        #expect(view.frame.origin.y == 0)
+    }
+
+    @Test func finishedHandleReleasesBlocksThatCaptureIt() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        weak var weakHandle: Kinieta?
+        do {
+            let handle = makeView().animate(.x(100), duration: 1)
+            handle.onComplete { _ = handle.state }
+            weakHandle = handle
+        }
+        #expect(weakHandle != nil)
+        frames.step(1)
+        #expect(weakHandle == nil)
+    }
+
+    @Test func groupedHandleExtendedAfterFinishingRejoinsItsGroup() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let a = makeView(), b = makeView()
+        var completions = 0
+        let first = a.animate(.x(100), duration: 0.5)
+        let second = b.animate(.y(100), duration: 1)
+        let group = Kinieta.group(first, second) { completions += 1 }
+        frames.step(0.5)
+        #expect(first.state == .finished)
+        first.animate(.alpha(0), duration: 1)
+        #expect(first.isRunning)
+        frames.step(0.5)
+        #expect(second.state == .finished)
+        #expect(group.isRunning && completions == 0)
+        group.pause()
+        #expect(first.isPaused)
+        frames.step(0.5)
+        #expect(approx(a.alpha, 0.5, 0.01))
+        group.resume()
+        frames.step(0.5)
+        #expect(approx(a.alpha, 0, 0.01))
+        #expect(first.state == .finished && group.state == .finished)
+        #expect(completions == 1)
+    }
+
+    @Test func groupedHandleExtendedAfterItsGroupFinishedRunsOnItsOwn() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        let handle = view.animate(.x(100), duration: 0.5)
+        let group = Kinieta.group(handle)
+        frames.step(0.5)
+        #expect(group.state == .finished)
+        handle.animate(.y(100), duration: 1)
+        #expect(handle.isRunning && frames.isRunning)
+        frames.step(0.5)
+        #expect(approx(view.frame.origin.y, 50, 0.5))
+        group.cancel()  // already finished: must not reach the handle
+        #expect(handle.isRunning)
+        frames.step(0.5)
         #expect(handle.state == .finished)
         #expect(approx(view.frame.origin.y, 100))
     }
