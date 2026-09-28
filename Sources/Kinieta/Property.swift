@@ -104,37 +104,29 @@ public enum Property: Sendable {
     ) -> Transformation {
         // A fully transparent endpoint has no colour of its own. Fade the other
         // colour's alpha instead of passing through black.
-        var from = source, to = target
-        if from.components(as: .RGB).alpha == 0 { from = to.withAlphaComponent(0) }
-        if to.components(as: .RGB).alpha == 0 { to = from.withAlphaComponent(0) }
+        var from = ColorMath.extractComponents(of: source)
+        var to = ColorMath.extractComponents(of: target)
+        if from.alpha == 0 { from = to.withAlpha(0) }
+        if to.alpha == 0 { to = from.withAlpha(0) }
 
+        // A grey endpoint has no hue; borrow the other one's so the
+        // interpolation does not sweep through the colour wheel. Hue then
+        // takes the shorter way round.
+        let achromatic: CGFloat = 1e-3
         let between: (CGFloat) -> UIColor
         switch mode {
         case .rgb:
-            let f = from.components(as: .RGB), t = to.components(as: .RGB)
-            between = { c in UIColor(components: (1.0 - c) * f + c * t) }
+            between = { c in from.lerp(to, c).color() }
         case .hsb:
-            var f = from.components(as: .HSB)
-            var t = to.components(as: .HSB)
-            // A grey endpoint has no hue; borrow the other one's so the
-            // interpolation does not sweep through the colour wheel.
-            let achromatic: CGFloat = 1e-3
-            if f.c2 < achromatic { f.c1 = t.c1 }
-            if t.c2 < achromatic { t.c1 = f.c1 }
-            // Hue is circular in 0...1: take the shorter way round.
-            if t.c1 - f.c1 > 0.5 { t.c1 -= 1 } else if f.c1 - t.c1 > 0.5 { t.c1 += 1 }
-            between = { c in
-                var comps = (1.0 - c) * f + c * t
-                comps.c1 = comps.c1 - floor(comps.c1)
-                return UIColor(components: comps)
-            }
+            var f = from.hsb, t = to.hsb
+            if f.saturation < achromatic { f.hue = t.hue }
+            if t.saturation < achromatic { t.hue = f.hue }
+            between = { c in f.lerp(t, c).rgb.color() }
         case .lch:
-            var f = from.rgbColor().toLCH()
-            var t = to.rgbColor().toLCH()
-            let achromatic: CGFloat = 1e-3
-            if f.c < achromatic { f = LCHColor(l: f.l, c: f.c, h: t.h, alpha: f.alpha) }
-            if t.c < achromatic { t = LCHColor(l: t.l, c: t.c, h: f.h, alpha: t.alpha) }
-            between = { c in f.lerp(t, t: c).toRGB().clamped().color() }
+            var f = from.lch, t = to.lch
+            if f.chroma < achromatic { f.hue = t.hue }
+            if t.chroma < achromatic { t.hue = f.hue }
+            between = { c in f.lerp(t, c).rgb.clamped().color() }
         }
 
         return { view, factor in

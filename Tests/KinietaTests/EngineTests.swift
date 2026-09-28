@@ -335,12 +335,12 @@ struct EngineTests {
 
     // MARK: Colour
 
-    private func rgb(_ color: UIColor?) -> UIColor.Components {
-        color!.components(as: .RGB)
+    private func rgb(_ color: UIColor?) -> ColorMath.RGB {
+        ColorMath.extractComponents(of: color!)
     }
 
-    private func sameColour(_ a: UIColor.Components, _ b: UIColor.Components, _ tolerance: CGFloat) -> Bool {
-        approx(a.c1, b.c1, tolerance) && approx(a.c2, b.c2, tolerance) && approx(a.c3, b.c3, tolerance)
+    private func sameColour(_ a: ColorMath.RGB, _ b: ColorMath.RGB, _ tolerance: CGFloat) -> Bool {
+        approx(a.red, b.red, tolerance) && approx(a.green, b.green, tolerance) && approx(a.blue, b.blue, tolerance)
     }
 
     @Test func backgroundReachesTargetInEveryColourSpace() {
@@ -367,7 +367,7 @@ struct EngineTests {
         _ = a.update(frame(0.5))
         let mid = rgb(view.backgroundColor)
         // Straight RGB gives (0.5, 0, 0.5); the LCH path is brighter and purpler.
-        #expect(mid.c1 + mid.c2 + mid.c3 > 1.2)
+        #expect(mid.red + mid.green + mid.blue > 1.2)
     }
 
     @Test func overshootingEasingDoesNotBreakColourInterpolation() {
@@ -401,7 +401,7 @@ struct EngineTests {
         view.backgroundColor = .gray
         let a = animation(view, [.background(.blue, interpolation: .hsb)], duration: 1.0)
         _ = a.update(frame(0.5))
-        #expect(approx(view.backgroundColor!.hsba.hue, 2.0 / 3.0, 0.01))  // blue's hue, not a sweep from 0
+        #expect(approx(rgb(view.backgroundColor).hsb.hue, 240, 1))  // blue's hue, not a sweep from 0
     }
 
     @Test func fadingFromClearKeepsTheTargetColour() {
@@ -410,7 +410,7 @@ struct EngineTests {
         let a = animation(view, [.background(.white, interpolation: .rgb)], duration: 1.0)
         _ = a.update(frame(0.5))
         let mid = rgb(view.backgroundColor)
-        #expect(approx(mid.c1, 1, 1e-6) && approx(mid.c2, 1, 1e-6) && approx(mid.c3, 1, 1e-6))
+        #expect(approx(mid.red, 1, 1e-6) && approx(mid.green, 1, 1e-6) && approx(mid.blue, 1, 1e-6))
         #expect(approx(mid.alpha, 0.5, 1e-6))
     }
 

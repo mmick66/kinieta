@@ -35,7 +35,7 @@ import UIKit
 /// - Saturation:   The saturation color part of HSB.
 /// - Brightness:   The brightness color part of HSB.
 ///
-
+@available(*, deprecated, message: "Vendored from HandyUIKit by mistake; removed in Kinieta 2.0. Use HandyUIKit.")
 public enum ChangeableColorComponent {
     case red
     case green
@@ -49,6 +49,8 @@ public enum ChangeableColorComponent {
     case alpha
 }
 
+// Kinieta's own colour arithmetic lives in ColorMath. Nothing here is used internally.
+@available(*, deprecated, message: "Vendored from HandyUIKit by mistake; removed in Kinieta 2.0. Use HandyUIKit.")
 extension UIColor {
 
     /// Initializes and returns a color with the given HLCA values.
@@ -58,19 +60,23 @@ extension UIColor {
     ///   - luminance:  The luminance. A value between 0 and 1.
     ///   - chroma:     The chroma. A value between 0 and 1.
     ///   - alpha:      The alpha. A value between 0 and 1.
+    @available(*, deprecated, message: "Vendored from HandyUIKit by mistake; removed in Kinieta 2.0. Use HandyUIKit.")
     public convenience init(hue: CGFloat, luminance: CGFloat, chroma: CGFloat, alpha: CGFloat) {
-        let rgb = LCHColor(l: luminance * 100, c: chroma * 128, h: hue * 360, alpha: alpha).toRGB()
-        self.init(red: rgb.r, green: rgb.g, blue: rgb.b, alpha: rgb.alpha)
+        let lch = ColorMath.LCH(lightness: luminance * 100, chroma: chroma * 128, hue: hue * 360, alpha: alpha)
+        let rgb = lch.rgb
+        self.init(red: rgb.red, green: rgb.green, blue: rgb.blue, alpha: rgb.alpha)
     }
 
     // MARK: - Computed Properties
     /// The HLC & alpha attributes of the `UIColor` instance.
+    @available(*, deprecated, message: "Vendored from HandyUIKit by mistake; removed in Kinieta 2.0. Use HandyUIKit.")
     public var hlca: (hue: CGFloat, luminance: CGFloat, chroma: CGFloat, alpha: CGFloat) {
-        let lch = rgbColor().toLCH()
-        return (hue: lch.h / 360, luminance: lch.l / 100, chroma: lch.c / 128, alpha: lch.alpha)
+        let lch = ColorMath.extractComponents(of: self).lch
+        return (hue: lch.hue / 360, luminance: lch.lightness / 100, chroma: lch.chroma / 128, alpha: lch.alpha)
     }
 
     /// The HSB & alpha attributes of the `UIColor` instance.
+    @available(*, deprecated, message: "Removed in Kinieta 2.0. Use getHue(_:saturation:brightness:alpha:).")
     public var hsba: (hue: CGFloat, saturation: CGFloat, brightness: CGFloat, alpha: CGFloat) {
         var hue: CGFloat = 0, saturation: CGFloat = 0, brightness: CGFloat = 0, alpha: CGFloat = 0
         getHue(&hue, saturation: &saturation, brightness: &brightness, alpha: &alpha)
@@ -79,6 +85,7 @@ extension UIColor {
     }
 
     /// The RGB & alpha attributes of the `UIColor` instance.
+    @available(*, deprecated, message: "Removed in Kinieta 2.0. Use getRed(_:green:blue:alpha:).")
     public var rgba: (red: CGFloat, green: CGFloat, blue: CGFloat, alpha: CGFloat) {
         var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0
         getRed(&red, green: &green, blue: &blue, alpha: &alpha)
@@ -93,6 +100,7 @@ extension UIColor {
     ///   - attribute: The attribute to change.
     ///   - addition: The addition to be added to the current value of the attribute.
     /// - Returns: The resulting new `UIColor` with the specified change applied.
+    @available(*, deprecated, message: "Vendored from HandyUIKit by mistake; removed in Kinieta 2.0. Use HandyUIKit.")
     public func change(_ attribute: ChangeableColorComponent, by addition: CGFloat) -> UIColor {
         switch attribute {
         case .red:
@@ -123,7 +131,7 @@ extension UIColor {
             return change(attribute, to: hlca.chroma + addition)
 
         case .alpha:
-            return change(attribute, to: hlca.alpha + addition)
+            return change(attribute, to: rgba.alpha + addition)
         }
     }
 
@@ -133,6 +141,7 @@ extension UIColor {
     ///   - attribute: The attribute to change.
     ///   - newValue: The new value to be set for the attribute.
     /// - Returns: The resulting new `UIColor` with the specified change applied.
+    @available(*, deprecated, message: "Vendored from HandyUIKit by mistake; removed in Kinieta 2.0. Use HandyUIKit.")
     public func change(_ attribute: ChangeableColorComponent, to newValue: CGFloat) -> UIColor {
         switch attribute {
         case .red, .green, .blue:
@@ -141,8 +150,12 @@ extension UIColor {
         case .hueHSB, .saturation, .brightness:
             return newHsbaColor(attribute, newValue)
 
-        case .hueHLC, .luminance, .chroma, .alpha:
+        case .hueHLC, .luminance, .chroma:
             return newHlcaColor(attribute, newValue)
+
+        case .alpha:
+            // Not through LCH: the round trip would shift the colour itself.
+            return withAlphaComponent(newValue)
         }
     }
 
@@ -158,9 +171,6 @@ extension UIColor {
 
         case .chroma:
             newHlca.chroma = newValue
-
-        case .alpha:
-            newHlca.alpha = newValue
 
         default:
             break

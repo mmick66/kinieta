@@ -13,8 +13,20 @@ All notable changes to Kinieta are documented here. The format follows
   grey endpoints, an overshooting curve, and dynamic colours in light and
   dark appearance. 72 reference images, 57 tests in total.
 
+### Deprecated
+
+- The `UIColor` helpers vendored from HandyUIKit: `ChangeableColorComponent`,
+  `change(_:by:)`, `change(_:to:)`, `hlca`, `hsba`, `rgba` and
+  `init(hue:luminance:chroma:alpha:)`. They were never part of Kinieta's API
+  and clash with HandyUIKit itself. They are removed in 2.0.
+- `UIColor.Components`, which was public but had no public members. It is
+  removed in 2.0. See "Replacing the deprecated colour helpers" in the DocC
+  catalog.
+
 ### Fixed
 
+- The deprecated `change(.alpha, to:)` no longer shifts the colour: it sets
+  the alpha directly instead of going through LCH.
 - `Easing.inOut(.sine)` used the `inOut(.quad)` curve. It now uses Ceaser's
   easeInOutSine, `Bezier(0.445, 0.05, 0.55, 0.95)`.
 

@@ -52,3 +52,4 @@ as zero.
 ### Migrating
 
 - <doc:MigratingFrom0.5>
+- <doc:DeprecatedColorHelpers>
