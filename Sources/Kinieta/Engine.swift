@@ -26,17 +26,28 @@
 #if canImport(UIKit)
 import UIKit
 
+/// Delivers frames to the engine while it has actions to run.
+///
+/// Production uses `Engine.DisplayLinkDriver`; tests install a manual driver
+/// and step frames by hand so timelines run deterministically.
+@MainActor
+protocol FrameDriver: AnyObject {
+    /// `true` between `start(onFrame:)` and `stop()`.
+    var isRunning: Bool { get }
+    /// Starts delivering frames to `onFrame`. Does nothing if already running.
+    func start(onFrame: @escaping (Engine.Frame) -> Void)
+    /// Stops delivering frames and releases `onFrame`.
+    func stop()
+}
+
 @MainActor
 public final class Engine {
 
     /// One tick of the engine clock.
     struct Frame: Sendable {
-        /// Display-link timestamp of this frame, in seconds.
-        var timestamp: TimeInterval
         /// Time elapsed since the previous frame, in seconds. Actions advance by this amount.
         var duration: TimeInterval
-        init(_ timestamp: TimeInterval, _ duration: TimeInterval) {
-            self.timestamp = timestamp
+        init(_ duration: TimeInterval) {
             self.duration = duration
         }
     }
@@ -56,13 +67,13 @@ public final class Engine {
         mutating func frame(at timestamp: TimeInterval, nominalDuration: TimeInterval) -> Frame {
             defer { lastTimestamp = timestamp }
             guard let last = lastTimestamp else {
-                return Frame(timestamp, nominalDuration)
+                return Frame(nominalDuration)
             }
             let elapsed = timestamp - last
             guard elapsed > 0, elapsed <= FrameClock.maximumGap else {
-                return Frame(timestamp, nominalDuration)
+                return Frame(nominalDuration)
             }
-            return Frame(timestamp, elapsed)
+            return Frame(elapsed)
         }
 
         mutating func reset() {
@@ -70,23 +81,18 @@ public final class Engine {
         }
     }
 
+    /// Drives the engine from a `CADisplayLink` on the main run loop.
     @MainActor
-    final class DisplayLink {
+    final class DisplayLinkDriver: FrameDriver {
         private var displayLink: CADisplayLink?
         private var clock = FrameClock()
-        private var onUpdate: ((Frame) -> Void)?
+        private var onFrame: ((Frame) -> Void)?
 
-        func pause() {
-            displayLink?.isPaused = true
-        }
+        var isRunning: Bool { displayLink != nil }
 
-        func resume() {
-            displayLink?.isPaused = false
-        }
-
-        func start(onUpdate: @escaping (Frame) -> Void) {
+        func start(onFrame: @escaping (Frame) -> Void) {
             guard displayLink == nil else { return }
-            self.onUpdate = onUpdate
+            self.onFrame = onFrame
             clock.reset()
             let link = CADisplayLink(target: self, selector: #selector(update(_:)))
             link.preferredFrameRateRange = CAFrameRateRange(minimum: 60, maximum: 120, preferred: 120)
@@ -97,19 +103,24 @@ public final class Engine {
         func stop() {
             displayLink?.invalidate()
             displayLink = nil
-            onUpdate = nil
+            onFrame = nil
         }
 
         @objc private func update(_ link: CADisplayLink) {
             let nominal = link.targetTimestamp - link.timestamp
             let frame = clock.frame(at: link.timestamp, nominalDuration: nominal)
-            onUpdate?(frame)
+            onFrame?(frame)
         }
     }
 
     public static let shared = Engine()
 
-    let displayLink = Engine.DisplayLink()
+    /// The source of frames. Swapping it stops the old driver and, if any
+    /// actions are registered, hands them to the new one.
+    var driver: any FrameDriver = DisplayLinkDriver() {
+        willSet { driver.stop() }
+        didSet { startDriverIfNeeded() }
+    }
 
     private var actions: [Action] = []
 
@@ -132,9 +143,7 @@ public final class Engine {
 
     func add(_ action: Action) {
         actions.append(action)
-        displayLink.start { [weak self] frame in
-            self?.update(with: frame)
-        }
+        startDriverIfNeeded()
     }
 
     func remove(_ action: Action) {
@@ -143,7 +152,14 @@ public final class Engine {
         }
         actions.remove(at: index)
         if actions.isEmpty {
-            displayLink.stop()
+            driver.stop()
+        }
+    }
+
+    private func startDriverIfNeeded() {
+        guard !actions.isEmpty else { return }
+        driver.start { [weak self] frame in
+            self?.update(with: frame)
         }
     }
 

@@ -50,7 +50,7 @@ final class SequenceAction: Action {
                 // Hand the unused part of the frame to the next action so a
                 // boundary never costs a frame. Nothing left: wait for the next one.
                 guard overshoot > 0 else { return .running }
-                frame = Engine.Frame(frame.timestamp, overshoot)
+                frame = Engine.Frame(overshoot)
             }
         }
     }

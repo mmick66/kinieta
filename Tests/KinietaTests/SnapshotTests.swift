@@ -59,7 +59,7 @@ struct SnapshotTests {
         let animation = PropertyAnimation(AnimationSpec(box, properties, duration: 1, easing: easing?.bezier))
         var elapsed: CGFloat = 0
         while elapsed < progress {
-            _ = animation.update(Engine.Frame(0, 0.25))
+            _ = animation.update(Engine.Frame(0.25))
             elapsed += 0.25
         }
     }
