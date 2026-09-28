@@ -17,3 +17,7 @@ xcuserdata/
 .beads-credential-key
 .beads/proxieddb/
 *.gate.lock*
+
+# Claude Code agent worktrees and dispatcher logs
+.claude/worktrees/
+.claude/orchestrate.log
