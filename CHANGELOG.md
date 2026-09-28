@@ -16,7 +16,7 @@ All notable changes to Kinieta are documented here. The format follows
   example app has a 60/120 Hz toggle.
 - Debug builds log a warning, with the file and line of the call, for every
   chain call that is ignored: easing that follows no animation, `delay`,
-  `onComplete` or easing with no unstarted action, `then` or `parallel()` with
+  `onComplete` or easing with no unstarted action, `then()` or `parallel()` with
   nothing to gather, `repeat(times:)` with zero or fewer times or an empty
   timeline, and `animate` on a group handle. They use the `Kinieta` subsystem,
   category `Chain`; release builds log nothing. See "Troubleshooting" in the
@@ -52,6 +52,12 @@ All notable changes to Kinieta are documented here. The format follows
 - `UIColor.Components`, which was public but had no public members. It is
   removed in 2.0. See "Replacing the deprecated colour helpers" in the DocC
   catalog.
+- The `then` property, renamed `then()`. Reading a property changed the
+  timeline, so a second read, a `print` or the debugger could seal it again;
+  the method is discardable and its warnings carry the file and line.
+- `Easing.Curve.custom(Bezier)`. Use `Easing.custom(_:)`: the curve is used as
+  given, so `.in(.custom(b))`, `.out(.custom(b))` and `.inOut(.custom(b))`
+  silently ignored the placement.
 
 ### Fixed
 

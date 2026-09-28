@@ -32,7 +32,7 @@ struct ActionQueue {
     }
 
     /// Removes and returns every trailing action up to, but not including,
-    /// the last group. Used by `parallel()` and `then`.
+    /// the last group. Used by `parallel()` and `then()`.
     mutating func popAllUngrouped() -> [ActionType] {
         var actions: [ActionType] = []
         while let last = popLast() {

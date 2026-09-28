@@ -10,7 +10,7 @@ import Foundation
 public struct Easing: Sendable, Equatable {
 
     /// The shape of an easing. Each shape comes in `in`, `out` and `inOut`
-    /// placements; `custom` uses the Bézier as given.
+    /// placements. For your own curve use ``Easing/custom(_:)``.
     public enum Curve: Sendable, Equatable {
         case sine
         case quad
@@ -19,6 +19,9 @@ public struct Easing: Sendable, Equatable {
         case quint
         case expo
         case back
+        /// Uses the Bézier as given, whatever the placement: `.in(.custom(b))`,
+        /// `.out(.custom(b))` and `.inOut(.custom(b))` are all the same curve.
+        @available(*, deprecated, message: "use Easing.custom(_:); the in, out or inOut placement is ignored")
         case custom(Bezier)
     }
 
@@ -42,7 +45,7 @@ public struct Easing: Sendable, Equatable {
         Easing(bezier: resolve(curve, .inOut))
     }
 
-    /// Any cubic Bézier, for example one taken from cubic-bezier.com.
+    /// Any cubic Bézier, for example one taken from cubic-bezier.com, used as given.
     public static func custom(_ bezier: Bezier) -> Easing {
         Easing(bezier: bezier)
     }

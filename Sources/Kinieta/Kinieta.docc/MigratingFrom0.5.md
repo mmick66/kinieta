@@ -18,6 +18,7 @@ Guidelines, and returns a handle you can control.
 | `["brw": 2]`, `["crd": 8]` | `.borderWidth(2)`, `.cornerRadius(8)` |
 | `.easeInOut(.Back)` | `.easeInOut(.back)` or `.easing(.inOut(.back))` |
 | `.easeInOut(.Custom(bezier))` | `.easing(.custom(bezier))` |
+| `.then` | `.then()` |
 | `.wait(for: 1)` | `.wait(1)` |
 | `.delay(for: 1)` | `.delay(1)` |
 | `.again(times: 2)` | `.repeat(times: 2)` |
@@ -40,7 +41,7 @@ Guidelines, and returns a handle you can control.
   colour changes still animate. Set `Engine.shared.reduceMotionBehavior =
   .snapAll` to snap everything, or `Engine.shared.respectsReduceMotion = false`
   to opt out.
-- `then` keeps the order of the actions it seals.
+- `then()` keeps the order of the actions it seals.
 
 ## Distribution
 

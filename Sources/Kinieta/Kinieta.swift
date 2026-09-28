@@ -157,16 +157,26 @@ public final class Kinieta {
     }
 
     /// Seals everything before it into one step, so a following `parallel()`
-    /// only gathers the actions added after `then`.
-    ///
-    /// Being a property, `then` cannot locate its caller: a warning that it
-    /// found nothing to seal carries no file and line.
+    /// only gathers the actions added after `then()`.
+    @discardableResult
+    public func then(file: StaticString = #fileID, line: UInt = #line) -> Kinieta {
+        seal(file: file, line: line)
+    }
+
+    /// Seals everything before it into one step. Reading a property should not
+    /// change the timeline, and this one cannot locate its caller: its warnings
+    /// carry no file and line.
+    @available(*, deprecated, renamed: "then()")
     public var then: Kinieta {
+        seal(file: nil, line: 0)
+    }
+
+    private func seal(file: StaticString?, line: UInt) -> Kinieta {
         editUnstarted { queue in
             let actions = queue.popAllUngrouped()
             guard !actions.isEmpty else {
                 Kinieta.ignored(
-                    "then has nothing to seal: \(nothingUngrouped(in: queue)); ignoring it", file: nil, line: 0)
+                    "then() has nothing to seal: \(nothingUngrouped(in: queue)); ignoring it", file: file, line: line)
                 return
             }
             queue.add(.group([.sequence(actions)]))
@@ -174,7 +184,7 @@ public final class Kinieta {
         return self
     }
 
-    /// Runs every action added since the last `then` or `parallel()` together.
+    /// Runs every action added since the last `then()` or `parallel()` together.
     /// Actions that have already started are left out.
     @discardableResult
     public func parallel(file: StaticString = #fileID, line: UInt = #line) -> Kinieta {
@@ -219,7 +229,7 @@ public final class Kinieta {
 
     /// Edits the steps that have not started yet and hands them back to the
     /// running sequence. Steps already started are out of reach, so easing,
-    /// `delay`, `onComplete`, `then` and `parallel` never touch them.
+    /// `delay`, `onComplete`, `then()` and `parallel()` never touch them.
     ///
     /// If the edit adds steps to a finished timeline, the timeline starts again.
     private func editUnstarted(_ edit: (inout ActionQueue) -> Void) {
@@ -238,9 +248,9 @@ public final class Kinieta {
         timeline.isEmpty ? "the timeline is empty" : "every action in it has already started"
     }
 
-    /// Why `then` or `parallel()` found nothing to gather in `queue`, for warnings.
+    /// Why `then()` or `parallel()` found nothing to gather in `queue`, for warnings.
     private func nothingUngrouped(in queue: ActionQueue) -> String {
-        queue.isEmpty ? nothingPending : "nothing was added since the last then or parallel()"
+        queue.isEmpty ? nothingPending : "nothing was added since the last then() or parallel()"
     }
 
     /// Runs a finished timeline again from the steps waiting in its queue.

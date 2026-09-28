@@ -6,8 +6,8 @@ import os
 /// A chain call that did nothing, such as easing after a `wait`, and where it
 /// was made. Reported in debug builds only.
 struct IgnoredCall: Equatable, Sendable {
-    /// Where the call was made. `nil` for `then`, a property, which cannot
-    /// take its caller's location.
+    /// Where the call was made. `nil` for the deprecated `then` property,
+    /// which cannot take its caller's location.
     struct Site: Equatable, Sendable {
         let fileID: String
         let line: UInt
@@ -54,7 +54,7 @@ extension ActionType {
         case .pause:
             return "wait"
         case .group:
-            return "parallel() or then"
+            return "parallel() or then()"
         case .sequence(let types, _):
             // Only `delay` puts a sequence in a timeline's queue.
             return "delayed " + (types.last?.callName ?? "step")

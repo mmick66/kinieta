@@ -88,7 +88,7 @@ view.animate(.x(250), duration: 0.5).easeInOut(.back)
 view.animate(.x(250), duration: 0.5).easing(.inOut(.expo))
 ```
 
-Curves: `.sine`, `.quad`, `.cubic`, `.quart`, `.quint`, `.expo`, `.back`, and `.custom(Bezier)`. A `Bezier` takes the two inner control points in the order [cubic-bezier.com](https://cubic-bezier.com/#.16,.73,.89,.24) lists them:
+Curves: `.sine`, `.quad`, `.cubic`, `.quart`, `.quint`, `.expo` and `.back`. For your own curve pass a `Bezier` to `Easing.custom`; it takes the two inner control points in the order [cubic-bezier.com](https://cubic-bezier.com/#.16,.73,.89,.24) lists them, and is used as given:
 
 ```swift
 let snap = Bezier(0.16, 0.73, 0.89, 0.24)
@@ -113,7 +113,7 @@ Durations are in seconds. A negative or NaN duration is treated as zero and logs
 
 ### Parallel actions
 
-`parallel()` gathers everything added since the last `then` or `parallel()` and runs it together.
+`parallel()` gathers everything added since the last `then()` or `parallel()` and runs it together.
 
 ```swift
 view.animate(.x(200), duration: 1.0).easeInOut(.cubic)
@@ -122,11 +122,11 @@ view.animate(.x(200), duration: 1.0).easeInOut(.cubic)
     .onComplete { print("moved and faded") }
 ```
 
-Use `then` to seal a step before starting a parallel block:
+Use `then()` to seal a step before starting a parallel block:
 
 ```swift
 view.animate(.x(300), duration: 1.0)      // first, on its own
-    .then
+    .then()
     .animate(.x(200), duration: 1.0)      // then these two
     .animate(.alpha(0), duration: 0.2)    // together
     .parallel()
@@ -174,9 +174,9 @@ handle.state             // .running, .paused, .finished or .cancelled
 await handle.finished()  // suspends until the timeline finishes or is cancelled
 ```
 
-`cancel()` and `pause()` take effect immediately, even from inside an `onComplete` block, at any depth of `then`, `delay`, `parallel` or `Kinieta.group`: the next action does not start in that frame, the other members of a group are not advanced, and a cancelled timeline stays `.cancelled` and runs no further completion blocks, including the group's.
+`cancel()` and `pause()` take effect immediately, even from inside an `onComplete` block, at any depth of `then()`, `delay`, `parallel` or `Kinieta.group`: the next action does not start in that frame, the other members of a group are not advanced, and a cancelled timeline stays `.cancelled` and runs no further completion blocks, including the group's.
 
-A handle can be extended at any time, not only while chaining. Actions added to a running timeline play after the ones already there; actions added to a finished timeline start it again on the next frame, and `finished()` waits for them. `Kinieta(for: view)` gives an empty handle to build later. Easing, `delay`, `onComplete`, `then` and `parallel` only reach actions that have not started yet (debug builds warn when one finds nothing to act on; see [Troubleshooting](#troubleshooting)), and a cancelled timeline ignores further calls. A finished timeline forgets its actions, so a later `repeat` copies only what was added since.
+A handle can be extended at any time, not only while chaining. Actions added to a running timeline play after the ones already there; actions added to a finished timeline start it again on the next frame, and `finished()` waits for them. `Kinieta(for: view)` gives an empty handle to build later. Easing, `delay`, `onComplete`, `then()` and `parallel()` only reach actions that have not started yet (debug builds warn when one finds nothing to act on; see [Troubleshooting](#troubleshooting)), and a cancelled timeline ignores further calls. A finished timeline forgets its actions, so a later `repeat` copies only what was added since.
 
 Handles hold their view weakly and never keep it alive. When the view is deallocated the timeline is cancelled on the next frame: the rest of it does not run, no further completion blocks are called, and the handle ends `.cancelled`.
 
@@ -240,13 +240,13 @@ easing(_:) follows a wait, not an animation; ignoring it (MyApp/CardView.swift:4
 
 | Call | Ignored when | Fix |
 | --- | --- | --- |
-| `easing`, `easeIn`, `easeOut`, `easeInOut` | the previous step is not an animation: a `wait`, `parallel()`, `then` or `Kinieta.group` | put the easing straight after the `animate` it shapes; inside a `parallel()` block, ease each animation before `parallel()` |
+| `easing`, `easeIn`, `easeOut`, `easeInOut` | the previous step is not an animation: a `wait`, `parallel()`, `then()` or `Kinieta.group` | put the easing straight after the `animate` it shapes; inside a `parallel()` block, ease each animation before `parallel()` |
 | `delay`, `onComplete`, easing | the timeline is empty, or every action in it has already started | chain it straight after the action, before the next frame |
-| `parallel()`, `then` | nothing was added since the last `then` or `parallel()`, the timeline is empty, or everything has started | drop the extra call |
+| `parallel()`, `then()` | nothing was added since the last `then()` or `parallel()`, the timeline is empty, or everything has started | drop the extra call |
 | `repeat(times:)` | `times` is zero or negative, or the timeline is empty | pass 1 or more; a finished timeline forgets its actions, so repeat before it ends |
 | `animate` | the handle is a `Kinieta.group` handle, which has no view | animate the grouped timelines |
 
-`then` is a property, so its warning has no file and line. Release builds neither check nor log these calls. A cancelled timeline ignores every call without a warning.
+Release builds neither check nor log these calls. A cancelled timeline ignores every call without a warning.
 
 Invalid durations and frame rate ranges, and timelines left out of a `Kinieta.group`, are logged in every build, under the categories `Timeline` and `Engine`.
 

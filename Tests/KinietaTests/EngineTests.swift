@@ -95,7 +95,8 @@ struct EngineTests {
     @Test func customEasingUsesTheGivenCurve() {
         let custom = Bezier(0.16, 0.73, 0.89, 0.24)
         #expect(Easing.custom(custom).bezier == custom)
-        #expect(Easing.inOut(.custom(custom)).bezier == custom)
+        #expect(Easing.inOut(.deprecatedCustom(custom)).bezier == custom)
+        #expect(Easing.in(.deprecatedCustom(custom)).bezier == custom)
         #expect(custom.p1.x == 0.16 && custom.p2.y == 0.24)
     }
 
@@ -753,7 +754,7 @@ struct EngineTests {
         let k = Kinieta(for: makeView())
             .animate(.x(1), duration: 1)
             .wait(1)
-            .then
+            .then()
             .animate(.x(2), duration: 1)
             .animate(.alpha(0), duration: 1)
             .parallel()
@@ -765,6 +766,14 @@ struct EngineTests {
             Issue.record("expected a Group holding a Sequence"); return
         }
         #expect(steps.map { $0.description } == ["Animation (x)", "Pause (1.0)"], "then must keep the original order")
+    }
+
+    @Test func deprecatedThenPropertyStillSeals() {
+        let k = Kinieta(for: makeView()).animate(.x(1), duration: 1).wait(1)
+        defer { k.cancel() }
+        let calls = ignoredCalls { _ = k.deprecatedThen.deprecatedThen }
+        #expect(descriptions(k) == ["Group (1)"])
+        #expect(calls.count == 1 && calls.first?.site == nil)
     }
 
     @Test func repeatAppendsCopiesOfTheWholeChain() {
@@ -1400,7 +1409,7 @@ struct EngineTests {
         handle.onComplete { handle.cancel() }
             .animate(.alpha(0))
             .onComplete { laterCompleted = true }
-            .then
+            .then()
         frames.step(1.5)
         #expect(approx(view.frame.origin.x, 100))
         #expect(view.alpha == 1)
@@ -1451,7 +1460,7 @@ struct EngineTests {
         let handle = view.animate(.x(100), duration: 1)
         handle.onComplete { handle.pause() }
             .animate(.y(100), duration: 1)
-            .then
+            .then()
         frames.step(1.5)
         #expect(view.frame.origin.y == 0)
         #expect(handle.isPaused && !frames.isRunning)
@@ -1791,8 +1800,8 @@ struct EngineTests {
     @Test func easingThatFollowsNoAnimationIsReportedAndChangesNothing() {
         let cases: [(step: String, build: (Kinieta) -> Kinieta)] = [
             ("wait", { $0.animate(.x(1), duration: 1).wait(1) }),
-            ("parallel() or then", { $0.animate(.x(1), duration: 1).animate(.y(1), duration: 1).parallel() }),
-            ("parallel() or then", { $0.animate(.x(1), duration: 1).then }),
+            ("parallel() or then()", { $0.animate(.x(1), duration: 1).animate(.y(1), duration: 1).parallel() }),
+            ("parallel() or then()", { $0.animate(.x(1), duration: 1).then() }),
             ("delayed wait", { $0.wait(1).delay(1) }),
         ]
         for (step, build) in cases {
@@ -1816,7 +1825,7 @@ struct EngineTests {
         let k = Kinieta(for: makeView())
         defer { k.cancel() }
         let calls = ignoredCalls {
-            k.delay(1).onComplete {}.easeIn().parallel().then.repeat(times: 2)
+            k.delay(1).onComplete {}.easeIn().parallel().then().repeat(times: 2)
         }
         #expect(
             calls.map(\.message) == [
@@ -1824,7 +1833,7 @@ struct EngineTests {
                 "onComplete(_:) has no action to follow: the timeline is empty; ignoring it",
                 "easing(_:) has no animation to ease: the timeline is empty; ignoring it",
                 "parallel() has nothing to run together: the timeline is empty; ignoring it",
-                "then has nothing to seal: the timeline is empty; ignoring it",
+                "then() has nothing to seal: the timeline is empty; ignoring it",
                 "repeat(times:) has nothing to repeat: the timeline is empty",
             ])
         #expect(k.timeline.isEmpty)
@@ -1838,7 +1847,7 @@ struct EngineTests {
         defer { handle.cancel() }
         frames.step(0.25)
         #expect(handle.state == .running)
-        let calls = ignoredCalls { handle.delay(1).onComplete {}.easeIn().parallel().then }
+        let calls = ignoredCalls { handle.delay(1).onComplete {}.easeIn().parallel().then() }
         let reason = "every action in it has already started; ignoring it"
         #expect(
             calls.map(\.message) == [
@@ -1846,19 +1855,19 @@ struct EngineTests {
                 "onComplete(_:) has no action to follow: \(reason)",
                 "easing(_:) has no animation to ease: \(reason)",
                 "parallel() has nothing to run together: \(reason)",
-                "then has nothing to seal: \(reason)",
+                "then() has nothing to seal: \(reason)",
             ])
     }
 
     @Test func thenOrParallelWithNothingNewToGatherIsReported() {
         let k = Kinieta(for: makeView()).animate(.x(1), duration: 1).animate(.y(1), duration: 1).parallel()
         defer { k.cancel() }
-        let calls = ignoredCalls { k.parallel().then }
-        let reason = "nothing was added since the last then or parallel(); ignoring it"
+        let calls = ignoredCalls { k.parallel().then() }
+        let reason = "nothing was added since the last then() or parallel(); ignoring it"
         #expect(
             calls.map(\.message) == [
                 "parallel() has nothing to run together: \(reason)",
-                "then has nothing to seal: \(reason)",
+                "then() has nothing to seal: \(reason)",
             ])
         #expect(descriptions(k) == ["Group (2)"])
     }
@@ -1891,9 +1900,9 @@ struct EngineTests {
         let completionLine: UInt = #line + 1
         let completion = ignoredCalls { Kinieta(for: makeView()).onComplete {}.cancel() }
         #expect(completion.map(\.site) == [IgnoredCall.Site(fileID: #fileID, line: completionLine)])
-        // `then` is a property and cannot take its caller's location.
-        let then = ignoredCalls { _ = k.then.then }
-        #expect(then.count == 1 && then.first?.site == nil)
+        let thenLine: UInt = #line + 1
+        let then = ignoredCalls { k.then().then() }
+        #expect(then.map(\.site) == [IgnoredCall.Site(fileID: #fileID, line: thenLine)])
     }
 
     @Test func validChainsRaiseNoWarnings() {
@@ -1912,7 +1921,7 @@ struct EngineTests {
                     .onComplete {})
             handles.append(
                 makeView().animate(.x(300), duration: 1.0)
-                    .then
+                    .then()
                     .animate(.x(200), duration: 1.0)
                     .animate(.alpha(0), duration: 0.2)
                     .parallel())
@@ -2015,6 +2024,27 @@ struct EngineTests {
         #expect(!Engine.shared.driver.isRunning)
     }
 }
+
+/// Reaches the deprecated `then` property through a protocol witness, so
+/// testing it does not warn.
+@MainActor
+private protocol DeprecatedThen {
+    var then: Kinieta { get }
+}
+extension DeprecatedThen {
+    var deprecatedThen: Kinieta { then }
+}
+extension Kinieta: DeprecatedThen {}
+
+/// Reaches the deprecated `Easing.Curve.custom` case through a protocol
+/// witness, so testing it does not warn.
+private protocol DeprecatedCustomCurve {
+    static func custom(_ bezier: Bezier) -> Self
+}
+extension DeprecatedCustomCurve {
+    static func deprecatedCustom(_ bezier: Bezier) -> Self { custom(bezier) }
+}
+extension Easing.Curve: DeprecatedCustomCurve {}
 
 func approx<T: BinaryFloatingPoint>(_ a: T, _ b: T, _ tolerance: T = 1e-6) -> Bool {
     abs(a - b) <= tolerance
