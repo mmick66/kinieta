@@ -7,6 +7,7 @@ let package = Package(
         .iOS(.v17),
         .tvOS(.v17),
         .macCatalyst(.v17),
+        .visionOS(.v1),
     ],
     products: [
         .library(name: "Kinieta", targets: ["Kinieta"])

@@ -25,6 +25,9 @@ All notable changes to Kinieta are documented here. The format follows
   podspec declares tvOS (CocoaPods builds Catalyst from the iOS spec), and CI
   builds for tvOS and runs the tests on Mac Catalyst. The snapshot suite stays
   iOS only.
+- visionOS 1 support. `Package.swift` declares it and CI runs the tests on
+  the Apple Vision Pro simulator. `Engine.defaultFrameRateRange` is 30–100 Hz
+  preferring 90 on visionOS, to fit its 90/96/100 Hz display.
 - Snapshot tests with swift-snapshot-testing: every property at five
   progress points, the three colour paths at their midpoint, transparent and
   grey endpoints, an overshooting curve, and dynamic colours in light and

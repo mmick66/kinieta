@@ -97,6 +97,9 @@ public final class Engine {
     }
 
     /// Drives the engine from a `CADisplayLink` on the main run loop.
+    ///
+    /// The link is created directly rather than from `UIScreen`, which
+    /// visionOS does not have.
     @MainActor
     final class DisplayLinkDriver: FrameDriver {
         private(set) var displayLink: CADisplayLink?
@@ -165,7 +168,16 @@ public final class Engine {
     /// The default ``preferredFrameRateRange``: 120 Hz where the display offers
     /// it, but the system may go as low as 30 Hz to save power or under
     /// thermal pressure.
+    ///
+    /// On visionOS it is 30–100 Hz preferring 90. The display runs at 90 Hz
+    /// and switches to 96 or 100 Hz to match video; a 100 Hz maximum keeps
+    /// animations at the full display rate in those modes rather than halving
+    /// it to stay under 90.
+    #if os(visionOS)
+    public static let defaultFrameRateRange = CAFrameRateRange(minimum: 30, maximum: 100, preferred: 90)
+    #else
     public static let defaultFrameRateRange = CAFrameRateRange(minimum: 30, maximum: 120, preferred: 120)
+    #endif
 
     private static let logger = Logger(subsystem: "Kinieta", category: "Engine")
 

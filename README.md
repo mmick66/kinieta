@@ -11,7 +11,7 @@ A timeline animation engine for UIKit with a typed, chainable API.
 - **Real easing.** Cubic Bézier curves with the same semantics as CSS and cubic-bezier.com, plus presets from sine to back.
 - **Perceptual colour.** Colours interpolate through LCH by default, so pink to cyan never passes through grey.
 - **Handles.** Every timeline can be cancelled, paused, resumed or awaited.
-- **Swift 6, iOS, tvOS and Mac Catalyst 17+.** Main-actor isolated, Sendable where it matters, Reduce Motion aware.
+- **Swift 6, iOS, tvOS and Mac Catalyst 17+, visionOS 1+.** Main-actor isolated, Sendable where it matters, Reduce Motion aware.
 
 ```swift
 square.animate(.x(374), .background(.systemPink), duration: 1.0)
@@ -204,6 +204,8 @@ The setting is read as each animation starts. The example app shows whether Redu
 
 The engine advances by real elapsed time, so it stays on schedule through dropped frames and on 60 Hz and 120 Hz displays alike. By default it asks for 120 Hz on ProMotion devices and lets the system drop as low as 30 Hz to save power or under thermal pressure; iPhones only go above 60 Hz when the app's Info.plist sets `CADisableMinimumFrameDurationOnPhone` to `YES`.
 
+On visionOS the default is 30–100 Hz preferring 90. Apple Vision Pro runs at 90 Hz and switches to 96 or 100 Hz to match video; the 100 Hz ceiling keeps animations at the full display rate in those modes instead of dropping to half of it.
+
 Change the range with `Engine.shared.preferredFrameRateRange`. It applies from the next frame, even mid-animation, and only affects smoothness and power, never how long an animation takes. Invalid ranges are ignored with a warning.
 
 ```swift
@@ -223,6 +225,7 @@ The display link only runs while something can move. When every timeline is paus
 | iOS | 17 | Tests, including snapshots, on the iPhone 17 Pro / iOS 26.5 simulator |
 | Mac Catalyst | 17 | Tests, except the iOS-only snapshot suite |
 | tvOS | 17 | Build for the tvOS Simulator |
+| visionOS | 1 | Tests, except the iOS-only snapshot suite, on the Apple Vision Pro / visionOS 26.5 simulator |
 
 Kinieta is UIKit only. The sources are guarded with `canImport(UIKit)`, so the package resolves and builds as an empty module on other platforms, such as native macOS, which keeps tooling happy but is not a supported target.
 
@@ -264,7 +267,7 @@ xcodebuild -project Example/KinietaDemo.xcodeproj -scheme KinietaDemo -destinati
 xcrun swift-format lint --strict --recursive Sources Tests Example/KinietaDemo
 ```
 
-`scripts/ci-local.sh` runs the CI jobs locally (the three above plus Mac Catalyst, and `swift build`/`swift test` on macOS and in a Linux container via Docker) and stops at the first failure. The tvOS build runs in CI only. Pass check names to run a subset, e.g. `scripts/ci-local.sh lint ios`.
+`scripts/ci-local.sh` runs the CI jobs locally (the three above plus Mac Catalyst, and `swift build`/`swift test` on macOS and in a Linux container via Docker) and stops at the first failure. The tvOS build and the visionOS tests run in CI only. Pass check names to run a subset, e.g. `scripts/ci-local.sh lint ios`.
 
 Visual regression is covered by snapshot tests: each property is rendered at five progress points, the colour paths at their midpoint between sRGB and between Display P3 colours, and dynamic colours in light and dark appearance. Reference images live in `Tests/KinietaTests/__Snapshots__`. After an intentional visual change, re-record them on the pinned iPhone 17 Pro / iOS 26.5 simulator and review the PNGs before committing:
 

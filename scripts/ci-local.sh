@@ -11,7 +11,7 @@
 #   catalyst    Mac Catalyst tests                       (job: catalyst)
 #   spm-linux   swift build + swift test in Docker       (job: spm-linux)
 #
-# The tvOS build (job: tvos) runs in CI only.
+# The tvOS build and the visionOS tests (jobs: tvos, visionos) run in CI only.
 #
 # Requires Xcode 26.6 with the iOS 26.5 simulator runtime, and a running Docker for spm-linux.
 # Full output of each check goes to .build/ci-local/<check>.log; on a failure the end of it is
