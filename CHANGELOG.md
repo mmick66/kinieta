@@ -8,6 +8,10 @@ All notable changes to Kinieta are documented here. The format follows
 
 ### Added
 
+- tvOS 17 and Mac Catalyst 17 support. `Package.swift` declares both, the
+  podspec declares tvOS (CocoaPods builds Catalyst from the iOS spec), and CI
+  builds for tvOS and runs the tests on Mac Catalyst. The snapshot suite stays
+  iOS only.
 - Snapshot tests with swift-snapshot-testing: every property at five
   progress points, the three colour paths at their midpoint, transparent and
   grey endpoints, an overshooting curve, and dynamic colours in light and

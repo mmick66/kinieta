@@ -4,7 +4,9 @@ import PackageDescription
 let package = Package(
     name: "Kinieta",
     platforms: [
-        .iOS(.v17)
+        .iOS(.v17),
+        .tvOS(.v17),
+        .macCatalyst(.v17),
     ],
     products: [
         .library(name: "Kinieta", targets: ["Kinieta"])
@@ -22,7 +24,13 @@ let package = Package(
             name: "KinietaTests",
             dependencies: [
                 "Kinieta",
-                .product(name: "SnapshotTesting", package: "swift-snapshot-testing"),
+                // Snapshot references are iOS only, and SnapshotTesting 1.19
+                // does not compile for Mac Catalyst with Swift 6.3.
+                .product(
+                    name: "SnapshotTesting",
+                    package: "swift-snapshot-testing",
+                    condition: .when(platforms: [.iOS])
+                ),
             ],
             path: "Tests/KinietaTests",
             exclude: ["__Snapshots__"]

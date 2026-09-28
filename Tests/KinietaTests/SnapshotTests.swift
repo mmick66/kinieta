@@ -1,4 +1,6 @@
-#if canImport(UIKit)
+// The references are only valid on the iOS simulator runtime they were recorded
+// on, so this suite does not build for tvOS or run on Mac Catalyst.
+#if os(iOS) && !targetEnvironment(macCatalyst)
 import SnapshotTesting
 import Testing
 import UIKit

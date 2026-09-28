@@ -11,7 +11,7 @@ A timeline animation engine for UIKit with a typed, chainable API.
 - **Real easing.** Cubic Bézier curves with the same semantics as CSS and cubic-bezier.com, plus presets from sine to back.
 - **Perceptual colour.** Colours interpolate through LCH by default, so pink to cyan never passes through grey.
 - **Handles.** Every timeline can be cancelled, paused, resumed or awaited.
-- **Swift 6, iOS 17+.** Main-actor isolated, Sendable where it matters, Reduce Motion aware.
+- **Swift 6, iOS, tvOS and Mac Catalyst 17+.** Main-actor isolated, Sendable where it matters, Reduce Motion aware.
 
 ```swift
 square.animate(.x(374), .background(.systemPink), duration: 1.0)
@@ -201,7 +201,13 @@ The display link only runs while something can move. When every timeline is paus
 
 ### Platforms
 
-iOS 17 and later, UIKit only. The sources are guarded with `canImport(UIKit)`, so the package resolves and builds as an empty module on other platforms, which keeps tooling happy but is not a supported target.
+| Platform | Minimum | CI |
+| --- | --- | --- |
+| iOS | 17 | Tests, including snapshots, on the iPhone 17 Pro / iOS 26.5 simulator |
+| Mac Catalyst | 17 | Tests, except the iOS-only snapshot suite |
+| tvOS | 17 | Build for the tvOS Simulator |
+
+Kinieta is UIKit only. The sources are guarded with `canImport(UIKit)`, so the package resolves and builds as an empty module on other platforms, such as native macOS, which keeps tooling happy but is not a supported target.
 
 CI checks this on macOS and Linux (Swift 6.3): `swift build` succeeds and `swift test` runs 0 tests, because the tests are guarded the same way. Depending on Kinieta does not pull in swift-snapshot-testing or its swift-syntax dependency; SwiftPM resolves only dependencies of the products you use, and snapshot testing is used by the test target alone.
 
