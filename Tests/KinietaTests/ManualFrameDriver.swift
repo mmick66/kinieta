@@ -22,6 +22,10 @@ final class ManualFrameDriver: FrameDriver {
 
     var isRunning: Bool { onFrame != nil }
 
+    /// How many times the engine started and stopped this driver.
+    private(set) var starts = 0
+    private(set) var stops = 0
+
     /// Makes this driver the source of frames for `Engine.shared`.
     static func install() -> ManualFrameDriver {
         let driver = ManualFrameDriver()
@@ -40,9 +44,11 @@ final class ManualFrameDriver: FrameDriver {
     func start(onFrame: @escaping (Engine.Frame) -> Void) {
         guard self.onFrame == nil else { return }
         self.onFrame = onFrame
+        starts += 1
     }
 
     func stop() {
+        if onFrame != nil { stops += 1 }
         onFrame = nil
     }
 

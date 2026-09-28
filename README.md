@@ -143,6 +143,10 @@ let spin  = badge.animate(.rotation(degrees: 360), .alpha(0), duration: 1.2)
 Kinieta.group(slide, spin) { print("both finished") }
 ```
 
+The group handle controls its members: `cancel()` cancels every timeline in the group (their `finished()` calls return), and `pause()` and `resume()` pause and resume them all. A member can still be cancelled or paused on its own, but cannot resume while its group is paused.
+
+A timeline belongs to at most one group. `Kinieta.group` leaves out, with a logged warning, any timeline that is already in a group or has already finished or been cancelled; a timeline listed twice runs once.
+
 ### Controlling a timeline
 
 Every call returns a `Kinieta` handle.

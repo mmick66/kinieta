@@ -39,6 +39,12 @@ public final class Kinieta {
     let mainSequence: SequenceAction
     private var waiters: [CheckedContinuation<Void, Never>] = []
 
+    /// The group driving this timeline, if any. A timeline is driven either by
+    /// the engine or by exactly one group, never both.
+    private weak var owner: Kinieta?
+    /// The timelines this group handle drives. Empty for an ordinary timeline.
+    private var children: [Kinieta] = []
+
     /// Creates an empty timeline for `view` and registers it with the engine.
     public convenience init(for view: UIView) {
         self.init(view: view)
@@ -167,23 +173,32 @@ public final class Kinieta {
 
     /// Stops the timeline where it is. Views keep their current values and no
     /// further completion blocks run.
+    ///
+    /// Cancelling a group handle also cancels every timeline in the group.
     public func cancel() {
         guard state == .running || state == .paused else { return }
         mainSequence.isCancelled = true  // also stops it when a group is driving it
         Engine.shared.remove(mainSequence)
         finish(as: .cancelled)
+        for child in children { child.cancel() }
     }
 
+    /// Holds the timeline where it is. Pausing a group handle also pauses every
+    /// timeline in the group.
     public func pause() {
         guard state == .running else { return }
         mainSequence.isPaused = true
         state = .paused
+        for child in children { child.pause() }
     }
 
+    /// Continues a paused timeline. Resuming a group handle also resumes every
+    /// timeline in the group; a timeline cannot resume while its group is paused.
     public func resume() {
-        guard state == .paused else { return }
+        guard state == .paused, owner?.isPaused != true else { return }
         mainSequence.isPaused = false
         state = .running
+        for child in children { child.resume() }
     }
 
     /// Suspends until the whole timeline has finished or been cancelled.
@@ -206,12 +221,33 @@ public final class Kinieta {
 
     /// Runs several timelines together and returns one handle for all of them.
     /// `completion` runs once, when the last of them finishes.
+    ///
+    /// Cancelling, pausing or resuming the returned handle does the same to
+    /// every timeline in the group. A timeline belongs to at most one group:
+    /// one that is already in a group, has finished or was cancelled is left
+    /// out with a warning, and a timeline listed twice runs once.
     @discardableResult
     public static func group(_ handles: [Kinieta], completion: Block? = nil) -> Kinieta {
-        let actions = handles.map { $0.mainSequence as Action }
-        for action in actions { Engine.shared.remove(action) }
+        var members: [Kinieta] = []
+        for child in handles where !members.contains(where: { $0 === child }) {
+            if child.owner != nil {
+                logger.warning("group(_:) was given a timeline that is already in a group; leaving it out")
+            } else if child.state == .finished || child.state == .cancelled {
+                logger.warning("group(_:) was given a timeline that has already ended; leaving it out")
+            } else {
+                members.append(child)
+            }
+        }
+        // Register the group before taking its members off the engine, so the
+        // engine never empties and restarts its clock in between.
         let handle = Kinieta(view: nil)
-        handle.mainSequence.currentAction = GroupAction(running: actions, completion: completion)
+        for child in members {
+            child.owner = handle
+            Engine.shared.remove(child.mainSequence)
+        }
+        handle.children = members
+        handle.mainSequence.currentAction = GroupAction(
+            running: members.map { $0.mainSequence }, completion: completion)
         return handle
     }
 

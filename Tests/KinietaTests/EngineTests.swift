@@ -708,6 +708,114 @@ struct EngineTests {
         #expect(first.state == .cancelled && second.state == .finished)
     }
 
+    @Test(.timeLimit(.minutes(1)))
+    func cancellingAGroupCancelsEveryChild() async {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let a = makeView(), b = makeView()
+        let first = a.animate(.x(100), duration: 1)
+        let second = b.animate(.x(100), duration: 2)
+        let group = Kinieta.group(first, second)
+        frames.step(0.25)
+        group.cancel()
+        #expect(group.state == .cancelled)
+        #expect(first.state == .cancelled && second.state == .cancelled)
+        await first.finished()  // cancelled: returns immediately
+        await second.finished()
+        #expect(!frames.isRunning)
+        #expect(approx(a.frame.origin.x, 25, 0.5))
+        #expect(approx(b.frame.origin.x, 12.5, 0.5))
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func cancellingAGroupResumesChildWaiters() async {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        let child = view.animate(.x(100), duration: 10)
+        let group = Kinieta.group(child)
+        frames.step(1)
+        // Runs once the test is suspended in finished().
+        Task { group.cancel() }
+        await child.finished()
+        #expect(child.state == .cancelled)
+    }
+
+    @Test func pausingAGroupPausesItsChildren() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let a = makeView(), b = makeView()
+        let first = a.animate(.x(100), duration: 1)
+        let second = b.animate(.x(100), duration: 1)
+        let group = Kinieta.group(first, second)
+        frames.step(0.25)
+        group.pause()
+        #expect(group.isPaused && first.isPaused && second.isPaused)
+        first.resume()  // cannot run ahead of its paused group
+        #expect(first.isPaused)
+        frames.step(0.25, count: 4)
+        #expect(approx(a.frame.origin.x, 25, 0.5))
+        group.resume()
+        #expect(group.isRunning && first.isRunning && second.isRunning)
+        frames.step(0.75)
+        #expect(group.state == .finished && first.state == .finished && second.state == .finished)
+        #expect(approx(a.frame.origin.x, 100) && approx(b.frame.origin.x, 100))
+    }
+
+    @Test func aHandleListedTwiceRunsAtNormalSpeed() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        let handle = view.animate(.x(100), duration: 1)
+        Kinieta.group(handle, handle)
+        frames.step(0.25)
+        #expect(approx(view.frame.origin.x, 25, 0.5))
+    }
+
+    @Test func aHandleAlreadyInAGroupIsLeftOutOfAnother() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        let handle = view.animate(.x(100), duration: 1)
+        let first = Kinieta.group(handle)
+        var secondCompleted = false
+        let second = Kinieta.group(handle) { secondCompleted = true }
+        frames.step(0.25)
+        #expect(approx(view.frame.origin.x, 25, 0.5))
+        #expect(secondCompleted && second.state == .finished)
+        second.cancel()  // already finished: must not reach the handle
+        #expect(handle.isRunning && first.isRunning)
+        frames.step(0.75)
+        #expect(handle.state == .finished && first.state == .finished)
+    }
+
+    @Test func groupingAFinishedHandleDoesNotRunItsCompletionAgain() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        var completions = 0
+        let view = makeView()
+        let handle = view.animate(.x(100), duration: 0.5)
+        handle.onComplete { completions += 1 }
+        frames.step(0.5)
+        #expect(handle.state == .finished && completions == 1)
+        var groupCompleted = false
+        let group = Kinieta.group(handle) { groupCompleted = true }
+        frames.step(0.5)
+        #expect(completions == 1)
+        #expect(groupCompleted && group.state == .finished)
+        #expect(handle.state == .finished)
+    }
+
+    @Test func groupingKeepsTheEngineRunning() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        let handle = view.animate(.x(100), duration: 1)
+        let starts = frames.starts
+        Kinieta.group(handle)
+        #expect(frames.starts == starts && frames.stops == 0)
+    }
+
     @Test func timelineFinishesOnItsOwnWhenTheViewIsReleased() {
         let frames = ManualFrameDriver.install()
         defer { frames.uninstall() }
