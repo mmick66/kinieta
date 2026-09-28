@@ -29,6 +29,9 @@ All notable changes to Kinieta are documented here. The format follows
   progress points, the three colour paths at their midpoint, transparent and
   grey endpoints, an overshooting curve, and dynamic colours in light and
   dark appearance. 72 reference images, 57 tests in total.
+- The example app has a Controls section: one handle built with `then()`,
+  `parallel()`, `delay` and `repeat`, Play, Pause, Resume and Cancel buttons
+  driving it, and a label set when `await finished()` returns.
 
 ### Changed
 
@@ -66,6 +69,10 @@ All notable changes to Kinieta are documented here. The format follows
 
 ### Fixed
 
+- The example app lays out within the safe area, so in landscape the tracks
+  no longer sit under the sensor housing, and a rotation mid-animation
+  replays the gallery at the new size instead of leaving squares short of or
+  past the end of their tracks.
 - The deprecated `change(.alpha, to:)` no longer shifts the colour: it sets
   the alpha directly instead of going through LCH.
 - `Easing.inOut(.sine)` used the `inOut(.quad)` curve. It now uses Ceaser's

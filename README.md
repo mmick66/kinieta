@@ -252,7 +252,7 @@ Invalid durations and frame rate ranges, and timelines left out of a `Kinieta.gr
 
 ## Example app
 
-`Example/KinietaDemo.xcodeproj` is a gallery: every easing preset on its own track, the three colour spaces side by side, and a composed timeline with a grouped completion. Launch it with the `-autoplay` argument to start playing on launch.
+`Example/KinietaDemo.xcodeproj` is a gallery: every easing preset on its own track, the three colour spaces side by side, a composed timeline with a grouped completion, and a Controls section that pauses, resumes and cancels one handle and reports when `await finished()` returns. It lays out within the safe area and replays at the new size when the device rotates, since Kinieta sets frames that Auto Layout does not update. Launch it with the `-autoplay` argument to start playing on launch.
 
 ## Development
 
