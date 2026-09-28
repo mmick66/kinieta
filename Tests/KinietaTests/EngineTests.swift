@@ -21,9 +21,10 @@ struct EngineTests {
 
     private func animation(
         _ view: UIView, _ properties: [Property], duration: TimeInterval,
-        easing: Easing? = nil, complete: Block? = nil
-    ) -> Animation {
-        Animation(ViewRef(view), properties: properties, duration: duration, easing: easing?.bezier, complete: complete)
+        easing: Easing? = nil, completion: Block? = nil
+    ) -> PropertyAnimation {
+        let spec = AnimationSpec(view, properties, duration: duration, easing: easing?.bezier, completion: completion)
+        return PropertyAnimation(spec)
     }
 
     // MARK: Bezier & easing
@@ -132,7 +133,7 @@ struct EngineTests {
 
     @Test func sequenceHandsTheUnusedPartOfAFrameToTheNextAction() {
         // Two half-second pauses driven by 0.3 s frames end after 1.2 s, not 1.5 s.
-        let pauses = Sequence([.pause(0.5, nil), .pause(0.5, nil)])
+        let pauses = SequenceAction([.pause(0.5), .pause(0.5)])
         #expect(pauses.update(frame(0.3)) == .running)
         #expect(pauses.update(frame(0.3)) == .running)  // first ends here, second gets 0.1 s
         #expect(pauses.update(frame(0.3)) == .running)
@@ -141,7 +142,7 @@ struct EngineTests {
 
         // An animation that starts mid-frame has already progressed by the remainder.
         let view = makeView()
-        let mixed = Sequence([.pause(0.5, nil), .animation(ViewRef(view), [.x(100)], 1.0, nil, nil)])
+        let mixed = SequenceAction([.pause(0.5), .animation(AnimationSpec(view, [.x(100)], duration: 1.0))])
         #expect(mixed.update(frame(0.75)) == .running)
         #expect(approx(view.frame.origin.x, 25, 0.5))
     }
@@ -161,7 +162,7 @@ struct EngineTests {
 
     @Test func pauseRunsForItsDurationThenCompletesOnce() {
         var completions = 0
-        let pause = Pause(1.0, complete: { completions += 1 })
+        let pause = PauseAction(1.0, completion: { completions += 1 })
         #expect(pause.update(frame(0.25)) == .running)
         #expect(pause.update(frame(0.25)) == .running)
         #expect(pause.update(frame(0.25)) == .running)
@@ -171,7 +172,7 @@ struct EngineTests {
 
     @Test func zeroDurationPauseFinishesImmediately() {
         var completed = false
-        let pause = Pause(0.0, complete: { completed = true })
+        let pause = PauseAction(0.0, completion: { completed = true })
         #expect(pause.update(frame(0.016)).isFinished)
         #expect(completed)
     }
@@ -181,7 +182,7 @@ struct EngineTests {
     @Test func linearAnimationInterpolatesFrameOriginAndCompletes() {
         let view = makeView()
         var completed = false
-        let a = animation(view, [.x(100)], duration: 1.0, complete: { completed = true })
+        let a = animation(view, [.x(100)], duration: 1.0, completion: { completed = true })
 
         #expect(a.update(frame(0.5)) == .running)
         #expect(approx(view.frame.origin.x, 50, 0.5))
@@ -202,7 +203,7 @@ struct EngineTests {
     @Test func zeroDurationAnimationSnapsAndCompletes() {
         let view = makeView()
         var completed = false
-        let a = animation(view, [.x(42), .alpha(0.5)], duration: 0.0, complete: { completed = true })
+        let a = animation(view, [.x(42), .alpha(0.5)], duration: 0.0, completion: { completed = true })
         #expect(a.update(frame(0.016)).isFinished)
         #expect(view.frame.origin.x == 42)
         #expect(approx(view.alpha, 0.5))
@@ -264,10 +265,10 @@ struct EngineTests {
 
     @Test func animationFinishesQuietlyWhenItsViewIsGone() {
         var completed = false
-        let a: Animation
+        let a: PropertyAnimation
         do {
             let view = makeView()
-            a = animation(view, [.x(100)], duration: 1.0, complete: { completed = true })
+            a = animation(view, [.x(100)], duration: 1.0, completion: { completed = true })
             #expect(a.update(frame(0.1)) == .running)
         }
         #expect(a.update(frame(0.1)).isFinished)
@@ -279,11 +280,11 @@ struct EngineTests {
         defer { Engine.shared.isReduceMotionEnabled = { UIAccessibility.isReduceMotionEnabled } }
         let view = makeView()
         var completed = false
-        let a = animation(view, [.x(100)], duration: 1.0, complete: { completed = true })
+        let a = animation(view, [.x(100)], duration: 1.0, completion: { completed = true })
         #expect(a.update(frame(0.016)).isFinished)
         #expect(view.frame.origin.x == 100)
         #expect(completed)
-        let pause = Pause(1.0, complete: nil)
+        let pause = PauseAction(1.0, completion: nil)
         #expect(pause.update(frame(0.5)) == .running)
 
         Engine.shared.respectsReduceMotion = false
@@ -389,9 +390,9 @@ struct EngineTests {
 
     @Test func sequenceRunsChildrenInOrder() {
         let view = makeView()
-        let sequence = Sequence([
-            .pause(1.0, nil),
-            .animation(ViewRef(view), [.x(100)], 1.0, nil, nil),
+        let sequence = SequenceAction([
+            .pause(1.0),
+            .animation(AnimationSpec(view, [.x(100)], duration: 1.0)),
         ])
 
         #expect(sequence.update(frame(0.5)) == .running)
@@ -405,7 +406,7 @@ struct EngineTests {
 
     @Test func sequenceFiresItsOwnCompletionExactlyOnce() {
         var completions = 0
-        let sequence = Sequence([.pause(0.5, nil), .pause(0.5, nil)], complete: { completions += 1 })
+        let sequence = SequenceAction([.pause(0.5), .pause(0.5)], completion: { completions += 1 })
         #expect(sequence.update(frame(0.6)) == .running)
         #expect(completions == 0)
         #expect(sequence.update(frame(0.6)).isFinished)
@@ -414,7 +415,7 @@ struct EngineTests {
 
     @Test func pausedSequenceDoesNotAdvance() {
         let view = makeView()
-        let sequence = Sequence([.animation(ViewRef(view), [.x(100)], 1.0, nil, nil)])
+        let sequence = SequenceAction([.animation(AnimationSpec(view, [.x(100)], duration: 1.0))])
         _ = sequence.update(frame(0.5))
         sequence.isPaused = true
         #expect(sequence.update(frame(0.5)) == .running)
@@ -427,11 +428,11 @@ struct EngineTests {
     @Test func groupFinishesWhenTheLongestChildFinishes() {
         let a = makeView(), b = makeView()
         var completed = false
-        let group = Group(
-            [
-                .animation(ViewRef(a), [.x(100)], 0.5, nil, nil),
-                .animation(ViewRef(b), [.x(100)], 1.0, nil, nil),
-            ], complete: { completed = true })
+        let group = GroupAction(
+            pending: [
+                .animation(AnimationSpec(a, [.x(100)], duration: 0.5)),
+                .animation(AnimationSpec(b, [.x(100)], duration: 1.0)),
+            ], completion: { completed = true })
 
         #expect(group.update(frame(0.5)) == .running)
         #expect(approx(a.frame.origin.x, 100))
@@ -446,7 +447,7 @@ struct EngineTests {
     // MARK: Kinieta chain building
 
     private func descriptions(_ k: Kinieta) -> [String] {
-        k.mainSequence.types.map { $0.description }
+        k.mainSequence.pending.types.map { $0.description }
     }
 
     @Test func animateAppendsAnAnimation() {
@@ -459,7 +460,7 @@ struct EngineTests {
         let k = Kinieta(for: makeView()).animate(.x(1), duration: 1).delay(0.5)
         defer { k.cancel() }
         #expect(descriptions(k) == ["Sequence (2)"])
-        guard case .sequence(let inner, _)? = k.mainSequence.types.first else {
+        guard case .sequence(let inner, _)? = k.mainSequence.pending.types.first else {
             Issue.record("expected a Sequence"); return
         }
         #expect(inner.map { $0.description } == ["Pause (0.5)", "Animation (x)"])
@@ -484,7 +485,7 @@ struct EngineTests {
             .parallel()
         defer { k.cancel() }
         #expect(descriptions(k) == ["Group (1)", "Group (2)"])
-        guard case .group(let sealed, _)? = k.mainSequence.types.first,
+        guard case .group(let sealed, _)? = k.mainSequence.pending.types.first,
             case .sequence(let steps, _)? = sealed.first
         else {
             Issue.record("expected a Group holding a Sequence"); return
@@ -507,7 +508,7 @@ struct EngineTests {
     @Test func easingAttachesToTheLastAnimationOnly() {
         let k = Kinieta(for: makeView()).animate(.x(1), duration: 1).easeInOut(.back).wait(1).easeIn()
         defer { k.cancel() }
-        guard case .animation(_, _, _, let bezier?, _)? = k.mainSequence.types.first else {
+        guard case .animation(let spec)? = k.mainSequence.pending.types.first, let bezier = spec.easing else {
             Issue.record("no easing attached"); return
         }
         #expect(bezier == Easing.inOut(.back).bezier)
@@ -518,14 +519,14 @@ struct EngineTests {
         let view = makeView()
         let k = Kinieta(for: view).animate(.x(100), duration: 1).delay(0.5).easeIn(.cubic)
         defer { k.cancel() }
-        guard case .sequence(let inner, _)? = k.mainSequence.types.first,
-            case .animation(_, _, _, let bezier?, _)? = inner.last
+        guard case .sequence(let inner, _)? = k.mainSequence.pending.types.first,
+            case .animation(let spec)? = inner.last, let bezier = spec.easing
         else {
             Issue.record("easing was not applied inside the delay wrapper"); return
         }
         #expect(bezier == Easing.in(.cubic).bezier)
 
-        let run = Sequence(inner)
+        let run = SequenceAction(inner)
         _ = run.update(frame(0.5))  // the delay
         _ = run.update(frame(0.5))  // half the animation
         #expect(approx(view.frame.origin.x, 14.5, 0.5))  // cubicIn(0.5), not linear 50
@@ -534,7 +535,7 @@ struct EngineTests {
     @Test func onCompleteAttachesToTheLastAction() {
         let k = Kinieta(for: makeView()).animate(.x(1), duration: 1).wait(1).onComplete {}
         defer { k.cancel() }
-        guard case .pause(_, let block)? = k.mainSequence.types.last else {
+        guard case .pause(_, let block)? = k.mainSequence.pending.types.last else {
             Issue.record("expected a Pause"); return
         }
         #expect(block != nil)

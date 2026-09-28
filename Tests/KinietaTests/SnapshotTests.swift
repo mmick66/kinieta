@@ -51,8 +51,7 @@ struct SnapshotTests {
 
     /// Runs `properties` on `box` over one second and stops at `progress`.
     private func drive(_ box: UIView, _ properties: [Property], to progress: CGFloat, easing: Easing? = nil) {
-        let animation = Animation(
-            ViewRef(box), properties: properties, duration: 1, easing: easing?.bezier, complete: nil)
+        let animation = PropertyAnimation(AnimationSpec(box, properties, duration: 1, easing: easing?.bezier))
         var elapsed: CGFloat = 0
         while elapsed < progress {
             _ = animation.update(Engine.Frame(0, 0.25))

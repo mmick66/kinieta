@@ -5,30 +5,34 @@ import Foundation
 
 /// Runs its actions at the same time and finishes when the last one does.
 @MainActor
-final class Group: ActionQueue, Action {
+final class GroupAction: Action {
 
-    let complete: Block?
-    private var running: [Action]?
+    private enum Phase {
+        /// Not started: the children are still descriptions, made live on the first frame.
+        case pending([ActionType])
+        /// Started: the children that have not finished yet.
+        case running([Action])
+    }
 
-    init(_ types: [ActionType] = [], complete: Block? = nil) {
-        self.complete = complete
-        super.init(types)
+    let completion: Block?
+    private var phase: Phase
+
+    init(pending types: [ActionType], completion: Block? = nil) {
+        self.phase = .pending(types)
+        self.completion = completion
     }
 
     /// Groups actions that are already live, such as the sequences of other handles.
-    init(_ actions: [Action], complete: Block? = nil) {
-        self.complete = complete
-        self.running = actions
-        super.init()
+    init(running actions: [Action], completion: Block? = nil) {
+        self.phase = .running(actions)
+        self.completion = completion
     }
 
     func update(_ frame: Engine.Frame) -> ActionResult {
-        if running == nil, !isEmpty {
-            running = popAllActions()
-        }
-        guard let actions = running else {
-            complete?()
-            return .finished(overshoot: frame.duration)
+        let actions: [Action]
+        switch phase {
+        case .pending(let types): actions = types.map { $0.makeAction() }
+        case .running(let live): actions = live
         }
 
         var stillRunning: [Action] = []
@@ -39,10 +43,10 @@ final class Group: ActionQueue, Action {
             case .finished(let unused): overshoot = min(overshoot, unused)
             }
         }
-        running = stillRunning
+        phase = .running(stillRunning)
 
         if stillRunning.isEmpty {
-            complete?()
+            completion?()
             // The group ends when its last child ends, so the smallest remainder wins.
             return .finished(overshoot: overshoot)
         }

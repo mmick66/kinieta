@@ -35,7 +35,7 @@ public final class Kinieta {
     public var isRunning: Bool { state == .running }
     public var isPaused: Bool { state == .paused }
 
-    let mainSequence: Sequence
+    let mainSequence: SequenceAction
     private var waiters: [CheckedContinuation<Void, Never>] = []
 
     /// Creates an empty timeline for `view` and registers it with the engine.
@@ -45,8 +45,8 @@ public final class Kinieta {
 
     init(view: UIView?) {
         self.view = view
-        mainSequence = Sequence()
-        mainSequence.complete = { [weak self] in self?.finish(as: .finished) }
+        mainSequence = SequenceAction()
+        mainSequence.completion = { [weak self] in self?.finish(as: .finished) }
         Engine.shared.add(mainSequence)
     }
 
@@ -61,49 +61,49 @@ public final class Kinieta {
 
     @discardableResult
     public func animate(_ properties: [Property], duration: TimeInterval = 0) -> Kinieta {
-        mainSequence.add(.animation(ViewRef(view), properties, duration, nil, nil))
+        mainSequence.pending.add(.animation(AnimationSpec(view, properties, duration: duration)))
         return self
     }
 
     /// Waits for `time` seconds before the next action.
     @discardableResult
     public func wait(_ time: TimeInterval) -> Kinieta {
-        mainSequence.add(.pause(time, nil))
+        mainSequence.pending.add(.pause(time))
         return self
     }
 
     /// Delays the start of the previous action by `time` seconds.
     @discardableResult
     public func delay(_ time: TimeInterval) -> Kinieta {
-        guard let last = mainSequence.popLast() else { return self }
-        mainSequence.add(.sequence([.pause(time, nil), last], nil))
+        guard let last = mainSequence.pending.popLast() else { return self }
+        mainSequence.pending.add(.sequence([.pause(time), last]))
         return self
     }
 
     /// Seals everything before it into one step, so a following `parallel()`
     /// only gathers the actions added after `then`.
     public var then: Kinieta {
-        let actions = mainSequence.popAllUngrouped()
+        let actions = mainSequence.pending.popAllUngrouped()
         guard !actions.isEmpty else { return self }
-        mainSequence.add(.group([.sequence(actions, nil)], nil))
+        mainSequence.pending.add(.group([.sequence(actions)]))
         return self
     }
 
     /// Runs every action added since the last `then` or `parallel()` together.
     @discardableResult
     public func parallel() -> Kinieta {
-        let actions = mainSequence.popAllUngrouped()
+        let actions = mainSequence.pending.popAllUngrouped()
         guard !actions.isEmpty else { return self }
-        mainSequence.add(.group(actions, nil))
+        mainSequence.pending.add(.group(actions))
         return self
     }
 
     /// Appends `times` more copies of everything in the timeline so far.
     @discardableResult
     public func `repeat`(times: Int = 1) -> Kinieta {
-        let copy = mainSequence.types
+        let copy = mainSequence.pending.types
         for _ in 0..<max(times, 0) {
-            for type in copy { mainSequence.add(type) }
+            for type in copy { mainSequence.pending.add(type) }
         }
         return self
     }
@@ -113,23 +113,9 @@ public final class Kinieta {
     /// Applies `easing` to the previous animation, including one wrapped by `delay`.
     @discardableResult
     public func easing(_ easing: Easing) -> Kinieta {
-        guard let last = mainSequence.popLast() else { return self }
-        mainSequence.add(Kinieta.applying(easing.bezier, to: last) ?? last)
+        guard let last = mainSequence.pending.popLast() else { return self }
+        mainSequence.pending.add(last.withEasing(easing.bezier) ?? last)
         return self
-    }
-
-    /// Rewrites the last animation inside `type` with `bezier`; nil if there is none.
-    private static func applying(_ bezier: Bezier, to type: ActionType) -> ActionType? {
-        switch type {
-        case .animation(let ref, let properties, let duration, _, let complete):
-            return .animation(ref, properties, duration, bezier, complete)
-        case .sequence(var list, let complete):
-            guard let last = list.popLast(), let rewritten = applying(bezier, to: last) else { return nil }
-            list.append(rewritten)
-            return .sequence(list, complete)
-        case .pause, .group:
-            return nil
-        }
     }
 
     @discardableResult
@@ -152,17 +138,8 @@ public final class Kinieta {
     /// Calls `block` when the previous action finishes.
     @discardableResult
     public func onComplete(_ block: @escaping Block) -> Kinieta {
-        guard let last = mainSequence.popLast() else { return self }
-        switch last {
-        case .animation(let ref, let properties, let duration, let easing, _):
-            mainSequence.add(.animation(ref, properties, duration, easing, block))
-        case .pause(let time, _):
-            mainSequence.add(.pause(time, block))
-        case .group(let list, _):
-            mainSequence.add(.group(list, block))
-        case .sequence(let list, _):
-            mainSequence.add(.sequence(list, block))
-        }
+        guard let last = mainSequence.pending.popLast() else { return self }
+        mainSequence.pending.add(last.withCompletion(block))
         return self
     }
 
@@ -211,7 +188,7 @@ public final class Kinieta {
         let actions = handles.map { $0.mainSequence as Action }
         for action in actions { Engine.shared.remove(action) }
         let handle = Kinieta(view: nil)
-        handle.mainSequence.currentAction = Group(actions, complete: completion)
+        handle.mainSequence.currentAction = GroupAction(running: actions, completion: completion)
         return handle
     }
 

@@ -5,9 +5,13 @@ import Foundation
 
 /// Runs its actions one after another.
 @MainActor
-final class Sequence: ActionQueue, Action {
+final class SequenceAction: Action {
 
-    var complete: Block?
+    /// The actions still to come, as descriptions. `Kinieta` builds the
+    /// timeline by editing this queue.
+    var pending: ActionQueue
+
+    var completion: Block?
 
     /// While paused the sequence reports `.running` without advancing.
     var isPaused = false
@@ -18,9 +22,9 @@ final class Sequence: ActionQueue, Action {
 
     var currentAction: Action?
 
-    init(_ types: [ActionType] = [], complete: Block? = nil) {
-        self.complete = complete
-        super.init(types)
+    init(_ types: [ActionType] = [], completion: Block? = nil) {
+        self.pending = ActionQueue(types)
+        self.completion = completion
     }
 
     func update(_ frame: Engine.Frame) -> ActionResult {
@@ -29,9 +33,9 @@ final class Sequence: ActionQueue, Action {
 
         var frame = frame
         while true {
-            if currentAction == nil { currentAction = popFirstAction() }
+            if currentAction == nil { currentAction = pending.popFirstAction() }
             guard let current = currentAction else {
-                complete?()
+                completion?()
                 return .finished(overshoot: frame.duration)
             }
             switch current.update(frame) {
@@ -39,8 +43,8 @@ final class Sequence: ActionQueue, Action {
                 return .running
             case .finished(let overshoot):
                 currentAction = nil
-                if isEmpty {
-                    complete?()
+                if pending.isEmpty {
+                    completion?()
                     return .finished(overshoot: overshoot)
                 }
                 // Hand the unused part of the frame to the next action so a

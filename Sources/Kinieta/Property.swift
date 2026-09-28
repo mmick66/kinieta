@@ -29,21 +29,25 @@ public enum Property: Sendable {
     case borderWidth(CGFloat)
     case cornerRadius(CGFloat)
 
-    /// Identifies the property regardless of value. When the same property is
+    /// Identifies a property regardless of value. When the same property is
     /// listed twice in one animation the last value wins.
-    var name: String {
+    enum Key: String {
+        case x, y, width, height, frame, alpha, rotation, background, borderColor, borderWidth, cornerRadius
+    }
+
+    var key: Key {
         switch self {
-        case .x: return "x"
-        case .y: return "y"
-        case .width: return "width"
-        case .height: return "height"
-        case .frame: return "frame"
-        case .alpha: return "alpha"
-        case .rotation: return "rotation"
-        case .background: return "background"
-        case .borderColor: return "borderColor"
-        case .borderWidth: return "borderWidth"
-        case .cornerRadius: return "cornerRadius"
+        case .x: return .x
+        case .y: return .y
+        case .width: return .width
+        case .height: return .height
+        case .frame: return .frame
+        case .alpha: return .alpha
+        case .rotation: return .rotation
+        case .background: return .background
+        case .borderColor: return .borderColor
+        case .borderWidth: return .borderWidth
+        case .cornerRadius: return .cornerRadius
         }
     }
 
