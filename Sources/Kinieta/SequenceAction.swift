@@ -22,8 +22,18 @@ final class SequenceAction: Action {
 
     var currentAction: Action?
 
+    /// The view of the timeline this sequence runs, if it has one. Once the
+    /// view is deallocated the sequence cancels itself before running anything
+    /// else and calls `onViewLost`, so its handle can end as cancelled.
+    var target: ViewRef?
+    var onViewLost: Block?
+
     var isIdle: Bool {
-        !isCancelled && (isPaused || currentAction?.isIdle == true)
+        !isCancelled && !hasLostView && (isPaused || currentAction?.isIdle == true)
+    }
+
+    private var hasLostView: Bool {
+        target.map { $0.view == nil } ?? false
     }
 
     init(_ types: [ActionType] = [], completion: Block? = nil) {
@@ -32,7 +42,7 @@ final class SequenceAction: Action {
     }
 
     func update(_ frame: Engine.Frame) -> ActionResult {
-        if isCancelled { return .finished(overshoot: 0) }
+        if isCancelled || cancelIfViewIsGone() { return .finished(overshoot: 0) }
         if isPaused { return .running }
 
         var frame = frame
@@ -55,12 +65,21 @@ final class SequenceAction: Action {
                     completion?()
                     return .finished(overshoot: overshoot)
                 }
+                // A completion block may have released the view.
+                if cancelIfViewIsGone() { return .finished(overshoot: 0) }
                 // Hand the unused part of the frame to the next action so a
                 // boundary never costs a frame. Nothing left: wait for the next one.
                 guard overshoot > 0 else { return .running }
                 frame = Engine.Frame(overshoot)
             }
         }
+    }
+
+    private func cancelIfViewIsGone() -> Bool {
+        guard hasLostView else { return false }
+        isCancelled = true
+        onViewLost?()
+        return true
     }
 }
 #endif

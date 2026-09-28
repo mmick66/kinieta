@@ -32,8 +32,9 @@ Guidelines, and returns a handle you can control.
 - Easing curves are evaluated at time `x`, as CSS does. 0.5 evaluated them at
   the curve parameter, which distorted every preset.
 - Time advances by the real elapsed interval, so dropped frames catch up.
-- Views are held weakly. A timeline finishes on its own when its view is
-  deallocated and never keeps it alive.
+- Views are held weakly and never kept alive. When a view is deallocated
+  its timeline is cancelled on the next frame, without running any further
+  completion blocks.
 - Zero-duration animations and pauses run their completion blocks.
 - Animations snap to their end state when Reduce Motion is on. Set
   `Engine.shared.respectsReduceMotion = false` to opt out.

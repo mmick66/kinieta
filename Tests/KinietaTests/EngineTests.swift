@@ -743,7 +743,8 @@ struct EngineTests {
         let frames = ManualFrameDriver.install()
         defer { frames.uninstall() }
         #expect(!frames.isRunning)
-        let handle = makeView().animate(.x(100), duration: 1)
+        let view = makeView()
+        let handle = view.animate(.x(100), duration: 1)
         #expect(frames.isRunning)
         frames.step(1)
         #expect(handle.state == .finished)
@@ -1039,7 +1040,7 @@ struct EngineTests {
         #expect(frames.starts == starts && frames.stops == 0)
     }
 
-    @Test func timelineFinishesOnItsOwnWhenTheViewIsReleased() {
+    @Test func timelineIsCancelledWhenTheViewIsReleased() {
         let frames = ManualFrameDriver.install()
         defer { frames.uninstall() }
         var view: UIView? = makeView()
@@ -1049,7 +1050,100 @@ struct EngineTests {
         view = nil
         frames.step()
         #expect(handle.view == nil)
+        #expect(handle.state == .cancelled)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func releasingTheViewSkipsTheRestOfTheTimeline() async {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        var view: UIView? = makeView()
+        var animationCompleted = false, waitCompleted = false
+        let handle = view!.animate(.x(100), duration: 1)
+            .onComplete { animationCompleted = true }
+            .wait(10)
+            .onComplete { waitCompleted = true }
+        frames.step(0.5)
+        view = nil
+        frames.step()
+        #expect(handle.state == .cancelled)
+        #expect(!frames.isRunning)
+        await handle.finished()  // cancelled: returns immediately
+        frames.step(1, count: 20)
+        #expect(!animationCompleted && !waitCompleted)
+    }
+
+    @Test func releasingTheViewDuringAWaitEndsTheTimelineOnTheNextFrame() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        var view: UIView? = makeView()
+        var waitCompleted = false
+        let handle = view!.animate(.x(100), duration: 0.5).wait(10).onComplete { waitCompleted = true }
+        frames.step(1)
+        #expect(handle.isRunning)
+        view = nil
+        frames.step()
+        #expect(handle.state == .cancelled && !frames.isRunning)
+        #expect(!waitCompleted)
+    }
+
+    @Test func releasingTheViewFromACompletionBlockStopsTheTimelineInThatFrame() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        var view: UIView? = makeView()
+        var waitCompleted = false
+        let handle = view!.animate(.x(100), duration: 1)
+            .onComplete { view = nil }
+            .wait(0)
+            .onComplete { waitCompleted = true }
+        frames.step(1.5)  // the leftover half frame would otherwise finish the wait
+        #expect(view == nil)
+        #expect(handle.state == .cancelled)
+        #expect(!waitCompleted)
+    }
+
+    @Test func releasingTheLastViewFromTheLastCompletionBlockStillFinishes() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        var view: UIView? = makeView()
+        let handle = view!.animate(.x(100), duration: 1).onComplete { view = nil }
+        frames.step(1)
+        #expect(view == nil)
         #expect(handle.state == .finished)
+    }
+
+    @Test func pausedTimelineIsCancelledOnceItsViewIsReleased() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        var view: UIView? = makeView()
+        let other = makeView()
+        let handle = view!.animate(.x(100), duration: 1)
+        other.animate(.x(100), duration: 1)
+        frames.step(0.25)
+        handle.pause()
+        view = nil
+        frames.step(0.25)
+        #expect(handle.state == .cancelled)
+    }
+
+    @Test func aGroupMovesOnWhenAChildLosesItsView() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        var a: UIView? = makeView()
+        let b = makeView()
+        var groupCompleted = false
+        let first = a!.animate(.x(100), duration: 10)
+        let second = b.animate(.x(100), duration: 1)
+        let group = Kinieta.group(first, second) { groupCompleted = true }
+        frames.step(0.5)
+        a = nil
+        frames.step()
+        #expect(first.state == .cancelled)
+        #expect(group.isRunning && second.isRunning)
+        frames.step(0.5)
+        #expect(second.state == .finished)
+        #expect(groupCompleted && group.state == .finished)
+        #expect(!frames.isRunning)
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -1381,7 +1475,8 @@ struct EngineTests {
     @Test func nanWaitFinishesWithinOneFrame() {
         let frames = ManualFrameDriver.install()
         defer { frames.uninstall() }
-        let handle = makeView().wait(.nan)
+        let view = makeView()
+        let handle = view.wait(.nan)
         frames.step()
         #expect(handle.state == .finished)
         #expect(!frames.isRunning)

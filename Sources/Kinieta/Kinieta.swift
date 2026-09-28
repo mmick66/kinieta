@@ -32,7 +32,9 @@ public final class Kinieta {
     }
 
     /// The view this timeline animates. Held weakly: a timeline never keeps a
-    /// view alive, and it finishes on its own when the view goes away.
+    /// view alive. When the view is deallocated the timeline is cancelled on
+    /// the next frame: nothing else in it runs, no further completion blocks
+    /// are called and `state` becomes `.cancelled`.
     public private(set) weak var view: UIView?
 
     public private(set) var state: State = .running
@@ -71,6 +73,10 @@ public final class Kinieta {
         self.view = view
         mainSequence = SequenceAction()
         mainSequence.completion = { [weak self] in self?.finish(as: .finished) }
+        if let view {
+            mainSequence.target = ViewRef(view)
+            mainSequence.onViewLost = { [weak self] in self?.cancel() }
+        }
         Engine.shared.add(mainSequence)
     }
 
