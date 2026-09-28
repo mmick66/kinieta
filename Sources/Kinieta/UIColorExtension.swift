@@ -71,7 +71,8 @@ extension UIColor {
     /// The HLC & alpha attributes of the `UIColor` instance.
     @available(*, deprecated, message: "Vendored from HandyUIKit by mistake; removed in Kinieta 2.0. Use HandyUIKit.")
     public var hlca: (hue: CGFloat, luminance: CGFloat, chroma: CGFloat, alpha: CGFloat) {
-        let lch = ColorMath.extractComponents(of: self).lch
+        let rgb = ColorMath.extractComponents(of: self) ?? ColorMath.RGB(red: 0, green: 0, blue: 0, alpha: 0)
+        let lch = rgb.lch
         return (hue: lch.hue / 360, luminance: lch.lightness / 100, chroma: lch.chroma / 128, alpha: lch.alpha)
     }
 

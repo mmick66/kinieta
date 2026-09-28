@@ -23,9 +23,21 @@ struct ColorTests {
     }
 
     @Test func extractingComponentsIsExact() {
-        let rgb = ColorMath.extractComponents(of: originalColor)
+        let rgb = ColorMath.extractComponents(of: originalColor)!
         #expect(rgb.color() == originalColor)
         #expect(rgb == ColorMath.RGB(red: 237.0 / 255.0, green: 99.0 / 255.0, blue: 102.0 / 255.0, alpha: 1))
+    }
+
+    @Test func extractingConvertsOtherColourSpaces() {
+        let cmyk = UIColor(cgColor: CGColor(colorSpace: CGColorSpaceCreateDeviceCMYK(), components: [0, 1, 1, 0, 1])!)
+        let rgb = ColorMath.extractComponents(of: cmyk)
+        #expect(rgb != nil)
+        if let rgb { #expect(rgb.red > 0.8 && rgb.green < 0.3 && rgb.blue < 0.3 && rgb.alpha == 1, "\(rgb)") }
+    }
+
+    @Test func extractingAPatternGivesNothing() {
+        let image = UIGraphicsImageRenderer(size: CGSize(width: 2, height: 2)).image { _ in }
+        #expect(ColorMath.extractComponents(of: UIColor(patternImage: image)) == nil)
     }
 
     @Test func hsbRoundTripIsCloseEnough() {
@@ -67,7 +79,7 @@ struct ColorTests {
     }
 
     @Test func lchComponentsMatchReferenceValues() {
-        let lch = ColorMath.extractComponents(of: originalColor).lch
+        let lch = ColorMath.extractComponents(of: originalColor)!.lch
         #expect(approx(lch.hue, 25.63104309046355, 0.05))
         #expect(approx(lch.lightness, 59.78697847134286, 0.05))
         #expect(approx(lch.chroma, 59.360754654915006, 0.05))
@@ -88,7 +100,7 @@ struct ColorTests {
         UITraitCollection(userInterfaceStyle: .light).performAsCurrent {
             let step = Property.background(.label).transformation(for: view, defaultColorInterpolation: .lch)
             step(view, 0.5)
-            let mid = ColorMath.extractComponents(of: view.backgroundColor!)
+            let mid = ColorMath.extractComponents(of: view.backgroundColor!)!
             #expect(mid.red > 0.95 && mid.green > 0.95 && mid.blue > 0.95, "\(mid)")
             // The end state is still the dynamic colour, not the dark variant.
             step(view, 1)

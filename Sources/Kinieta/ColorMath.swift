@@ -26,9 +26,12 @@ enum ColorMath {
 
     /// The gamma-encoded sRGB components of a colour. Wide-gamut colours come
     /// back in extended range, outside 0...1.
-    static func extractComponents(of color: UIColor) -> RGB {
+    ///
+    /// UIKit converts CMYK, Lab and XYZ colours itself. `nil` when a colour
+    /// has no RGB equivalent, such as a pattern image.
+    static func extractComponents(of color: UIColor) -> RGB? {
         var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0
-        color.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+        guard color.getRed(&red, green: &green, blue: &blue, alpha: &alpha) else { return nil }
         return RGB(red: red, green: green, blue: blue, alpha: alpha)
     }
 
@@ -212,6 +215,10 @@ enum ColorMath {
 
     /// Lightness 0...100, chroma from 0 (about 134 at the edge of sRGB), hue in degrees.
     struct LCH: Equatable {
+        /// Below this chroma a hue counts for less and less: the system greys sit
+        /// around 2 to 5, a beige around 13, muted teals and cyans from about 35.
+        static let neutralChroma: CGFloat = 20
+
         var lightness: CGFloat
         var chroma: CGFloat
         var hue: CGFloat
@@ -225,11 +232,20 @@ enum ColorMath {
         /// Unclamped: saturated colours can land outside sRGB. See ``RGB/clamped()``.
         var rgb: RGB { lab.xyz.rgb(alpha: alpha) }
 
+        /// Hue takes the shorter arc, weighted by how much each end has a hue at
+        /// all: from a grey or near-grey it heads straight for the other end's
+        /// instead of sweeping round the wheel. Between two colours at or above
+        /// ``neutralChroma`` it is a plain lerp. The weight is squared so a
+        /// near-grey's hue fades about as fast as its share of the chroma.
         func lerp(_ other: LCH, _ t: CGFloat) -> LCH {
-            LCH(
+            func weight(_ c: CGFloat) -> CGFloat { pow(min(c / LCH.neutralChroma, 1), 2) }
+            let w0 = weight(chroma), w1 = weight(other.chroma)
+            let total = (1 - t) * w0 + t * w1
+            let hueProgress = total > 0 ? t * w1 / total : t
+            return LCH(
                 lightness: ColorMath.lerp(lightness, other.lightness, t),
                 chroma: ColorMath.lerp(chroma, other.chroma, t),
-                hue: lerpHue(hue, other.hue, t),
+                hue: lerpHue(hue, other.hue, hueProgress),
                 alpha: ColorMath.lerp(alpha, other.alpha, t)
             )
         }

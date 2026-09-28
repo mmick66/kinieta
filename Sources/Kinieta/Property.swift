@@ -2,6 +2,7 @@
 
 #if canImport(UIKit)
 import UIKit
+import os
 
 /// How two colours are interpolated.
 public enum ColorInterpolation: Sendable, Equatable {
@@ -51,6 +52,8 @@ public enum Property: Sendable {
         case .cornerRadius: return .cornerRadius
         }
     }
+
+    private static let logger = Logger(subsystem: "Kinieta", category: "Colour")
 
     /// Applies an eased progress factor to a view.
     typealias Transformation = (UIView, CGFloat) -> Void
@@ -114,30 +117,35 @@ public enum Property: Sendable {
         from source: UIColor, to target: UIColor, mode: ColorInterpolation, traits: UITraitCollection,
         apply: @escaping (UIView, UIColor) -> Void
     ) -> Transformation {
+        guard var from = ColorMath.extractComponents(of: source.resolvedColor(with: traits)),
+            var to = ColorMath.extractComponents(of: target.resolvedColor(with: traits))
+        else {
+            // A pattern has nothing to blend. Switch as soon as the animation starts.
+            Self.logger.warning("\(key.rawValue, privacy: .public) cannot blend a colour with no RGB value; snapping")
+            return { view, factor in apply(view, factor > 0 ? target : source) }
+        }
+
         // A fully transparent endpoint has no colour of its own. Fade the other
         // colour's alpha instead of passing through black.
-        var from = ColorMath.extractComponents(of: source.resolvedColor(with: traits))
-        var to = ColorMath.extractComponents(of: target.resolvedColor(with: traits))
         if from.alpha == 0 { from = to.withAlpha(0) }
         if to.alpha == 0 { to = from.withAlpha(0) }
 
-        // A grey endpoint has no hue; borrow the other one's so the
-        // interpolation does not sweep through the colour wheel. Hue then
-        // takes the shorter way round.
-        let achromatic: CGFloat = 1e-3
         let between: (CGFloat) -> UIColor
         switch mode {
         case .rgb:
             between = { c in from.lerp(to, c).color() }
         case .hsb:
+            // A grey endpoint has no hue; borrow the other one's so the
+            // interpolation does not sweep through the colour wheel. Hue then
+            // takes the shorter way round.
+            let achromatic: CGFloat = 1e-3
             var f = from.hsb, t = to.hsb
             if f.saturation < achromatic { f.hue = t.hue }
             if t.saturation < achromatic { t.hue = f.hue }
             between = { c in f.lerp(t, c).rgb.color() }
         case .lch:
-            var f = from.lch, t = to.lch
-            if f.chroma < achromatic { f.hue = t.hue }
-            if t.chroma < achromatic { t.hue = f.hue }
+            // LCH.lerp weights hue by chroma, which covers greys and near-greys.
+            let f = from.lch, t = to.lch
             between = { c in f.lerp(t, c).rgb.clamped().color() }
         }
 

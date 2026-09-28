@@ -33,6 +33,12 @@ All notable changes to Kinieta are documented here. The format follows
   were silently dropped; the group is now an ordinary step of the handle's
   timeline. `animate` on a group handle, which has no view, is ignored with a
   logged warning instead of finishing instantly.
+- A colour with no RGB value, such as `UIColor(patternImage:)`, was read as
+  transparent, so animating to or from it faded instead. It now switches as
+  the animation starts, with a logged warning.
+- LCH interpolation from a near-grey, such as `.secondaryLabel`, swept through
+  unrelated hues. Hue is now weighted by chroma, so it heads straight for the
+  other colour's hue; colours with chroma of 20 or more are unaffected.
 
 ## [1.0.0] - 2026-09-08
 

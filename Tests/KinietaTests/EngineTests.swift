@@ -428,7 +428,7 @@ struct EngineTests {
     // MARK: Colour
 
     private func rgb(_ color: UIColor?) -> ColorMath.RGB {
-        ColorMath.extractComponents(of: color!)
+        ColorMath.extractComponents(of: color!)!
     }
 
     private func sameColour(_ a: ColorMath.RGB, _ b: ColorMath.RGB, _ tolerance: CGFloat) -> Bool {
@@ -515,6 +515,71 @@ struct EngineTests {
             duration: 1.0)
         _ = a.update(frame(0.5))
         #expect(sameColour(rgb(view.backgroundColor), rgb(.red), 0.02))
+    }
+
+    private var pattern: UIColor {
+        UIColor(patternImage: UIGraphicsImageRenderer(size: CGSize(width: 2, height: 2)).image { _ in })
+    }
+
+    @Test func patternColourTargetSnapsInsteadOfFading() {
+        let view = makeView()
+        view.backgroundColor = .red
+        let target = pattern
+        let a = animation(view, [.background(target)], duration: 1.0)
+        _ = a.update(frame(0.25))
+        #expect(view.backgroundColor === target)
+        _ = a.update(frame(1.0))
+        #expect(view.backgroundColor === target)
+    }
+
+    @Test func patternColourSourceSnapsInsteadOfFading() {
+        // Read as transparent, the blue would fade in from alpha 0.
+        let view = makeView()
+        view.backgroundColor = pattern
+        _ = animation(view, [.background(.blue)], duration: 1.0).update(frame(0.25))
+        #expect(view.backgroundColor == .blue)
+    }
+
+    @Test func cmykBorderColourBlendsInsteadOfFading() {
+        let view = makeView()
+        let cmykRed = CGColor(colorSpace: CGColorSpaceCreateDeviceCMYK(), components: [0, 1, 1, 0, 1])!
+        view.layer.borderColor = cmykRed
+        _ = animation(view, [.borderColor(.blue, interpolation: .rgb)], duration: 1.0).update(frame(0.5))
+        let mid = rgb(UIColor(cgColor: view.layer.borderColor!))
+        #expect(approx(mid.alpha, 1, 1e-6), "\(mid)")
+        #expect(mid.red > 0.3 && mid.blue > 0.3, "half way from red to blue: \(mid)")
+    }
+
+    /// The LCH hue of `view`'s background, in degrees away from `hue`.
+    private func hueDistance(_ view: UIView, from hue: CGFloat) -> CGFloat {
+        let delta = abs(rgb(view.backgroundColor).lch.hue - hue).truncatingRemainder(dividingBy: 360)
+        return min(delta, 360 - delta)
+    }
+
+    @Test(arguments: [
+        UIColor.systemGray,
+        UIColor(red: 0.52, green: 0.50, blue: 0.47, alpha: 1),  // warm: its hue is opposite blue's
+    ])
+    func lchFromANearGreyHeadsStraightForTheTargetHue(_ grey: UIColor) {
+        let light = UITraitCollection(userInterfaceStyle: .light)
+        let blue = UIColor.systemBlue.resolvedColor(with: light)
+        let blueHue = rgb(blue).lch.hue
+        let view = makeView()
+        view.overrideUserInterfaceStyle = .light
+        view.backgroundColor = grey.resolvedColor(with: light)
+        let a = animation(view, [.background(blue)], duration: 1.0)
+        for _ in 0..<3 {
+            _ = a.update(frame(0.25))
+            #expect(hueDistance(view, from: blueHue) < 25, "\(rgb(view.backgroundColor).lch)")
+        }
+        #expect(hueDistance(view, from: blueHue) < 10, "three quarters of the way")
+    }
+
+    @Test func lchBetweenTwoColoursIsUnweighted() {
+        // Both well above the neutral chroma: hue moves exactly with progress.
+        let from = ColorMath.LCH(lightness: 50, chroma: 40, hue: 0, alpha: 1)
+        let to = ColorMath.LCH(lightness: 50, chroma: 90, hue: 100, alpha: 1)
+        #expect(approx(from.lerp(to, 0.5).hue, 50, 1e-9))
     }
 
     // MARK: Sequence & Group
