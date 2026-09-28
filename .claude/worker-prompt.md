@@ -12,3 +12,9 @@ You are responsible for exactly one Beads ticket: TICKET_ID. Do not work on any 
 - If you cannot finish: note why on the ticket, defer it, and stop.
 
 When you are finished, say DONE and stop.
+
+## Close
+- Close the ticket only when the full build and test suite pass AND the dependents have been reviewed.
+- If an acceptance criterion can only be verified by CI after a push, do not close the ticket:
+  finish everything else, add a note saying it awaits CI, and defer it.
+- If you cannot finish: note why on the ticket, defer it, and stop.

@@ -31,7 +31,8 @@
 #   3  a worker stayed blocked for more than 4 minutes, or went idle with its ticket still
 #      in_progress (paused mid-ticket); the tab and worktree are named in the log
 #   4  Herdr, Beads or git failure (tab/agent/worktree could not start, JSON or status unreadable)
-#   5  uncommitted changes in the main checkout (finished tickets are merged there)
+#   5  uncommitted changes in the main checkout, or it left the branch it started on
+#      (finished tickets are merged there)
 #   6  a finished ticket's branch does not fast-forward onto the main checkout's branch
 #
 # Every event is printed here and appended to .claude/orchestrate.log  (follow with: tail -f .claude/orchestrate.log)
@@ -115,7 +116,7 @@ notify() {
 log() {
   echo "$(date '+%Y-%m-%d %H:%M:%S') $*" | tee -a "$LOG"
   case "$*" in
-    *closed*|*deferred*|*BLOCKED*|*DIRTY_TREE*|*READY_EMPTY*|*LIMIT_REACHED*|*FAILED*|*UNREADABLE*|*WITHOUT_COMMIT*)
+    *closed*|*deferred*|*BLOCKED*|*PAUSED*|*DIRTY_TREE*|*READY_EMPTY*|*LIMIT_REACHED*|*FAILED*|*UNREADABLE*|*WITHOUT_COMMIT*)
       notify "$*" ;;
   esac
 }
@@ -151,16 +152,26 @@ d.sort(key=lambda i:i.get('priority',9))
 print(d[0]['id'] if d else '')"
 }
 
-# Uncommitted work outside .claude/ and .beads/ (those hold this script, prompts, log and tracker data).
-dirty_tree() { git status --porcelain -- . ':(exclude).claude' ':(exclude).beads'; }
+# Uncommitted work in checkout $1 outside .claude/ and .beads/ (those hold this script, prompts,
+# log, local agent settings and tracker data).
+dirty_tree() { git -C "$1" status --porcelain -- . ':(exclude).claude' ':(exclude).beads'; }
+
+# Print the path of the worktree that has branch $1 checked out, or nothing.
+worktree_of() {
+  git worktree list --porcelain | awk -v b="branch refs/heads/$1" '/^worktree /{p=substr($0,10)} $0==b{print p}'
+}
 
 # ---- Main loop ---------------------------------------------------------------------
-log "START orchestrate in $REPO (done so far: $count, limit: $LIMIT, workspace: $WORKSPACE, agent: $AGENT_KIND)"
+log "START orchestrate in $REPO on $BASE (done so far: $count, limit: $LIMIT, workspace: $WORKSPACE, agent: $AGENT_KIND, worktrees: $WT_ROOT)"
 
 while [ "$count" -lt "$LIMIT" ]; do
-  # Workers share one working tree: never hand one worker's leftovers to the next.
-  if [ -n "$(dirty_tree)" ]; then
+  # Finished tickets are fast-forwarded into the main checkout: it must be clean and still on $BASE.
+  if [ -n "$(dirty_tree "$REPO")" ]; then
     log "DIRTY_TREE: uncommitted changes in $REPO; stopping. Inspect with: git status"
+    exit 5
+  fi
+  if [ "$(git symbolic-ref --quiet --short HEAD)" != "$BASE" ]; then
+    log "DIRTY_TREE: $REPO is no longer on $BASE; stopping. Check it out again to continue."
     exit 5
   fi
 
@@ -170,7 +181,23 @@ while [ "$count" -lt "$LIMIT" ]; do
   count=$((count+1))
   log "[$count/$LIMIT] $T dispatching"
 
-  tab=$(herdr tab create --workspace "$WORKSPACE" --cwd "$REPO" --label "$T" --no-focus) \
+  # One worktree per ticket. A ticket that comes back (deferral ended) resumes its old branch.
+  br="wt/$T"
+  WT=$(worktree_of "$br")
+  if [ -n "$WT" ]; then
+    log "  reusing worktree $WT ($br)"
+  else
+    WT="$WT_ROOT/$T"
+    git worktree prune >/dev/null 2>&1
+    if git show-ref --verify --quiet "refs/heads/$br"; then
+      git worktree add --quiet "$WT" "$br" >>"$LOG" 2>&1
+    else
+      git worktree add --quiet -b "$br" "$WT" "$BASE" >>"$LOG" 2>&1
+    fi || { log "WORKTREE_FAILED for $T at $WT (git output is in $LOG)"; exit 4; }
+    log "  worktree $WT on $br"
+  fi
+
+  tab=$(herdr tab create --workspace "$WORKSPACE" --cwd "$WT" --label "$T" --no-focus) \
     || { log "TAB_FAILED for $T (is '$WORKSPACE' a valid workspace?)"; exit 4; }
   tabid=$(echo "$tab" | json 'd["result"]["tab"]["tab_id"]')
   pane=$(echo "$tab"  | json 'd["result"]["root_pane"]["pane_id"]')
@@ -207,22 +234,36 @@ while [ "$count" -lt "$LIMIT" ]; do
   s=$(status_of "$T")
   case "$s" in
     closed)
-      c=$(git log --oneline -1 --grep="$T" | cut -c1-70)
-      if [ -n "$c" ]; then
-        herdr tab close "$tabid" >/dev/null 2>&1
-        log "  $T closed ($c); tab closed"
+      c=$(git log --oneline -1 --grep="$T" "$BASE..$br" | cut -c1-70)
+      if [ -z "$c" ]; then
+        log "  CLOSED_WITHOUT_COMMIT: no commit on $br names $T; worktree $WT and tab $tabid left for review"
+      elif [ -n "$(dirty_tree "$WT")" ]; then
+        log "  CLOSED_WITHOUT_COMMIT: $T closed ($c) but $WT has uncommitted changes; worktree and tab $tabid left for review"
+      elif ! git merge --ff-only --quiet "$br" >>"$LOG" 2>&1; then
+        log "MERGE_FAILED: $br does not fast-forward onto $BASE; worktree $WT and tab $tabid left for review"
+        exit 6
       else
-        log "  CLOSED_WITHOUT_COMMIT: no commit names $T; tab $tabid left open for review"
+        if git worktree remove "$WT" >>"$LOG" 2>&1 && git branch -d "$br" >>"$LOG" 2>&1; then
+          herdr tab close "$tabid" >/dev/null 2>&1
+          log "  $T closed ($c); merged into $BASE, worktree, branch and tab removed"
+        else
+          log "  $T closed ($c); merged into $BASE, but CLEANUP_FAILED for $WT / $br (git output is in $LOG); tab $tabid left open"
+        fi
       fi ;;
     deferred)
-      log "  $T deferred by worker; tab $tabid left open" ;;
+      log "  $T deferred by worker; worktree $WT and tab $tabid left open" ;;
+    in_progress)
+      # Most likely waiting for an answer: stop rather than start the next ticket around it.
+      bd update "$T" --append-notes "Orchestrator: worker in Herdr tab $tabid went idle with the ticket still in_progress (worktree $WT)." >/dev/null 2>&1
+      log "PAUSED: $T still in_progress in tab $tabid (worktree $WT); stopping so it can be answered"
+      exit 3 ;;
     unknown)
-      log "STATUS_UNREADABLE for $T; stopping rather than guessing (tab $tabid left open)"
+      log "STATUS_UNREADABLE for $T; stopping rather than guessing (worktree $WT and tab $tabid left open)"
       exit 4 ;;
     *)
-      bd update "$T" --append-notes "Orchestrator: worker in Herdr tab $tabid settled with the ticket still '$s'; deferred for review." >/dev/null 2>&1
-      bd defer "$T" --reason="worker finished without closing; see Herdr tab $tabid" >/dev/null 2>&1
-      log "  $T still $s -> noted and deferred; tab $tabid left open" ;;
+      bd update "$T" --append-notes "Orchestrator: worker in Herdr tab $tabid settled with the ticket still '$s'; deferred for review (worktree $WT)." >/dev/null 2>&1
+      bd defer "$T" --reason="worker finished without closing; see Herdr tab $tabid and worktree $WT" >/dev/null 2>&1
+      log "  $T still $s -> noted and deferred; worktree $WT and tab $tabid left open" ;;
   esac
 done
 
