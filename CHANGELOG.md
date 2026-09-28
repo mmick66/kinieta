@@ -49,6 +49,11 @@ All notable changes to Kinieta are documented here. The format follows
 - LCH interpolation from a near-grey, such as `.secondaryLabel`, swept through
   unrelated hues. Hue is now weighted by chroma, so it heads straight for the
   other colour's hue; colours with chroma of 20 or more are unaffected.
+- The podspec shipped no privacy manifest; CocoaPods consumers now get
+  `PrivacyInfo.xcprivacy` in a `Kinieta_Privacy` resource bundle. Its
+  description, still the Swift 4 one, now matches the README. This is not a
+  1.0.1: 1.0.0 stays the last version on CocoaPods trunk until the next
+  release is published there.
 
 ## [1.0.0] - 2026-09-08
 

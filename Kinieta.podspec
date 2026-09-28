@@ -5,15 +5,14 @@ Pod::Spec.new do |s|
   s.summary      = "A timeline animation engine for UIKit with a typed, chainable API. Prefer Swift Package Manager; CocoaPods support ends after 1.0."
 
   s.description  = <<-DESC
- I decided to build an Animation Engine from scratch for the usual reason: No other did what I wanted how I wanted it! While there are some great libraries out there, my requiremenets where pretty restrictive as what I wanted was:
-1. A library written in Swift 4.0
-2. With a timeline approach where animations can run in parallel at different start and end points
-3. The ability to group various animations from different views with a single complete block
-4. A simple API where I could just throw in some variables and the rest would be dealt by the library
-5. A convention over configuration approach where many variables would be assumed when not passed
-6. Efficient interpolation with infinite easing functions based on custom Bezier curves
-7. Provides real color interpolation using the advanced HCL color space rather than plain RGB
-8. Code that was extremely easy to read and new developers from the community could join in in no time!
+A timeline animation engine for UIKit with a typed, chainable API.
+
+- Timelines. Animations run one after another, side by side, or grouped across views with a single completion.
+- Typed properties. .x(250), .background(.systemPink), .rotation(degrees: 30). Wrong types are compile errors.
+- Real easing. Cubic Bézier curves with the same semantics as CSS and cubic-bezier.com, plus presets from sine to back.
+- Perceptual colour. Colours interpolate through LCH by default, so pink to cyan never passes through grey.
+- Handles. Every timeline can be cancelled, paused, resumed or awaited.
+- Swift 6, iOS, tvOS and Mac Catalyst 17+. Main-actor isolated, Sendable where it matters, Reduce Motion aware.
                    DESC
 
   s.homepage     = "https://github.com/mmick66/kinieta"
@@ -29,5 +28,8 @@ Pod::Spec.new do |s|
   s.source       = { :git => "https://github.com/mmick66/kinieta.git", :tag => s.version }
 
   s.source_files = "Sources/Kinieta/**/*.swift"
+
+  # The same privacy manifest SwiftPM consumers get from Package.swift.
+  s.resource_bundles = { "Kinieta_Privacy" => ["Sources/Kinieta/PrivacyInfo.xcprivacy"] }
 
 end
