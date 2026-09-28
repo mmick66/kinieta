@@ -7,10 +7,11 @@
 # Checks (each mirrors one CI job):
 #   lint        swift-format lint                        (job: lint)
 #   spm-macos   swift build + swift test on the Mac host (job: spm-macos)
-#   tvos        build for the tvOS Simulator             (job: tvos)
-#   ios         iOS Simulator tests + example app build  (job: test)
+#   ios        iOS Simulator tests + example app build  (job: test)
 #   catalyst    Mac Catalyst tests                       (job: catalyst)
 #   spm-linux   swift build + swift test in Docker       (job: spm-linux)
+#
+# The tvOS build (job: tvos) runs in CI only.
 #
 # Requires Xcode 26.6 with the iOS 26.5 simulator runtime, and a running Docker for spm-linux.
 # Full output of each check goes to .build/ci-local/<check>.log; on a failure the end of it is
@@ -20,7 +21,7 @@
 
 set -euo pipefail
 
-ALL_CHECKS=(lint spm-macos tvos ios catalyst spm-linux)
+ALL_CHECKS=(lint spm-macos ios catalyst spm-linux)
 
 # Snapshot references in Tests/KinietaTests/__Snapshots__ were recorded on this simulator and
 # runtime. Keep in sync with DESTINATION in .github/workflows/ci.yml and README "Development".
@@ -39,11 +40,6 @@ check_lint() {
 
 check_spm-macos() {
   swift build && swift test
-}
-
-check_tvos() {
-  xcodebuild -scheme Kinieta -destination 'generic/platform=tvOS Simulator' \
-    -derivedDataPath DerivedData build
 }
 
 check_ios() {
@@ -84,9 +80,6 @@ runtimes=$(xcrun simctl list runtimes 2>/dev/null || true)
 problems=()
 if wants ios && ! grep -q '^iOS 26\.5 ' <<<"$runtimes"; then
   problems+=("ios needs the iOS 26.5 simulator runtime. Install it with: xcodebuild -downloadPlatform iOS -buildVersion 26.5")
-fi
-if wants tvos && ! grep -q '^tvOS ' <<<"$runtimes"; then
-  problems+=("tvos needs the tvOS platform. Install it with: xcodebuild -downloadPlatform tvOS")
 fi
 if wants spm-linux && ! docker info >/dev/null 2>&1; then
   problems+=("spm-linux needs Docker, and it is not running.")
