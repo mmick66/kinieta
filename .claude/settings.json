@@ -1,4 +1,18 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(bd:*)",
+      "Bash(herdr:*)",
+      "Bash(swift:*)",
+      "Bash(swiftlint:*)",
+      "Bash(xcodebuild:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ],
+    "deny": [
+      "Bash(git push:*)"
+    ]
+  },
   "hooks": {
     "SessionStart": [
       {
