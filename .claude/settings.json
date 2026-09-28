@@ -16,15 +16,6 @@
       "Bash(git status:*)",
       "Bash(git diff:*)",
       "Bash(git tag)",
-      "Bash(git add:*)",
-      "Bash(git commit:*)",
-      "Bash(bd show:*)",
-      "Bash(bd update:*)",
-      "Bash(bd create:*)",
-      "Bash(bd dep add:*)",
-      "Bash(bd close:*)",
-      "Bash(bd defer:*)",
-      "Bash(scripts/ci-local.sh:*)",
       "mcp__firecrawl__firecrawl_search"
     ],
     "deny": [
