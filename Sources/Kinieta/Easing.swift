@@ -1,5 +1,7 @@
 // Kinieta — MIT License. See LICENSE.
-// Preset control points are from https://github.com/ai/easings.net/
+// Preset control points are from Matthew Lein's Ceaser table
+// (https://matthewlein.com/tools/ceaser). The current easings.net
+// (https://github.com/ai/easings.net/) lists different values for some of them.
 
 #if canImport(UIKit)
 import Foundation
@@ -53,7 +55,7 @@ public struct Easing: Sendable, Equatable {
 
         case (.sine, .in): return Bezier(0.47, 0, 0.745, 0.715)
         case (.sine, .out): return Bezier(0.39, 0.575, 0.565, 1.0)
-        case (.sine, .inOut): return Bezier(0.455, 0.03, 0.515, 0.955)
+        case (.sine, .inOut): return Bezier(0.445, 0.05, 0.55, 0.95)
 
         case (.quad, .in): return Bezier(0.55, 0.085, 0.68, 0.53)
         case (.quad, .out): return Bezier(0.25, 0.46, 0.45, 0.94)

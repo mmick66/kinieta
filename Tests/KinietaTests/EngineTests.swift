@@ -71,6 +71,27 @@ struct EngineTests {
         }
     }
 
+    @Test func everyPresetBezierIsDistinct() {
+        let curves: [(Easing.Curve, String)] = [
+            (.sine, "sine"), (.quad, "quad"), (.cubic, "cubic"), (.quart, "quart"),
+            (.quint, "quint"), (.expo, "expo"), (.back, "back"),
+        ]
+        let placements: [(Easing.Placement, String)] = [(.in, "in"), (.out, "out"), (.inOut, "inOut")]
+        let presets = curves.flatMap { curve, curveName in
+            placements.map { placement, placementName in
+                ("\(placementName)(.\(curveName))", Easing.resolve(curve, placement))
+            }
+        }
+        #expect(presets.count == 21)
+        for i in presets.indices {
+            for j in presets.indices where j > i {
+                let (a, b) = (presets[i].1, presets[j].1)
+                let same = a.p1 == b.p1 && a.p2 == b.p2
+                #expect(!same, "\(presets[i].0) and \(presets[j].0) share the control points \(a.p1), \(a.p2)")
+            }
+        }
+    }
+
     @Test func customEasingUsesTheGivenCurve() {
         let custom = Bezier(0.16, 0.73, 0.89, 0.24)
         #expect(Easing.custom(custom).bezier == custom)
@@ -105,6 +126,8 @@ struct EngineTests {
             (.in(.quart), "quartIn", { t in t * t * t * t }),
             (.in(.expo), "expoIn", { t in pow(2, 10 * t - 10) }),
             (.in(.sine), "sineIn", { t in 1 - cos(t * .pi / 2) }),
+            (.inOut(.sine), "sineInOut", { t in 0.5 - cos(.pi * t) / 2 }),
+            (.inOut(.quad), "quadInOut", { t in t < 0.5 ? 2 * t * t : 1 - pow(-2 * t + 2, 2) / 2 }),
             (.in(.back), "backIn", { t in c3 * t * t * t - c1 * t * t }),
         ]
         for (easing, name, function) in reference {

@@ -13,6 +13,11 @@ All notable changes to Kinieta are documented here. The format follows
   grey endpoints, an overshooting curve, and dynamic colours in light and
   dark appearance. 72 reference images, 57 tests in total.
 
+### Fixed
+
+- `Easing.inOut(.sine)` used the `inOut(.quad)` curve. It now uses Ceaser's
+  easeInOutSine, `Bezier(0.445, 0.05, 0.55, 0.95)`.
+
 ## [1.0.0] - 2026-09-08
 
 The modernisation release. Swift 6, Swift Package Manager, iOS 17 and up.
