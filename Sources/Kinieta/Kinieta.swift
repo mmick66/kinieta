@@ -192,7 +192,10 @@ public final class Kinieta {
         await withCheckedContinuation { waiters.append($0) }
     }
 
+    /// Moves to a terminal state. The first one wins, so a timeline cancelled
+    /// from a completion block never turns into `.finished`.
     private func finish(as state: State) {
+        guard self.state == .running || self.state == .paused else { return }
         self.state = state
         let pending = waiters
         waiters = []

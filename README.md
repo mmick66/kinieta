@@ -158,6 +158,8 @@ handle.state             // .running, .paused, .finished or .cancelled
 await handle.finished()  // suspends until the timeline finishes or is cancelled
 ```
 
+`cancel()` and `pause()` take effect immediately, even from inside an `onComplete` block: the next action does not start in that frame, and a cancelled timeline stays `.cancelled`.
+
 Handles hold their view weakly. A timeline finishes on its own when its view is deallocated and never keeps it alive.
 
 ### Colour

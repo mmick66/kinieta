@@ -721,6 +721,58 @@ struct EngineTests {
         #expect(handle.state == .finished)
     }
 
+    @Test(.timeLimit(.minutes(1)))
+    func cancelFromACompletionBlockStopsTheTimelineInThatFrame() async {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        var laterCompleted = false
+        let handle = view.animate(.x(100), duration: 1)
+        handle.onComplete { handle.cancel() }
+            .animate(.alpha(0))
+            .onComplete { laterCompleted = true }
+        frames.step(1.5)  // the leftover half frame must not reach the alpha animation
+        #expect(approx(view.frame.origin.x, 100))
+        #expect(view.alpha == 1)
+        #expect(!laterCompleted)
+        #expect(handle.state == .cancelled)
+        await handle.finished()  // cancelled: returns immediately
+        #expect(!frames.isRunning)
+    }
+
+    @Test func cancelFromTheLastCompletionBlockStaysCancelled() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        let handle = view.animate(.x(100), duration: 1)
+        handle.onComplete { handle.cancel() }
+        frames.step(1)
+        #expect(approx(view.frame.origin.x, 100))
+        #expect(handle.state == .cancelled)
+        #expect(!frames.isRunning)
+    }
+
+    @Test func pauseFromACompletionBlockHoldsTheNextActionAtItsStart() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        let handle = view.animate(.x(100), duration: 1)
+        handle.onComplete { handle.pause() }
+            .animate(.y(100), duration: 1)
+        frames.step(1.5)
+        #expect(approx(view.frame.origin.x, 100))
+        #expect(view.frame.origin.y == 0)
+        #expect(handle.isPaused)
+        frames.step(0.25, count: 4)
+        #expect(view.frame.origin.y == 0)
+        handle.resume()
+        frames.step(0.25)
+        #expect(approx(view.frame.origin.y, 25, 0.5))
+        frames.step(0.75)
+        #expect(handle.state == .finished)
+        #expect(approx(view.frame.origin.y, 100))
+    }
+
     // MARK: Invalid durations
 
     @Test func negativeWaitIsZeroAndDoesNotFastForward() {

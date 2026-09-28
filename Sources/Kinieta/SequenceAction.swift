@@ -43,6 +43,10 @@ final class SequenceAction: Action {
                 return .running
             case .finished(let overshoot):
                 currentAction = nil
+                // The child's completion block may have cancelled or paused
+                // this sequence; honour that before anything else runs.
+                if isCancelled { return .finished(overshoot: 0) }
+                if isPaused { return .running }
                 if pending.isEmpty {
                     completion?()
                     return .finished(overshoot: overshoot)
