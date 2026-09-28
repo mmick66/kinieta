@@ -10,6 +10,10 @@ import UIKit
 ///
 /// Record new references with `TEST_RUNNER_SNAPSHOT_TESTING_RECORD=all` in the
 /// environment of `xcodebuild test`, then review the images before committing.
+///
+/// References are recorded on the iPhone 17 Pro simulator running iOS 26.5, the
+/// runtime pinned in `.github/workflows/ci.yml` and the README. Other runtimes can
+/// render differently enough to fail the 0.98 perceptual precision.
 @Suite(.serialized)
 @MainActor
 struct SnapshotTests {

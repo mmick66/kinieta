@@ -2,11 +2,17 @@ name: CI
 
 on:
   push:
-    branches: [master, modernize]
+    branches: [master]
   pull_request:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
-  DESTINATION: platform=iOS Simulator,name=iPhone 17 Pro
+  # Snapshot references in Tests/KinietaTests/__Snapshots__ were recorded on this
+  # simulator and runtime. Keep in sync with README "Development".
+  DESTINATION: platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5
 
 jobs:
   test:
@@ -15,9 +21,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode_26.app || sudo xcode-select -s "$(ls -d /Applications/Xcode*.app | sort -V | tail -1)"
+        run: sudo xcode-select -s /Applications/Xcode_26.6.app
       - name: Xcode version
         run: xcodebuild -version
+      - name: Verify xcbeautify
+        run: command -v xcbeautify || brew install xcbeautify && xcbeautify --version
       - name: Cache DerivedData
         uses: actions/cache@v4
         with:
@@ -27,16 +35,25 @@ jobs:
       - name: Test package
         run: |
           set -o pipefail
-          xcodebuild -scheme Kinieta -destination "$DESTINATION" -derivedDataPath DerivedData test | xcbeautify --renderer github-actions || xcodebuild -scheme Kinieta -destination "$DESTINATION" -derivedDataPath DerivedData test
+          xcodebuild -scheme Kinieta -destination "$DESTINATION" -derivedDataPath DerivedData -resultBundlePath TestResults.xcresult test | xcbeautify --renderer github-actions
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TestResults.xcresult
+          path: TestResults.xcresult
+          if-no-files-found: ignore
       - name: Build example app
         run: |
           set -o pipefail
-          xcodebuild -project Example/KinietaDemo.xcodeproj -scheme KinietaDemo -destination "$DESTINATION" -derivedDataPath DerivedData CODE_SIGNING_ALLOWED=NO build
+          xcodebuild -project Example/KinietaDemo.xcodeproj -scheme KinietaDemo -destination "$DESTINATION" -derivedDataPath DerivedData CODE_SIGNING_ALLOWED=NO build | xcbeautify --renderer github-actions
 
   lint:
     name: swift-format lint
     runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_26.6.app
       - name: Lint
         run: xcrun swift-format lint --strict --recursive Sources Tests Example/KinietaDemo

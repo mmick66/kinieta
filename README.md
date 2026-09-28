@@ -185,16 +185,18 @@ iOS 17 and later, UIKit only. The sources are guarded with `canImport(UIKit)`, s
 
 ## Development
 
-```
-xcodebuild -scheme Kinieta -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test
-xcodebuild -project Example/KinietaDemo.xcodeproj -scheme KinietaDemo -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build
-xcrun swift-format lint --recursive Sources Tests
-```
-
-Visual regression is covered by snapshot tests: each property is rendered at five progress points, the colour paths at their midpoint, and dynamic colours in light and dark appearance. Reference images live in `Tests/KinietaTests/__Snapshots__`. After an intentional visual change, re-record them on the iPhone 17 Pro simulator and review the PNGs before committing:
+Tests run on the pinned simulator runtime: **iPhone 17 Pro, iOS 26.5** (Xcode 26.6). CI uses the same destination, since the snapshot references are only valid for the runtime they were recorded on.
 
 ```
-TEST_RUNNER_SNAPSHOT_TESTING_RECORD=all xcodebuild -scheme Kinieta -destination 'platform=iOS Simulator,name=iPhone 17 Pro' test
+xcodebuild -scheme Kinieta -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5' test
+xcodebuild -project Example/KinietaDemo.xcodeproj -scheme KinietaDemo -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5' CODE_SIGNING_ALLOWED=NO build
+xcrun swift-format lint --strict --recursive Sources Tests Example/KinietaDemo
+```
+
+Visual regression is covered by snapshot tests: each property is rendered at five progress points, the colour paths at their midpoint, and dynamic colours in light and dark appearance. Reference images live in `Tests/KinietaTests/__Snapshots__`. After an intentional visual change, re-record them on the pinned iPhone 17 Pro / iOS 26.5 simulator and review the PNGs before committing:
+
+```
+TEST_RUNNER_SNAPSHOT_TESTING_RECORD=all xcodebuild -scheme Kinieta -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5' test
 ```
 
 Requires Xcode 26. Documentation is a DocC catalog in `Sources/Kinieta/Kinieta.docc`, including a guide for migrating from 0.5.
