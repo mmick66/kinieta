@@ -61,10 +61,42 @@ extension UIView {
         }
     }
 
-    /// Rotation in degrees. Setting it replaces the transform with a pure rotation.
+    /// Rotation in degrees, unwrapped: after rotating to 720 it reads 720, not 0.
+    ///
+    /// Setting it keeps the rest of the transform: the scale (and any shear)
+    /// applied before the rotation, and the translation.
+    ///
+    /// The logical angle is remembered together with the transform it produced.
+    /// If something else has changed the transform since, the angle is read
+    /// back from the transform instead, wrapped to (-180, 180].
     var rotation: CGFloat {
-        get { atan2(transform.b, transform.a).radiansToDegrees }
-        set { transform = CGAffineTransform(rotationAngle: newValue.degreesToRadians) }
+        get {
+            if let state = rotationState, state.transform == transform { return state.degrees }
+            return atan2(transform.b, transform.a).radiansToDegrees
+        }
+        set {
+            let base: CGAffineTransform
+            if let state = rotationState, state.transform == transform {
+                // Reuse the stored base so repeated frames do not accumulate rounding.
+                base = state.base
+            } else {
+                // Undo the current rotation to leave whatever was applied before it.
+                var linear = transform
+                linear.tx = 0
+                linear.ty = 0
+                base = linear.concatenating(CGAffineTransform(rotationAngle: -atan2(transform.b, transform.a)))
+            }
+            var rotated = base.concatenating(CGAffineTransform(rotationAngle: newValue.degreesToRadians))
+            rotated.tx = transform.tx
+            rotated.ty = transform.ty
+            transform = rotated
+            rotationState = RotationState(degrees: newValue, base: base, transform: rotated)
+        }
+    }
+
+    private var rotationState: RotationState? {
+        get { objc_getAssociatedObject(self, &rotationStateKey) as? RotationState }
+        set { objc_setAssociatedObject(self, &rotationStateKey, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC) }
     }
 
     var backgroundColorOrClear: UIColor {
@@ -82,4 +114,22 @@ extension UIView {
         return traitCollection
     }
 }
+
+/// The last angle Kinieta gave a view, with the parts of the transform it was
+/// composed from.
+private final class RotationState {
+    let degrees: CGFloat
+    /// The linear part of the transform without the rotation, no translation.
+    let base: CGAffineTransform
+    /// The transform written for `degrees`, to tell whether it is still current.
+    let transform: CGAffineTransform
+
+    init(degrees: CGFloat, base: CGAffineTransform, transform: CGAffineTransform) {
+        self.degrees = degrees
+        self.base = base
+        self.transform = transform
+    }
+}
+
+nonisolated(unsafe) private var rotationStateKey: UInt8 = 0
 #endif

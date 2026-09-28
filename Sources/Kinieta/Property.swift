@@ -21,7 +21,8 @@ public enum Property: Sendable {
     case height(CGFloat)
     case frame(CGRect)
     case alpha(CGFloat)
-    /// Rotation about the view's centre, in degrees. Replaces any scale in the transform.
+    /// Rotation about the view's centre, in degrees. Starts from the angle the
+    /// view was last rotated to, unwrapped, and keeps any scale in the transform.
     case rotation(degrees: CGFloat)
     /// `interpolation` overrides `Engine.shared.colorInterpolation` for this property.
     case background(UIColor, interpolation: ColorInterpolation? = nil)

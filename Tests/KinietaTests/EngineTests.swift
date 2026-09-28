@@ -275,6 +275,60 @@ struct EngineTests {
         #expect(approx(view.rotation, 45, 1e-4))
     }
 
+    @Test func rotationContinuesFromTheUnwrappedAngle() {
+        // 270 reads back as -90 from the transform; the next animation must still turn 90°, not 450°.
+        let view = makeView()
+        _ = animation(view, [.rotation(degrees: 270)], duration: 1.0).update(frame(1.0))
+        #expect(approx(view.rotation, 270, 1e-4))
+        let a = animation(view, [.rotation(degrees: 360)], duration: 1.0)
+        _ = a.update(frame(0.5))
+        #expect(approx(view.rotation, 315, 1e-4))
+        _ = a.update(frame(0.5))
+        #expect(approx(view.rotation, 360, 1e-4))
+    }
+
+    @Test func multiTurnRotationCanBeContinued() {
+        let view = makeView()
+        _ = animation(view, [.rotation(degrees: 720)], duration: 1.0).update(frame(1.0))
+        let a = animation(view, [.rotation(degrees: 810)], duration: 1.0)
+        _ = a.update(frame(0.5))
+        #expect(approx(view.rotation, 765, 1e-4))
+        _ = a.update(frame(0.5))
+        #expect(approx(view.rotation, 810, 1e-4))
+        #expect(approx(atan2(view.transform.b, view.transform.a).radiansToDegrees, 90, 1e-4))
+    }
+
+    @Test func rotationKeepsScaleAndTranslation() {
+        let view = makeView()
+        view.transform = CGAffineTransform(translationX: 5, y: 7).scaledBy(x: 2, y: 3)
+        let a = animation(view, [.rotation(degrees: 90)], duration: 1.0)
+        for _ in 0..<10 { _ = a.update(frame(0.1)) }
+        // Scaled in the view's own axes, then rotated.
+        let expected = CGAffineTransform(scaleX: 2, y: 3).concatenating(CGAffineTransform(rotationAngle: .pi / 2))
+        let t = view.transform
+        #expect(approx(t.a, expected.a) && approx(t.b, expected.b))
+        #expect(approx(t.c, expected.c) && approx(t.d, expected.d))
+        #expect(t.tx == 5 && t.ty == 7)
+        #expect(approx(view.rotation, 90))
+
+        // Back to zero leaves exactly the scale and translation it started with.
+        _ = animation(view, [.rotation(degrees: 0)], duration: 1.0).update(frame(1.0))
+        #expect(approx(view.transform.a, 2) && approx(view.transform.d, 3))
+        #expect(approx(view.transform.b, 0) && approx(view.transform.c, 0))
+        #expect(view.transform.tx == 5 && view.transform.ty == 7)
+    }
+
+    @Test func rotationRestartsFromTheTransformWhenItIsChangedElsewhere() {
+        // The demo resets its squares with `transform = .identity` between runs.
+        let view = makeView()
+        _ = animation(view, [.rotation(degrees: 540)], duration: 1.0).update(frame(1.0))
+        view.transform = .identity
+        #expect(view.rotation == 0)
+        let a = animation(view, [.rotation(degrees: 180)], duration: 1.0)
+        _ = a.update(frame(0.5))
+        #expect(approx(view.rotation, 90, 1e-4))
+    }
+
     @Test func overshootingEasingNeverProducesNegativeSizes() {
         let view = makeView()
         view.layer.borderWidth = 2
