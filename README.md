@@ -109,6 +109,8 @@ view.animate(.x(250), .y(500), duration: 0.5).easeInOut(.cubic)
     .repeat(times: 1)
 ```
 
+Durations are in seconds. A negative or NaN duration is treated as zero and logs a warning, so it never skips ahead or stalls the timeline. `wait(.infinity)` and `delay(.infinity)` hold the timeline until you cancel it; an infinite `animate` duration is treated as zero.
+
 ### Parallel actions
 
 `parallel()` gathers everything added since the last `then` or `parallel()` and runs it together.

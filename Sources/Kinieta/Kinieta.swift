@@ -2,6 +2,7 @@
 
 #if canImport(UIKit)
 import UIKit
+import os
 
 /// A handle to one view's timeline.
 ///
@@ -54,6 +55,8 @@ public final class Kinieta {
 
     /// Animates `properties` to their values over `duration` seconds. A zero
     /// duration sets them on the next frame.
+    ///
+    /// A negative, NaN or infinite duration is treated as zero and logs a warning.
     @discardableResult
     public func animate(_ properties: Property..., duration: TimeInterval = 0) -> Kinieta {
         animate(properties, duration: duration)
@@ -61,23 +64,40 @@ public final class Kinieta {
 
     @discardableResult
     public func animate(_ properties: [Property], duration: TimeInterval = 0) -> Kinieta {
+        let duration = Kinieta.sanitized(duration, in: "animate(duration:)", allowsInfinity: false)
         mainSequence.pending.add(.animation(AnimationSpec(view, properties, duration: duration)))
         return self
     }
 
     /// Waits for `time` seconds before the next action.
+    ///
+    /// A negative or NaN time is treated as zero and logs a warning.
+    /// `.infinity` waits until the timeline is cancelled.
     @discardableResult
     public func wait(_ time: TimeInterval) -> Kinieta {
-        mainSequence.pending.add(.pause(time))
+        mainSequence.pending.add(.pause(Kinieta.sanitized(time, in: "wait(_:)", allowsInfinity: true)))
         return self
     }
 
     /// Delays the start of the previous action by `time` seconds.
+    ///
+    /// Accepts the same times as ``wait(_:)``.
     @discardableResult
     public func delay(_ time: TimeInterval) -> Kinieta {
         guard let last = mainSequence.pending.popLast() else { return self }
+        let time = Kinieta.sanitized(time, in: "delay(_:)", allowsInfinity: true)
         mainSequence.pending.add(.sequence([.pause(time), last]))
         return self
+    }
+
+    private static let logger = Logger(subsystem: "Kinieta", category: "Timeline")
+
+    /// `time` if it is a usable duration, otherwise zero with a warning.
+    /// Only waits may last forever; an endless animation would never move.
+    static func sanitized(_ time: TimeInterval, in call: String, allowsInfinity: Bool) -> TimeInterval {
+        if time >= 0 && (time.isFinite || allowsInfinity) { return time }
+        logger.warning("\(call, privacy: .public) was given \(time, privacy: .public) seconds; using 0")
+        return 0
     }
 
     /// Seals everything before it into one step, so a following `parallel()`

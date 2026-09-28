@@ -212,6 +212,10 @@ struct EngineTests {
         #expect(completed)
     }
 
+    @Test func pauseNeverHandsOnMoreThanTheFrame() {
+        #expect(PauseAction(-5, completion: nil).update(frame(0.1)) == .finished(overshoot: 0.1))
+    }
+
     // MARK: Animation
 
     @Test func linearAnimationInterpolatesFrameOriginAndCompletes() {
@@ -715,6 +719,58 @@ struct EngineTests {
         frames.step()
         #expect(handle.view == nil)
         #expect(handle.state == .finished)
+    }
+
+    // MARK: Invalid durations
+
+    @Test func negativeWaitIsZeroAndDoesNotFastForward() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        view.wait(-5).animate(.x(100), duration: 1)
+        frames.step(0.5)
+        #expect(approx(view.frame.origin.x, 50, 0.5))
+    }
+
+    @Test func negativeDelayIsZeroAndDoesNotFastForward() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        view.animate(.y(10), duration: 0).animate(.x(100), duration: 1).delay(-5)
+        frames.step(0.5)
+        #expect(approx(view.frame.origin.x, 50, 0.5))
+    }
+
+    @Test func nanWaitFinishesWithinOneFrame() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let handle = makeView().wait(.nan)
+        frames.step()
+        #expect(handle.state == .finished)
+        #expect(!frames.isRunning)
+    }
+
+    @Test(arguments: [-1, .nan, .infinity, -.infinity] as [TimeInterval])
+    func invalidAnimationDurationSnapsWithinOneFrame(duration: TimeInterval) {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        let handle = view.animate(.x(100), duration: duration)
+        frames.step()
+        #expect(view.frame.origin.x == 100)
+        #expect(handle.state == .finished)
+    }
+
+    @Test func infiniteWaitHoldsUntilCancelled() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        let handle = view.wait(.infinity).animate(.x(100), duration: 1)
+        frames.step(1, count: 100)
+        #expect(handle.isRunning)
+        #expect(view.frame.origin.x == 0)
+        handle.cancel()
+        #expect(!frames.isRunning)
     }
 
     // MARK: Smoke test on the real display link

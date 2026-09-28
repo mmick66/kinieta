@@ -20,7 +20,8 @@ final class PauseAction: Action {
         elapsed += frame.duration
         if elapsed >= duration {
             completion?()
-            return .finished(overshoot: elapsed - duration)
+            // Never hand on more than this frame, whatever the duration was.
+            return .finished(overshoot: min(elapsed - duration, frame.duration))
         }
         return .running
     }

@@ -29,6 +29,11 @@ Béziers with the same semantics as CSS and cubic-bezier.com.
 
 Call `animate(_:duration:)` or `wait(_:)` on any `UIView`; both return a ``Kinieta`` handle.
 
+Durations are in seconds. A negative or NaN duration is treated as zero and
+logs a warning. Only `wait(_:)` and `delay(_:)` accept `.infinity`, which holds
+the timeline until it is cancelled; an infinite animation duration is treated
+as zero.
+
 - ``Property``
 
 ### Shaping it
