@@ -31,7 +31,9 @@ import UIKit
 
 extension UIColor {
 
-    public struct Components: CGFractionable, Equatable, CustomStringConvertible {
+    /// Never usable outside Kinieta: it has no public initialiser or members.
+    @available(*, deprecated, message: "Not usable outside Kinieta; removed in Kinieta 2.0.")
+    public struct Components: Equatable, CustomStringConvertible {
 
         var c1: CGFloat, c2: CGFloat, c3: CGFloat, alpha: CGFloat
         public enum Space: String {
@@ -55,65 +57,6 @@ extension UIColor {
 
         public var description: String {
             return "(c1:\(c1), c2:\(c2), c3:\(c3), alpha:\(alpha), space:\(space.rawValue))"
-        }
-
-        static func * (lhs: Components, rhs: CGFloat) -> Components {
-            return UIColor.Components(lhs.c1 * rhs, lhs.c2 * rhs, lhs.c3 * rhs, lhs.alpha * rhs, space: lhs.space)
-        }
-        static func / (lhs: Components, rhs: CGFloat) -> UIColor.Components {
-            return UIColor.Components(lhs.c1 / rhs, lhs.c2 / rhs, lhs.c3 / rhs, lhs.alpha / rhs, space: lhs.space)
-        }
-
-        static func * (lhs: CGFloat, rhs: Components) -> Components {
-            return rhs * lhs
-        }
-        static func - (lhs: Components, rhs: Components) -> Components {
-            guard lhs.space == rhs.space else { fatalError("Cannot subtract two colors from different spaces") }
-            return Components(
-                lhs.c1 - rhs.c1,
-                lhs.c2 - rhs.c2,
-                lhs.c3 - rhs.c3,
-                lhs.alpha - rhs.alpha,
-                space: lhs.space
-            )
-        }
-
-        static func + (lhs: Components, rhs: Components) -> Components {
-            guard lhs.space == rhs.space else { fatalError("Cannot multiply two colors from different spaces") }
-            return Components(
-                lhs.c1 + rhs.c1,
-                lhs.c2 + rhs.c2,
-                lhs.c3 + rhs.c3,
-                lhs.alpha + rhs.alpha,
-                space: lhs.space
-            )
-        }
-    }
-
-    func components(as space: Components.Space) -> Components {
-
-        switch space {
-        case .RGB:
-            let (r, g, b, a) = self.rgba
-            return Components(r, g, b, a, space: .RGB)
-        case .HSB:
-            let (h, s, b, a) = self.hsba
-            return Components(h, s, b, a, space: .HSB)
-        case .HCL:
-            let (h, l, c, a) = self.hlca
-            return Components(h, l, c, a, space: .HCL)
-        }
-
-    }
-
-    convenience init(components comps: Components) {
-        switch comps.space {
-        case .RGB:
-            self.init(red: comps.c1, green: comps.c2, blue: comps.c3, alpha: comps.alpha)
-        case .HSB:
-            self.init(hue: comps.c1, saturation: comps.c2, brightness: comps.c3, alpha: comps.alpha)
-        case .HCL:
-            self.init(hue: comps.c1, luminance: comps.c2, chroma: comps.c3, alpha: comps.alpha)
         }
     }
 }

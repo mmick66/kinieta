@@ -35,38 +35,115 @@ struct ViewRef {
     init(_ view: UIView?) { self.view = view }
 }
 
+/// An animation waiting to run: which view, what to change, and how.
+struct AnimationSpec {
+    var target: ViewRef
+    var properties: [Property]
+    var duration: TimeInterval
+    /// `nil` means linear.
+    var easing: Bezier?
+    var completion: Block?
+
+    init(
+        _ view: UIView?, _ properties: [Property], duration: TimeInterval,
+        easing: Bezier? = nil, completion: Block? = nil
+    ) {
+        self.target = ViewRef(view)
+        self.properties = properties
+        self.duration = duration
+        self.easing = easing
+        self.completion = completion
+    }
+}
+
 /// The description of an action before it runs. A timeline is a tree of these;
 /// they are turned into live `Action` objects when their turn comes.
 enum ActionType: CustomStringConvertible {
-    case animation(ViewRef, [Property], TimeInterval, Bezier?, Block?)
-    case pause(TimeInterval, Block?)
-    case group([ActionType], Block?)
-    case sequence([ActionType], Block?)
+    case animation(AnimationSpec)
+    case pause(TimeInterval, completion: Block? = nil)
+    case group([ActionType], completion: Block? = nil)
+    case sequence([ActionType], completion: Block? = nil)
+    /// The live group behind a `Kinieta.group` handle. Its members are other
+    /// handles' sequences, already running, so it cannot be copied.
+    case timelines(GroupAction, completion: Block? = nil)
 
     var description: String {
         switch self {
-        case .animation(_, let properties, _, _, _):
-            return "Animation (\(properties.map(\.name).joined(separator: " ")))"
-        case .pause(let time, _):
-            return "Pause (\(time))"
+        case .animation(let spec):
+            return "Animation (\(spec.properties.map(\.key.rawValue).joined(separator: " ")))"
+        case .pause(let duration, _):
+            return "Pause (\(duration))"
         case .group(let types, _):
             return "Group (\(types.count))"
         case .sequence(let types, _):
             return "Sequence (\(types.count))"
+        case .timelines:
+            return "Timelines"
+        }
+    }
+
+    /// The same action, calling `completion` when it finishes instead of any previous block.
+    func withCompletion(_ completion: @escaping Block) -> ActionType {
+        switch self {
+        case .animation(var spec):
+            spec.completion = completion
+            return .animation(spec)
+        case .pause(let duration, _):
+            return .pause(duration, completion: completion)
+        case .group(let types, _):
+            return .group(types, completion: completion)
+        case .sequence(let types, _):
+            return .sequence(types, completion: completion)
+        case .timelines(let action, _):
+            return .timelines(action, completion: completion)
+        }
+    }
+
+    /// The same action with every live group of timelines replaced by `replay`,
+    /// a copy that can run again. Used by `repeat` on a group handle.
+    func replacingTimelines(with replay: [ActionType]) -> ActionType {
+        switch self {
+        case .animation, .pause:
+            return self
+        case .group(let types, let completion):
+            return .group(types.map { $0.replacingTimelines(with: replay) }, completion: completion)
+        case .sequence(let types, let completion):
+            return .sequence(types.map { $0.replacingTimelines(with: replay) }, completion: completion)
+        case .timelines(_, let completion):
+            return .group(replay, completion: completion)
+        }
+    }
+
+    /// The same action with its last animation eased by `bezier`, looking
+    /// inside the sequence `delay` wraps it in; nil if there is no animation to ease.
+    func withEasing(_ bezier: Bezier) -> ActionType? {
+        switch self {
+        case .animation(var spec):
+            spec.easing = bezier
+            return .animation(spec)
+        case .sequence(var types, let completion):
+            guard let last = types.popLast(), let eased = last.withEasing(bezier) else { return nil }
+            types.append(eased)
+            return .sequence(types, completion: completion)
+        case .pause, .group, .timelines:
+            return nil
         }
     }
 
     @MainActor
     func makeAction() -> Action {
         switch self {
-        case .animation(let ref, let properties, let duration, let easing, let block):
-            return Animation(ref, properties: properties, duration: duration, easing: easing, complete: block)
-        case .pause(let time, let block):
-            return Pause(time, complete: block)
-        case .group(let list, let block):
-            return Group(list, complete: block)
-        case .sequence(let list, let block):
-            return Sequence(list, complete: block)
+        case .animation(let spec):
+            return PropertyAnimation(spec)
+        case .pause(let duration, let completion):
+            return PauseAction(duration, completion: completion)
+        case .group(let types, let completion):
+            return GroupAction(pending: types, completion: completion)
+        case .sequence(let types, let completion):
+            return SequenceAction(types, completion: completion)
+        case .timelines(let action, let completion):
+            action.completion = completion
+            return action
         }
     }
 }
@@ -87,5 +164,12 @@ enum ActionResult: Equatable {
 @MainActor
 protocol Action: AnyObject {
     func update(_ frame: Engine.Frame) -> ActionResult
+    /// `true` while no frame can change anything: the action is paused or
+    /// waiting forever. The engine stops its driver when every action is idle.
+    var isIdle: Bool { get }
+}
+
+extension Action {
+    var isIdle: Bool { false }
 }
 #endif

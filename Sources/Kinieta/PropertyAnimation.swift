@@ -5,31 +5,31 @@ import UIKit
 
 /// Interpolates a set of properties on one view over a duration.
 @MainActor
-final class Animation: Action {
+final class PropertyAnimation: Action {
 
-    private let ref: ViewRef
+    private let target: ViewRef
     private var transformations: [Property.Transformation] = []
 
-    private(set) var easing: Bezier
-    private(set) var duration: TimeInterval
+    let easing: Bezier
+    let duration: TimeInterval
     private var elapsed: TimeInterval = 0
 
-    let complete: Block?
+    let completion: Block?
 
-    init(_ ref: ViewRef, properties: [Property], duration: TimeInterval, easing: Bezier?, complete: Block?) {
-        self.ref = ref
-        self.duration = Engine.shared.shouldSkipMotion ? 0 : duration
-        self.easing = easing ?? .linear
-        self.complete = complete
+    init(_ spec: AnimationSpec) {
+        self.target = spec.target
+        self.duration = Engine.shared.shouldSkipMotion ? 0 : spec.duration
+        self.easing = spec.easing ?? .linear
+        self.completion = spec.completion
 
-        guard let view = ref.view else { return }
+        guard let view = target.view else { return }
 
         // The last value listed for a property wins; order of first mention is kept.
-        var order: [String] = []
-        var latest: [String: Property] = [:]
-        for property in properties {
-            if latest[property.name] == nil { order.append(property.name) }
-            latest[property.name] = property
+        var order: [Property.Key] = []
+        var latest: [Property.Key: Property] = [:]
+        for property in spec.properties {
+            if latest[property.key] == nil { order.append(property.key) }
+            latest[property.key] = property
         }
         let mode = Engine.shared.colorInterpolation
         transformations = order.map { latest[$0]!.transformation(for: view, defaultColorInterpolation: mode) }
@@ -37,11 +37,11 @@ final class Animation: Action {
 
     func update(_ frame: Engine.Frame) -> ActionResult {
         // The view was deallocated: there is nothing left to animate.
-        guard let view = ref.view else { return .finished(overshoot: frame.duration) }
+        guard let view = target.view else { return .finished(overshoot: frame.duration) }
 
         guard duration > 0 else {
             apply(1.0, to: view)
-            complete?()
+            completion?()
             return .finished(overshoot: frame.duration)
         }
 
@@ -51,7 +51,7 @@ final class Animation: Action {
         apply(CGFloat(progress), to: view)
 
         if elapsed >= duration {
-            complete?()
+            completion?()
             return .finished(overshoot: total - duration)
         }
         return .running

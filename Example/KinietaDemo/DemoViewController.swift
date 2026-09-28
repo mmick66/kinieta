@@ -8,9 +8,12 @@ final class DemoViewController: UIViewController {
     private let stack = UIStackView()
     private var easingTracks: [(easing: Easing, square: UIView, track: UIView)] = []
     private var colourSwatches: [(mode: ColorInterpolation, view: UIView)] = []
+    private let darkSwatch = UIView()
     private var timelineSquares: [UIView] = []
     private let timelineStatus = UILabel()
     private var running: [Kinieta] = []
+    private lazy var frameRateButton = UIBarButtonItem(
+        title: nil, style: .plain, target: self, action: #selector(toggleFrameRate))
 
     private let pink = UIColor(red: 1.00, green: 0.44, blue: 0.75, alpha: 1.00)
     private let cyan = UIColor(red: 0.00, green: 0.80, blue: 0.90, alpha: 1.00)
@@ -19,8 +22,11 @@ final class DemoViewController: UIViewController {
         super.viewDidLoad()
         title = "Kinieta"
         view.backgroundColor = .systemBackground
-        navigationItem.rightBarButtonItem = UIBarButtonItem(
-            title: "Play", style: .done, target: self, action: #selector(playAll))
+        navigationItem.rightBarButtonItems = [
+            UIBarButtonItem(title: "Play", style: .done, target: self, action: #selector(playAll)),
+            frameRateButton,
+        ]
+        updateFrameRateButton()
         navigationItem.leftBarButtonItem = UIBarButtonItem(
             title: "Reset", style: .plain, target: self, action: #selector(reset))
         buildLayout()
@@ -82,6 +88,24 @@ final class DemoViewController: UIViewController {
             stack.addArrangedSubview(labelled(name, swatch))
             colourSwatches.append((mode, swatch))
         }
+        // A dark panel in a light app: `.label` is white here, so the swatch should
+        // brighten all the way instead of darkening and then snapping to white.
+        let panel = UIView()
+        panel.overrideUserInterfaceStyle = .dark
+        panel.backgroundColor = .systemBackground
+        panel.layer.cornerRadius = 8
+        panel.heightAnchor.constraint(equalToConstant: 48).isActive = true
+        darkSwatch.backgroundColor = pink
+        darkSwatch.layer.cornerRadius = 6
+        darkSwatch.translatesAutoresizingMaskIntoConstraints = false
+        panel.addSubview(darkSwatch)
+        NSLayoutConstraint.activate([
+            darkSwatch.topAnchor.constraint(equalTo: panel.topAnchor, constant: 6),
+            darkSwatch.leadingAnchor.constraint(equalTo: panel.leadingAnchor, constant: 6),
+            darkSwatch.trailingAnchor.constraint(equalTo: panel.trailingAnchor, constant: -6),
+            darkSwatch.bottomAnchor.constraint(equalTo: panel.bottomAnchor, constant: -6),
+        ])
+        stack.addArrangedSubview(labelled("lch to .label, dark override", panel))
 
         addHeader(
             "Timeline", detail: "The first square moves, then the other two move together, then one completion fires.")
@@ -166,6 +190,11 @@ final class DemoViewController: UIViewController {
                 .animate(.background(pink, interpolation: swatch.mode), duration: 1.6)
             running.append(handle)
         }
+        running.append(
+            darkSwatch
+                .animate(.background(.label), duration: 1.6)
+                .wait(0.4)
+                .animate(.background(pink), duration: 1.6))
         let width = view.bounds.width - 40
         let first = timelineSquares[0].animate(.x(width - 38), duration: 1.0).easeInOut(.cubic)
         let second = timelineSquares[1]
@@ -181,6 +210,19 @@ final class DemoViewController: UIViewController {
         running.append(group)
     }
 
+    /// Switches the engine between at most 60 Hz and up to 120 Hz. It takes
+    /// effect on the next frame, so it can be flipped while the gallery plays.
+    @objc private func toggleFrameRate() {
+        let capped = Engine.shared.preferredFrameRateRange.maximum <= 60
+        Engine.shared.preferredFrameRateRange =
+            capped ? Engine.defaultFrameRateRange : CAFrameRateRange(minimum: 30, maximum: 60, preferred: 60)
+        updateFrameRateButton()
+    }
+
+    private func updateFrameRateButton() {
+        frameRateButton.title = Engine.shared.preferredFrameRateRange.maximum <= 60 ? "60 Hz" : "120 Hz"
+    }
+
     @objc private func reset() {
         for handle in running { handle.cancel() }
         running.removeAll()
@@ -190,6 +232,7 @@ final class DemoViewController: UIViewController {
             entry.square.layer.cornerRadius = 6
         }
         for swatch in colourSwatches { swatch.view.backgroundColor = pink }
+        darkSwatch.backgroundColor = pink
         for (i, square) in timelineSquares.enumerated() {
             square.frame = CGRect(x: 6 + CGFloat(i) * 44, y: 6, width: 32, height: 32)
             square.alpha = 1

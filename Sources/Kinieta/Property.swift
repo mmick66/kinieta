@@ -2,6 +2,7 @@
 
 #if canImport(UIKit)
 import UIKit
+import os
 
 /// How two colours are interpolated.
 public enum ColorInterpolation: Sendable, Equatable {
@@ -21,7 +22,8 @@ public enum Property: Sendable {
     case height(CGFloat)
     case frame(CGRect)
     case alpha(CGFloat)
-    /// Rotation about the view's centre, in degrees. Replaces any scale in the transform.
+    /// Rotation about the view's centre, in degrees. Starts from the angle the
+    /// view was last rotated to, unwrapped, and keeps any scale in the transform.
     case rotation(degrees: CGFloat)
     /// `interpolation` overrides `Engine.shared.colorInterpolation` for this property.
     case background(UIColor, interpolation: ColorInterpolation? = nil)
@@ -29,23 +31,29 @@ public enum Property: Sendable {
     case borderWidth(CGFloat)
     case cornerRadius(CGFloat)
 
-    /// Identifies the property regardless of value. When the same property is
+    /// Identifies a property regardless of value. When the same property is
     /// listed twice in one animation the last value wins.
-    var name: String {
+    enum Key: String {
+        case x, y, width, height, frame, alpha, rotation, background, borderColor, borderWidth, cornerRadius
+    }
+
+    var key: Key {
         switch self {
-        case .x: return "x"
-        case .y: return "y"
-        case .width: return "width"
-        case .height: return "height"
-        case .frame: return "frame"
-        case .alpha: return "alpha"
-        case .rotation: return "rotation"
-        case .background: return "background"
-        case .borderColor: return "borderColor"
-        case .borderWidth: return "borderWidth"
-        case .cornerRadius: return "cornerRadius"
+        case .x: return .x
+        case .y: return .y
+        case .width: return .width
+        case .height: return .height
+        case .frame: return .frame
+        case .alpha: return .alpha
+        case .rotation: return .rotation
+        case .background: return .background
+        case .borderColor: return .borderColor
+        case .borderWidth: return .borderWidth
+        case .cornerRadius: return .cornerRadius
         }
     }
+
+    private static let logger = Logger(subsystem: "Kinieta", category: "Colour")
 
     /// Applies an eased progress factor to a view.
     typealias Transformation = (UIView, CGFloat) -> Void
@@ -65,7 +73,11 @@ public enum Property: Sendable {
         case .height(let to):
             return lerp(from: view.height, to: to) { $0.height = max($1, 0) }
         case .frame(let to):
-            return lerp(from: view.frame, to: to) { $0.frame = $1 }
+            // `size`, not `width`/`height`: those standardise a negative overshoot.
+            return lerp(from: view.untransformedFrame, to: to.standardized) { view, rect in
+                let size = CGSize(width: max(rect.size.width, 0), height: max(rect.size.height, 0))
+                view.untransformedFrame = CGRect(origin: rect.origin, size: size)
+            }
         case .alpha(let to):
             return lerp(from: view.alpha, to: to) { $0.alpha = $1 }
         case .rotation(let to):
@@ -75,13 +87,15 @@ public enum Property: Sendable {
         case .cornerRadius(let to):
             return lerp(from: view.layer.cornerRadius, to: to) { $0.layer.cornerRadius = max($1, 0) }
         case .background(let to, let mode):
-            return colorLerp(from: view.backgroundColorOrClear, to: to, mode: mode ?? defaultColorInterpolation) {
-                $0.backgroundColor = $1
-            }
+            return colorLerp(
+                from: view.backgroundColorOrClear, to: to, mode: mode ?? defaultColorInterpolation,
+                traits: view.currentTraits
+            ) { $0.backgroundColor = $1 }
         case .borderColor(let to, let mode):
-            return colorLerp(from: view.borderColorOrClear, to: to, mode: mode ?? defaultColorInterpolation) {
-                $0.layer.borderColor = $1.cgColor
-            }
+            return colorLerp(
+                from: view.borderColorOrClear, to: to, mode: mode ?? defaultColorInterpolation,
+                traits: view.currentTraits
+            ) { $0.layer.borderColor = $1.cgColor }
         }
     }
 
@@ -94,43 +108,45 @@ public enum Property: Sendable {
     /// Colour progress is clamped to 0...1: an overshooting easing has no
     /// meaning outside the gamut. The endpoints are assigned as given, so a
     /// dynamic (light/dark) or wide-gamut target survives the animation.
+    ///
+    /// The frames in between are resolved against the view's own `traits`:
+    /// inside a display-link callback `UITraitCollection.current` is the
+    /// app-wide fallback, which ignores `overrideUserInterfaceStyle` and
+    /// presentation-level appearance.
     private func colorLerp(
-        from source: UIColor, to target: UIColor, mode: ColorInterpolation,
+        from source: UIColor, to target: UIColor, mode: ColorInterpolation, traits: UITraitCollection,
         apply: @escaping (UIView, UIColor) -> Void
     ) -> Transformation {
+        guard var from = ColorMath.extractComponents(of: source.resolvedColor(with: traits)),
+            var to = ColorMath.extractComponents(of: target.resolvedColor(with: traits))
+        else {
+            // A pattern has nothing to blend. Switch as soon as the animation starts.
+            Self.logger.warning("\(key.rawValue, privacy: .public) cannot blend a colour with no RGB value; snapping")
+            return { view, factor in apply(view, factor > 0 ? target : source) }
+        }
+
         // A fully transparent endpoint has no colour of its own. Fade the other
         // colour's alpha instead of passing through black.
-        var from = source, to = target
-        if from.components(as: .RGB).alpha == 0 { from = to.withAlphaComponent(0) }
-        if to.components(as: .RGB).alpha == 0 { to = from.withAlphaComponent(0) }
+        if from.alpha == 0 { from = to.withAlpha(0) }
+        if to.alpha == 0 { to = from.withAlpha(0) }
 
         let between: (CGFloat) -> UIColor
         switch mode {
         case .rgb:
-            let f = from.components(as: .RGB), t = to.components(as: .RGB)
-            between = { c in UIColor(components: (1.0 - c) * f + c * t) }
+            between = { c in from.lerp(to, c).color() }
         case .hsb:
-            var f = from.components(as: .HSB)
-            var t = to.components(as: .HSB)
             // A grey endpoint has no hue; borrow the other one's so the
-            // interpolation does not sweep through the colour wheel.
+            // interpolation does not sweep through the colour wheel. Hue then
+            // takes the shorter way round.
             let achromatic: CGFloat = 1e-3
-            if f.c2 < achromatic { f.c1 = t.c1 }
-            if t.c2 < achromatic { t.c1 = f.c1 }
-            // Hue is circular in 0...1: take the shorter way round.
-            if t.c1 - f.c1 > 0.5 { t.c1 -= 1 } else if f.c1 - t.c1 > 0.5 { t.c1 += 1 }
-            between = { c in
-                var comps = (1.0 - c) * f + c * t
-                comps.c1 = comps.c1 - floor(comps.c1)
-                return UIColor(components: comps)
-            }
+            var f = from.hsb, t = to.hsb
+            if f.saturation < achromatic { f.hue = t.hue }
+            if t.saturation < achromatic { t.hue = f.hue }
+            between = { c in f.lerp(t, c).rgb.color() }
         case .lch:
-            var f = from.rgbColor().toLCH()
-            var t = to.rgbColor().toLCH()
-            let achromatic: CGFloat = 1e-3
-            if f.c < achromatic { f = LCHColor(l: f.l, c: f.c, h: t.h, alpha: f.alpha) }
-            if t.c < achromatic { t = LCHColor(l: t.l, c: t.c, h: f.h, alpha: t.alpha) }
-            between = { c in f.lerp(t, t: c).toRGB().clamped().color() }
+            // LCH.lerp weights hue by chroma, which covers greys and near-greys.
+            let f = from.lch, t = to.lch
+            between = { c in f.lerp(t, c).rgb.clamped().color() }
         }
 
         return { view, factor in

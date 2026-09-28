@@ -18,6 +18,8 @@ square.animate(.x(374), .background(.systemPink), duration: 1.0)
 
 Every timeline is a ``Kinieta`` handle. Keep it to ``Kinieta/cancel()``,
 ``Kinieta/pause()``, ``Kinieta/resume()`` or `await` ``Kinieta/finished()``.
+A handle can be extended at any time: actions added to a finished timeline
+start it again, while a cancelled timeline stays cancelled.
 
 Colours interpolate through the perceptual LCH space by default, so a
 transition from pink to cyan never passes through grey. Easing curves are cubic
@@ -28,6 +30,11 @@ Béziers with the same semantics as CSS and cubic-bezier.com.
 ### Starting a timeline
 
 Call `animate(_:duration:)` or `wait(_:)` on any `UIView`; both return a ``Kinieta`` handle.
+
+Durations are in seconds. A negative or NaN duration is treated as zero and
+logs a warning. Only `wait(_:)` and `delay(_:)` accept `.infinity`, which holds
+the timeline until it is cancelled; an infinite animation duration is treated
+as zero.
 
 - ``Property``
 
@@ -41,7 +48,10 @@ Call `animate(_:duration:)` or `wait(_:)` on any `UIView`; both return a ``Kinie
 ### Engine settings
 
 - ``Engine``
+- ``Engine/preferredFrameRateRange``
+- ``Engine/defaultFrameRateRange``
 
 ### Migrating
 
 - <doc:MigratingFrom0.5>
+- <doc:DeprecatedColorHelpers>

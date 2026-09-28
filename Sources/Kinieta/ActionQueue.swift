@@ -3,10 +3,10 @@
 #if canImport(UIKit)
 import Foundation
 
-/// An ordered list of pending action descriptions, shared by `Sequence` and
-/// `Group`. Descriptions become live actions only when they are popped.
+/// An ordered list of pending action descriptions, owned by a `SequenceAction`.
+/// Descriptions become live actions only when they are popped.
 @MainActor
-class ActionQueue {
+struct ActionQueue {
 
     private(set) var types: [ActionType]
 
@@ -16,28 +16,24 @@ class ActionQueue {
 
     var isEmpty: Bool { types.isEmpty }
 
-    func add(_ type: ActionType) {
+    var count: Int { types.count }
+
+    mutating func add(_ type: ActionType) {
         types.append(type)
     }
 
-    func popLast() -> ActionType? {
+    mutating func popLast() -> ActionType? {
         types.popLast()
     }
 
-    func popFirstAction() -> Action? {
+    mutating func popFirstAction() -> Action? {
         guard !types.isEmpty else { return nil }
         return types.removeFirst().makeAction()
     }
 
-    func popAllActions() -> [Action] {
-        var actions: [Action] = []
-        while let action = popFirstAction() { actions.append(action) }
-        return actions
-    }
-
     /// Removes and returns every trailing action up to, but not including,
     /// the last group. Used by `parallel()` and `then`.
-    func popAllUngrouped() -> [ActionType] {
+    mutating func popAllUngrouped() -> [ActionType] {
         var actions: [ActionType] = []
         while let last = popLast() {
             if case .group = last {

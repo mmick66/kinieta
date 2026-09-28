@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "kinieta",
+  "project_id": "eb5c828b-8eef-4fe9-b78c-ae745a5cfa9e"
+}

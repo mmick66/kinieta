@@ -8,10 +8,47 @@ All notable changes to Kinieta are documented here. The format follows
 
 ### Added
 
+- `Engine.shared.preferredFrameRateRange` sets the frame rates the engine asks
+  the display for; it applies from the next frame, even mid-animation. The
+  default, `Engine.defaultFrameRateRange`, is 30–120 Hz preferring 120 (1.0
+  asked for 60–120 Hz), so the system can drop below 60 Hz to save power or
+  under thermal pressure. Invalid ranges are ignored with a warning. The
+  example app has a 60/120 Hz toggle.
+- tvOS 17 and Mac Catalyst 17 support. `Package.swift` declares both, the
+  podspec declares tvOS (CocoaPods builds Catalyst from the iOS spec), and CI
+  builds for tvOS and runs the tests on Mac Catalyst. The snapshot suite stays
+  iOS only.
 - Snapshot tests with swift-snapshot-testing: every property at five
   progress points, the three colour paths at their midpoint, transparent and
   grey endpoints, an overshooting curve, and dynamic colours in light and
   dark appearance. 72 reference images, 57 tests in total.
+
+### Deprecated
+
+- The `UIColor` helpers vendored from HandyUIKit: `ChangeableColorComponent`,
+  `change(_:by:)`, `change(_:to:)`, `hlca`, `hsba`, `rgba` and
+  `init(hue:luminance:chroma:alpha:)`. They were never part of Kinieta's API
+  and clash with HandyUIKit itself. They are removed in 2.0.
+- `UIColor.Components`, which was public but had no public members. It is
+  removed in 2.0. See "Replacing the deprecated colour helpers" in the DocC
+  catalog.
+
+### Fixed
+
+- The deprecated `change(.alpha, to:)` no longer shifts the colour: it sets
+  the alpha directly instead of going through LCH.
+- `Easing.inOut(.sine)` used the `inOut(.quad)` curve. It now uses Ceaser's
+  easeInOutSine, `Bezier(0.445, 0.05, 0.55, 0.95)`.
+- `onComplete`, `delay` and `repeat` on a `Kinieta.group` handle
+  were silently dropped; the group is now an ordinary step of the handle's
+  timeline. `animate` on a group handle, which has no view, is ignored with a
+  logged warning instead of finishing instantly.
+- A colour with no RGB value, such as `UIColor(patternImage:)`, was read as
+  transparent, so animating to or from it faded instead. It now switches as
+  the animation starts, with a logged warning.
+- LCH interpolation from a near-grey, such as `.secondaryLabel`, swept through
+  unrelated hues. Hue is now weighted by chroma, so it heads straight for the
+  other colour's hue; colours with chroma of 20 or more are unaffected.
 
 ## [1.0.0] - 2026-09-08
 

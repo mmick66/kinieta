@@ -1,3 +1,6 @@
+// The references are only valid on the iOS simulator runtime they were recorded
+// on, so this suite does not build for tvOS or run on Mac Catalyst.
+#if os(iOS) && !targetEnvironment(macCatalyst)
 import SnapshotTesting
 import Testing
 import UIKit
@@ -10,6 +13,10 @@ import UIKit
 ///
 /// Record new references with `TEST_RUNNER_SNAPSHOT_TESTING_RECORD=all` in the
 /// environment of `xcodebuild test`, then review the images before committing.
+///
+/// References are recorded on the iPhone 17 Pro simulator running iOS 26.5, the
+/// runtime pinned in `.github/workflows/ci.yml` and the README. Other runtimes can
+/// render differently enough to fail the 0.98 perceptual precision.
 @Suite(.serialized)
 @MainActor
 struct SnapshotTests {
@@ -51,11 +58,10 @@ struct SnapshotTests {
 
     /// Runs `properties` on `box` over one second and stops at `progress`.
     private func drive(_ box: UIView, _ properties: [Property], to progress: CGFloat, easing: Easing? = nil) {
-        let animation = Animation(
-            ViewRef(box), properties: properties, duration: 1, easing: easing?.bezier, complete: nil)
+        let animation = PropertyAnimation(AnimationSpec(box, properties, duration: 1, easing: easing?.bezier))
         var elapsed: CGFloat = 0
         while elapsed < progress {
-            _ = animation.update(Engine.Frame(0, 0.25))
+            _ = animation.update(Engine.Frame(0.25))
             elapsed += 0.25
         }
     }
@@ -82,11 +88,22 @@ struct SnapshotTests {
         }
     }
 
+    @Test func frameOnARotatedView() {
+        // The box stays rotated about its centre while it moves and grows to the target.
+        for progress in Self.progressPoints {
+            let (stage, box) = stage { $0.rotation = 30 }
+            drive(box, [.frame(CGRect(x: 40, y: 40, width: 50, height: 30))], to: progress)
+            assertSnapshot(of: stage, as: image(), named: "rotated-frame-\(Int(progress * 100))")
+        }
+    }
+
     @Test func dynamicColoursInDarkAppearance() {
         // The targets are dynamic colours, so the end state must differ between appearances.
         for style in [UIUserInterfaceStyle.light, .dark] {
             for progress in Self.progressPoints {
-                let (stage, box) = stage()
+                // The appearance is set on the view itself, so the frames in between
+                // resolve against it rather than the app's traits.
+                let (stage, box) = stage { $0.overrideUserInterfaceStyle = style }
                 drive(box, [.background(.label), .borderColor(.secondaryLabel)], to: progress)
                 let name = style == .dark ? "dark" : "light"
                 assertSnapshot(of: stage, as: image(style), named: "dynamic-\(name)-\(Int(progress * 100))")
@@ -112,3 +129,4 @@ struct SnapshotTests {
         assertSnapshot(of: greyStage, as: image(), named: "grey-to-blue-hsb")
     }
 }
+#endif
