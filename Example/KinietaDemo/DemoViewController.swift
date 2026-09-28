@@ -9,6 +9,7 @@ final class DemoViewController: UIViewController {
     private var easingTracks: [(easing: Easing, square: UIView, track: UIView)] = []
     private var colourSwatches: [(mode: ColorInterpolation, view: UIView)] = []
     private let darkSwatch = UIView()
+    private let wideSwatch = UIView()
     private var timelineSquares: [UIView] = []
     private let timelineStatus = UILabel()
     private let reduceMotionStatus = UILabel()
@@ -19,6 +20,8 @@ final class DemoViewController: UIViewController {
 
     private let pink = UIColor(red: 1.00, green: 0.44, blue: 0.75, alpha: 1.00)
     private let cyan = UIColor(red: 0.00, green: 0.80, blue: 0.90, alpha: 1.00)
+    private let p3Red = UIColor(displayP3Red: 1, green: 0, blue: 0, alpha: 1)
+    private let p3Green = UIColor(displayP3Red: 0, green: 1, blue: 0, alpha: 1)
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -112,6 +115,12 @@ final class DemoViewController: UIViewController {
             darkSwatch.bottomAnchor.constraint(equalTo: panel.bottomAnchor, constant: -6),
         ])
         stack.addArrangedSubview(labelled("lch to .label, dark override", panel))
+        // Both ends are outside sRGB. On a wide-colour display the frames in between
+        // stay as saturated, so there is no jump on the last frame.
+        wideSwatch.backgroundColor = p3Red
+        wideSwatch.layer.cornerRadius = 8
+        wideSwatch.heightAnchor.constraint(equalToConstant: 36).isActive = true
+        stack.addArrangedSubview(labelled("lch, Display P3 red to green", wideSwatch))
 
         addHeader(
             "Timeline", detail: "The first square moves, then the other two move together, then one completion fires.")
@@ -212,6 +221,11 @@ final class DemoViewController: UIViewController {
                 .animate(.background(.label), duration: 1.6)
                 .wait(0.4)
                 .animate(.background(pink), duration: 1.6))
+        running.append(
+            wideSwatch
+                .animate(.background(p3Green, interpolation: .lch), duration: 1.6)
+                .wait(0.4)
+                .animate(.background(p3Red, interpolation: .lch), duration: 1.6))
         let width = view.bounds.width - 40
         let first = timelineSquares[0].animate(.x(width - 38), duration: 1.0).easeInOut(.cubic)
         let second = timelineSquares[1]
@@ -270,6 +284,7 @@ final class DemoViewController: UIViewController {
         }
         for swatch in colourSwatches { swatch.view.backgroundColor = pink }
         darkSwatch.backgroundColor = pink
+        wideSwatch.backgroundColor = p3Red
         for (i, square) in timelineSquares.enumerated() {
             square.frame = CGRect(x: 6 + CGFloat(i) * 44, y: 6, width: 32, height: 32)
             square.alpha = 1

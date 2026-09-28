@@ -128,5 +128,16 @@ struct SnapshotTests {
         drive(greyBox, [.background(.systemBlue, interpolation: .hsb)], to: 0.5)
         assertSnapshot(of: greyStage, as: image(), named: "grey-to-blue-hsb")
     }
+
+    @Test func displayP3ColoursAtTheMidpoint() {
+        // Between two Display P3 colours the frames stay outside sRGB instead of being clipped to it.
+        let red = UIColor(displayP3Red: 1, green: 0, blue: 0, alpha: 1)
+        let green = UIColor(displayP3Red: 0, green: 1, blue: 0, alpha: 1)
+        for (name, mode) in [("rgb", ColorInterpolation.rgb), ("hsb", .hsb), ("lch", .lch)] {
+            let (stage, box) = stage { $0.backgroundColor = red }
+            drive(box, [.background(green, interpolation: mode)], to: 0.5)
+            assertSnapshot(of: stage, as: image(), named: "p3-red-to-green-\(name)")
+        }
+    }
 }
 #endif

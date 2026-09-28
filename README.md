@@ -182,7 +182,7 @@ Handles hold their view weakly and never keep it alive. When the view is dealloc
 
 ### Colour
 
-Colours interpolate through the perceptual CIE LCH space by default, with hue taking the shorter arc. Choose per property or change the engine default. The endpoints are assigned exactly as given, so a dynamic colour such as `.systemBackground` keeps adapting to Dark Mode after the animation, and a Display P3 colour keeps its gamut. Fading to or from `.clear` fades alpha instead of passing through black.
+Colours interpolate through the perceptual CIE LCH space by default, with hue taking the shorter arc. Choose per property or change the engine default. The endpoints are assigned exactly as given, so a dynamic colour such as `.systemBackground` keeps adapting to Dark Mode after the animation, and a Display P3 colour keeps its gamut. The frames in between are clipped to sRGB only when both endpoints are in sRGB; between Display P3 colours they stay in Display P3, so a wide-gamut animation keeps its saturation on the way instead of jumping to it on the last frame. Fading to or from `.clear` fades alpha instead of passing through black.
 
 ```swift
 view.animate(.background(.systemBlue, interpolation: .rgb), duration: 1.0)
@@ -266,7 +266,7 @@ xcrun swift-format lint --strict --recursive Sources Tests Example/KinietaDemo
 
 `scripts/ci-local.sh` runs the CI jobs locally (the three above plus Mac Catalyst, and `swift build`/`swift test` on macOS and in a Linux container via Docker) and stops at the first failure. The tvOS build runs in CI only. Pass check names to run a subset, e.g. `scripts/ci-local.sh lint ios`.
 
-Visual regression is covered by snapshot tests: each property is rendered at five progress points, the colour paths at their midpoint, and dynamic colours in light and dark appearance. Reference images live in `Tests/KinietaTests/__Snapshots__`. After an intentional visual change, re-record them on the pinned iPhone 17 Pro / iOS 26.5 simulator and review the PNGs before committing:
+Visual regression is covered by snapshot tests: each property is rendered at five progress points, the colour paths at their midpoint between sRGB and between Display P3 colours, and dynamic colours in light and dark appearance. Reference images live in `Tests/KinietaTests/__Snapshots__`. After an intentional visual change, re-record them on the pinned iPhone 17 Pro / iOS 26.5 simulator and review the PNGs before committing:
 
 ```
 TEST_RUNNER_SNAPSHOT_TESTING_RECORD=all xcodebuild -scheme Kinieta -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5' test

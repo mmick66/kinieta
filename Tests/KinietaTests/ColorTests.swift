@@ -109,6 +109,65 @@ struct ColorTests {
         }
     }
 
+    @Test func displayP3RoundTripIsCloseEnough() {
+        for rgb in grid { #expect(same(rgb.displayP3.fromDisplayP3, rgb, tolerance: 1e-6), "\(rgb)") }
+    }
+
+    /// UIKit converts in single precision with the ICC profile's rounded matrices: up to about 4e-4 off.
+    @Test func displayP3MatchesUIKit() {
+        for p3 in grid {
+            let color = UIColor(displayP3Red: p3.red, green: p3.green, blue: p3.blue, alpha: p3.alpha)
+            let extended = ColorMath.extractComponents(of: color)!
+            #expect(same(p3.fromDisplayP3, extended, tolerance: ColorMath.Gamut.tolerance), "\(p3)")
+        }
+    }
+
+    @Test func theGamutIsTheSmallestThatHoldsBothEnds() {
+        let pink = ColorMath.RGB(red: 1, green: 0.44, blue: 0.75, alpha: 1)
+        let p3Red = ColorMath.extractComponents(of: UIColor(displayP3Red: 1, green: 0, blue: 0, alpha: 1))!
+        let beyondP3 = ColorMath.RGB(red: -0.5, green: 1.2, blue: -0.5, alpha: 1)
+        #expect(ColorMath.Gamut.smallest(containing: pink, .init(red: 0, green: 0, blue: 0, alpha: 0)) == .sRGB)
+        #expect(ColorMath.Gamut.smallest(containing: pink, p3Red) == .displayP3)
+        #expect(ColorMath.Gamut.smallest(containing: p3Red, beyondP3) == .extended)
+        // Clipping to Display P3 keeps a P3 colour as it is.
+        #expect(same(ColorMath.Gamut.displayP3.clip(p3Red), p3Red, tolerance: 1e-4))
+    }
+
+    /// The extended-sRGB colour `mode` gives at `progress` from `from` to `to`.
+    private func colour(from: UIColor, to: UIColor, _ mode: ColorInterpolation, at progress: CGFloat) -> ColorMath.RGB {
+        let view = UIView()
+        view.backgroundColor = from
+        Property.background(to, interpolation: mode).transformation(for: view, defaultColorInterpolation: .lch)(
+            view, progress)
+        return ColorMath.extractComponents(of: view.backgroundColor!)!
+    }
+
+    @Test(arguments: [ColorInterpolation.rgb, .hsb, .lch])
+    func displayP3ColoursStayWideOnTheWay(_ mode: ColorInterpolation) {
+        let red = UIColor(displayP3Red: 1, green: 0, blue: 0, alpha: 1)
+        let green = UIColor(displayP3Red: 0, green: 1, blue: 0, alpha: 1)
+        let tolerance = ColorMath.Gamut.tolerance
+
+        let mid = colour(from: red, to: green, mode, at: 0.5)
+        #expect(!mid.isInUnitRange(tolerance: tolerance), "the midpoint is clipped to sRGB: \(mid)")
+        #expect(mid.displayP3.isInUnitRange(tolerance: tolerance), "the midpoint is outside Display P3: \(mid)")
+
+        // Just before the end the colour is already the target, so the last frame does not pop.
+        let target = ColorMath.extractComponents(of: green)!
+        let nearEnd = colour(from: red, to: green, mode, at: 0.999)
+        #expect(same(nearEnd, target, tolerance: 0.01), "\(nearEnd) vs \(target)")
+    }
+
+    @Test(arguments: [ColorInterpolation.rgb, .hsb, .lch])
+    func sRGBColoursStayInSRGBOnTheWay(_ mode: ColorInterpolation) {
+        let pink = UIColor(red: 1.00, green: 0.44, blue: 0.75, alpha: 1.00)
+        let cyan = UIColor(red: 0.00, green: 0.80, blue: 0.90, alpha: 1.00)
+        for progress in stride(from: CGFloat(0.1), to: 1, by: 0.1) {
+            let rgb = colour(from: pink, to: cyan, mode, at: progress)
+            #expect(rgb.isInUnitRange(tolerance: 0), "\(progress): \(rgb)")
+        }
+    }
+
     @Test func rotationSetterMatchesCGAffineTransform() {
         let angle: CGFloat = 30.0
         let v = UIView()

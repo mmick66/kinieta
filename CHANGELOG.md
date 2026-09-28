@@ -80,6 +80,11 @@ All notable changes to Kinieta are documented here. The format follows
 - LCH interpolation from a near-grey, such as `.secondaryLabel`, swept through
   unrelated hues. Hue is now weighted by chroma, so it heads straight for the
   other colour's hue; colours with chroma of 20 or more are unaffected.
+- Between Display P3 colours, the frames of an LCH animation were clipped to
+  sRGB, so they lost saturation and the last frame jumped to the target. The
+  frames in between are now clipped to the smallest of sRGB and Display P3
+  that holds both endpoints, in every interpolation mode; animations between
+  sRGB colours are unchanged. The example app has a Display P3 swatch.
 - The podspec shipped no privacy manifest; CocoaPods consumers now get
   `PrivacyInfo.xcprivacy` in a `Kinieta_Privacy` resource bundle. Its
   description, still the Swift 4 one, now matches the README. There is no

@@ -118,7 +118,9 @@ public enum Property: Sendable {
     /// meaning outside the gamut. The endpoints are assigned as given, so a
     /// dynamic (light/dark) or wide-gamut target survives the animation.
     ///
-    /// The frames in between are resolved against the view's own `traits`:
+    /// The frames in between are clipped to the smallest of sRGB and Display P3
+    /// that holds both endpoints, so a wide-gamut move does not pop at the end.
+    /// They are resolved against the view's own `traits`:
     /// inside a display-link callback `UITraitCollection.current` is the
     /// app-wide fallback, which ignores `overrideUserInterfaceStyle` and
     /// presentation-level appearance.
@@ -139,10 +141,10 @@ public enum Property: Sendable {
         if from.alpha == 0 { from = to.withAlpha(0) }
         if to.alpha == 0 { to = from.withAlpha(0) }
 
-        let between: (CGFloat) -> UIColor
+        let path: (CGFloat) -> ColorMath.RGB
         switch mode {
         case .rgb:
-            between = { c in from.lerp(to, c).color() }
+            path = { c in from.lerp(to, c) }
         case .hsb:
             // A grey endpoint has no hue; borrow the other one's so the
             // interpolation does not sweep through the colour wheel. Hue then
@@ -151,12 +153,16 @@ public enum Property: Sendable {
             var f = from.hsb, t = to.hsb
             if f.saturation < achromatic { f.hue = t.hue }
             if t.saturation < achromatic { t.hue = f.hue }
-            between = { c in f.lerp(t, c).rgb.color() }
+            path = { c in f.lerp(t, c).rgb }
         case .lch:
             // LCH.lerp weights hue by chroma, which covers greys and near-greys.
             let f = from.lch, t = to.lch
-            between = { c in f.lerp(t, c).rgb.clamped().color() }
+            path = { c in f.lerp(t, c).rgb }
         }
+        // Clip to sRGB only when both ends are in it; Display P3 ends keep
+        // their saturation on the way.
+        let gamut = ColorMath.Gamut.smallest(containing: from, to)
+        let between = { (c: CGFloat) in gamut.clip(path(c)).color() }
 
         return { view, factor in
             let c = min(max(factor, 0), 1)
