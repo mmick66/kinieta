@@ -29,6 +29,10 @@ All notable changes to Kinieta are documented here. The format follows
   the alpha directly instead of going through LCH.
 - `Easing.inOut(.sine)` used the `inOut(.quad)` curve. It now uses Ceaser's
   easeInOutSine, `Bezier(0.445, 0.05, 0.55, 0.95)`.
+- `onComplete`, `delay` and `repeat` on a `Kinieta.group` handle
+  were silently dropped; the group is now an ordinary step of the handle's
+  timeline. `animate` on a group handle, which has no view, is ignored with a
+  logged warning instead of finishing instantly.
 
 ## [1.0.0] - 2026-09-08
 

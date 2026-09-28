@@ -56,6 +56,8 @@ public final class Kinieta {
     private var children: [Kinieta] = []
     /// The action running this group handle's members; `nil` for an ordinary timeline.
     private var members: GroupAction?
+    /// `true` for a handle made by `group`, which has no view of its own.
+    private var isGroup = false
 
     /// Creates an empty timeline for `view` and registers it with the engine.
     ///
@@ -78,6 +80,9 @@ public final class Kinieta {
     /// duration sets them on the next frame.
     ///
     /// A negative, NaN or infinite duration is treated as zero and logs a warning.
+    ///
+    /// A group handle has no view to animate: calling this on one does nothing
+    /// and logs a warning. Animate the grouped timelines instead.
     @discardableResult
     public func animate(_ properties: Property..., duration: TimeInterval = 0) -> Kinieta {
         animate(properties, duration: duration)
@@ -85,6 +90,10 @@ public final class Kinieta {
 
     @discardableResult
     public func animate(_ properties: [Property], duration: TimeInterval = 0) -> Kinieta {
+        guard !isGroup else {
+            Kinieta.logger.warning("animate(_:duration:) was called on a group handle, which has no view; ignoring it")
+            return self
+        }
         let duration = Kinieta.sanitized(duration, in: "animate(duration:)", allowsInfinity: false)
         editUnstarted { $0.add(.animation(AnimationSpec(view, properties, duration: duration))) }
         return self
@@ -153,9 +162,14 @@ public final class Kinieta {
     ///
     /// A finished timeline forgets its actions, so repeating one that was
     /// extended after it finished copies only what was added since.
+    ///
+    /// On a group handle each copy replays what the grouped timelines hold at
+    /// the time of the call. The copies run on the group handle, so they
+    /// answer to it rather than to the grouped handles.
     @discardableResult
     public func `repeat`(times: Int = 1) -> Kinieta {
-        let copy = timeline
+        let replay = children.map { ActionType.sequence($0.timeline) }
+        let copy = timeline.map { $0.replacingTimelines(with: replay) }
         editUnstarted { queue in
             for _ in 0..<max(times, 0) {
                 for type in copy { queue.add(type) }
@@ -299,7 +313,13 @@ public final class Kinieta {
     // MARK: - Grouping
 
     /// Runs several timelines together and returns one handle for all of them.
-    /// `completion` runs once, when the last of them finishes.
+    /// `completion` runs once, when the last of them finishes; it is the same
+    /// as calling `onComplete` on the returned handle.
+    ///
+    /// The group is the first step of the returned handle's timeline, so the
+    /// handle chains like any other: `delay` postpones the whole group,
+    /// `wait` and `onComplete` follow it, and `repeat` replays it. The handle
+    /// has no view, so `animate` on it does nothing.
     ///
     /// Cancelling, pausing or resuming the returned handle does the same to
     /// every timeline in the group. A timeline belongs to at most one group:
@@ -320,14 +340,15 @@ public final class Kinieta {
         // Register the group before taking its members off the engine, so the
         // engine never empties and restarts its clock in between.
         let handle = Kinieta(view: nil)
+        handle.isGroup = true
         for child in members {
             child.owner = handle
             Engine.shared.remove(child.mainSequence)
         }
-        let action = GroupAction(running: members.map { $0.mainSequence }, completion: completion)
+        let action = GroupAction(running: members.map { $0.mainSequence })
         handle.children = members
         handle.members = action
-        handle.mainSequence.currentAction = action
+        handle.editUnstarted { $0.add(.timelines(action, completion: completion)) }
         return handle
     }
 

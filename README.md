@@ -143,6 +143,18 @@ let spin  = badge.animate(.rotation(degrees: 360), .alpha(0), duration: 1.2)
 Kinieta.group(slide, spin) { print("both finished") }
 ```
 
+The group is the first step of the handle's own timeline, so the handle chains like any other: `delay` postpones the whole group, `wait` and `onComplete` follow it, and `repeat` replays it.
+
+```swift
+Kinieta.group(slide, spin)
+    .delay(0.5)
+    .onComplete { print("both finished") }
+    .wait(1.0)
+    .onComplete { print("a second later") }
+```
+
+The group handle has no view of its own, so `animate` on it does nothing and logs a warning; animate the grouped timelines instead.
+
 The group handle controls its members: `cancel()` cancels every timeline in the group (their `finished()` calls return), and `pause()` and `resume()` pause and resume them all. A member can still be cancelled or paused on its own, but cannot resume while its group is paused.
 
 A timeline belongs to at most one group. `Kinieta.group` leaves out, with a logged warning, any timeline that is already in a group or has already finished or been cancelled; a timeline listed twice runs once. A member extended after it finished rejoins its group if the group is still running, and otherwise runs on its own.

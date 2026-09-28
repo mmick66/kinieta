@@ -1114,6 +1114,93 @@ struct EngineTests {
         #expect(approx(view.frame.origin.y, 100))
     }
 
+    // MARK: Chaining on a group handle
+
+    @Test func onCompleteOnAGroupHandleFiresOnceAfterEveryMemberFinishes() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let a = makeView(), b = makeView()
+        var completions = 0
+        let group = Kinieta.group(a.animate(.x(100), duration: 0.5), b.animate(.y(100), duration: 1))
+            .onComplete { completions += 1 }
+        frames.step(0.5)
+        #expect(completions == 0 && group.isRunning)
+        frames.step(0.5)
+        #expect(completions == 1 && group.state == .finished)
+        frames.step(0.5)
+        #expect(completions == 1)
+    }
+
+    @Test func delayOnAGroupHandlePostponesTheWholeGroup() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let a = makeView(), b = makeView()
+        var completed = false
+        let group = Kinieta.group(a.animate(.x(100), duration: 1), b.animate(.y(100), duration: 1))
+            .delay(0.5)
+            .onComplete { completed = true }
+        frames.step(0.5)
+        #expect(approx(a.frame.origin.x, 0) && approx(b.frame.origin.y, 0))
+        frames.step(0.5)
+        #expect(approx(a.frame.origin.x, 50, 0.5) && approx(b.frame.origin.y, 50, 0.5))
+        #expect(!completed && group.isRunning)
+        frames.step(0.5)
+        #expect(completed && group.state == .finished)
+        #expect(approx(a.frame.origin.x, 100) && approx(b.frame.origin.y, 100))
+    }
+
+    @Test func waitOnAGroupHandleChainsAfterTheGroup() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let a = makeView(), b = makeView()
+        let first = a.animate(.x(100), duration: 0.5)
+        let second = b.animate(.y(100), duration: 1)
+        var groupCompleted = false, waitCompleted = false
+        let group = Kinieta.group(first, second) { groupCompleted = true }
+            .wait(1)
+            .onComplete { waitCompleted = true }
+        frames.step(1)
+        #expect(groupCompleted && !waitCompleted)
+        #expect(first.state == .finished && second.state == .finished && group.isRunning)
+        frames.step(0.5)
+        #expect(!waitCompleted && group.isRunning)
+        frames.step(0.5)
+        #expect(waitCompleted && group.state == .finished)
+    }
+
+    @Test func repeatOnAGroupHandleReplaysTheGroup() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let a = makeView(), b = makeView()
+        var completions = 0
+        let group = Kinieta.group(
+            a.animate(.x(100), duration: 0.5).animate(.x(0), duration: 0.5),
+            b.animate(.y(100), duration: 1)
+        ) { completions += 1 }
+        .repeat()
+        frames.step(1)
+        #expect(completions == 1 && group.isRunning)
+        frames.step(0.5)
+        #expect(approx(a.frame.origin.x, 100) && approx(b.frame.origin.y, 100))
+        frames.step(0.5)
+        #expect(completions == 2 && group.state == .finished)
+        #expect(approx(a.frame.origin.x, 0))
+    }
+
+    @Test func animateOnAGroupHandleIsIgnored() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        var completed = false
+        let group = Kinieta.group(view.animate(.x(100), duration: 1))
+            .animate(.y(100), duration: 1)
+            .onComplete { completed = true }  // reaches the group, not the ignored animation
+        #expect(descriptions(group) == ["Timelines"])
+        frames.step(1)
+        #expect(completed && group.state == .finished)
+        #expect(approx(view.frame.origin.x, 100) && approx(view.frame.origin.y, 0))
+    }
+
     // MARK: Invalid durations
 
     @Test func negativeWaitIsZeroAndDoesNotFastForward() {

@@ -14,7 +14,7 @@ final class GroupAction: Action {
         case running([Action])
     }
 
-    let completion: Block?
+    var completion: Block?
     private var phase: Phase
     /// Actions that joined since the last update, or during it.
     private var joining: [Action] = []

@@ -63,6 +63,9 @@ enum ActionType: CustomStringConvertible {
     case pause(TimeInterval, completion: Block? = nil)
     case group([ActionType], completion: Block? = nil)
     case sequence([ActionType], completion: Block? = nil)
+    /// The live group behind a `Kinieta.group` handle. Its members are other
+    /// handles' sequences, already running, so it cannot be copied.
+    case timelines(GroupAction, completion: Block? = nil)
 
     var description: String {
         switch self {
@@ -74,6 +77,8 @@ enum ActionType: CustomStringConvertible {
             return "Group (\(types.count))"
         case .sequence(let types, _):
             return "Sequence (\(types.count))"
+        case .timelines:
+            return "Timelines"
         }
     }
 
@@ -89,6 +94,23 @@ enum ActionType: CustomStringConvertible {
             return .group(types, completion: completion)
         case .sequence(let types, _):
             return .sequence(types, completion: completion)
+        case .timelines(let action, _):
+            return .timelines(action, completion: completion)
+        }
+    }
+
+    /// The same action with every live group of timelines replaced by `replay`,
+    /// a copy that can run again. Used by `repeat` on a group handle.
+    func replacingTimelines(with replay: [ActionType]) -> ActionType {
+        switch self {
+        case .animation, .pause:
+            return self
+        case .group(let types, let completion):
+            return .group(types.map { $0.replacingTimelines(with: replay) }, completion: completion)
+        case .sequence(let types, let completion):
+            return .sequence(types.map { $0.replacingTimelines(with: replay) }, completion: completion)
+        case .timelines(_, let completion):
+            return .group(replay, completion: completion)
         }
     }
 
@@ -103,7 +125,7 @@ enum ActionType: CustomStringConvertible {
             guard let last = types.popLast(), let eased = last.withEasing(bezier) else { return nil }
             types.append(eased)
             return .sequence(types, completion: completion)
-        case .pause, .group:
+        case .pause, .group, .timelines:
             return nil
         }
     }
@@ -119,6 +141,9 @@ enum ActionType: CustomStringConvertible {
             return GroupAction(pending: types, completion: completion)
         case .sequence(let types, let completion):
             return SequenceAction(types, completion: completion)
+        case .timelines(let action, let completion):
+            action.completion = completion
+            return action
         }
     }
 }
