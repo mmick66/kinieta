@@ -8,6 +8,8 @@
       "Bash(xcodebuild:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
+      "Bash(git push origin wt/*)",
+      "Bash(git push -u origin wt/*)",
       "Edit(.claude/orchestrate.sh)"
     ],
     "deny": [
