@@ -14,6 +14,10 @@ import os
 /// play after the ones already there; actions added to a finished timeline
 /// start it again on the next frame. A cancelled timeline stays cancelled.
 ///
+/// In debug builds a chain call that has nothing to act on, such as easing
+/// after a `wait`, logs a warning with the file and line it was made on. The
+/// `file` and `line` parameters carry that location; leave them to their defaults.
+///
 /// ```swift
 /// square.animate(.x(374), .background(.systemPink), duration: 1.0)
 ///       .easeInOut(.back)
@@ -90,16 +94,22 @@ public final class Kinieta {
     /// A negative, NaN or infinite duration is treated as zero and logs a warning.
     ///
     /// A group handle has no view to animate: calling this on one does nothing
-    /// and logs a warning. Animate the grouped timelines instead.
+    /// and, in debug builds, logs a warning. Animate the grouped timelines instead.
     @discardableResult
-    public func animate(_ properties: Property..., duration: TimeInterval = 0) -> Kinieta {
-        animate(properties, duration: duration)
+    public func animate(
+        _ properties: Property..., duration: TimeInterval = 0, file: StaticString = #fileID, line: UInt = #line
+    ) -> Kinieta {
+        animate(properties, duration: duration, file: file, line: line)
     }
 
     @discardableResult
-    public func animate(_ properties: [Property], duration: TimeInterval = 0) -> Kinieta {
+    public func animate(
+        _ properties: [Property], duration: TimeInterval = 0, file: StaticString = #fileID, line: UInt = #line
+    ) -> Kinieta {
         guard !isGroup else {
-            Kinieta.logger.warning("animate(_:duration:) was called on a group handle, which has no view; ignoring it")
+            Kinieta.ignored(
+                "animate(_:duration:) was called on a group handle, which has no view; ignoring it",
+                file: file, line: line)
             return self
         }
         let duration = Kinieta.sanitized(duration, in: "animate(duration:)", allowsInfinity: false)
@@ -123,10 +133,14 @@ public final class Kinieta {
     ///
     /// Accepts the same times as ``wait(_:)``.
     @discardableResult
-    public func delay(_ time: TimeInterval) -> Kinieta {
+    public func delay(_ time: TimeInterval, file: StaticString = #fileID, line: UInt = #line) -> Kinieta {
         let time = Kinieta.sanitized(time, in: "delay(_:)", allowsInfinity: true)
         editUnstarted { queue in
-            guard let last = queue.popLast() else { return }
+            guard let last = queue.popLast() else {
+                Kinieta.ignored(
+                    "delay(_:) has no action to postpone: \(nothingPending); ignoring it", file: file, line: line)
+                return
+            }
             queue.add(.sequence([.pause(time), last]))
         }
         return self
@@ -144,10 +158,17 @@ public final class Kinieta {
 
     /// Seals everything before it into one step, so a following `parallel()`
     /// only gathers the actions added after `then`.
+    ///
+    /// Being a property, `then` cannot locate its caller: a warning that it
+    /// found nothing to seal carries no file and line.
     public var then: Kinieta {
         editUnstarted { queue in
             let actions = queue.popAllUngrouped()
-            guard !actions.isEmpty else { return }
+            guard !actions.isEmpty else {
+                Kinieta.ignored(
+                    "then has nothing to seal: \(nothingUngrouped(in: queue)); ignoring it", file: nil, line: 0)
+                return
+            }
             queue.add(.group([.sequence(actions)]))
         }
         return self
@@ -156,10 +177,15 @@ public final class Kinieta {
     /// Runs every action added since the last `then` or `parallel()` together.
     /// Actions that have already started are left out.
     @discardableResult
-    public func parallel() -> Kinieta {
+    public func parallel(file: StaticString = #fileID, line: UInt = #line) -> Kinieta {
         editUnstarted { queue in
             let actions = queue.popAllUngrouped()
-            guard !actions.isEmpty else { return }
+            guard !actions.isEmpty else {
+                Kinieta.ignored(
+                    "parallel() has nothing to run together: \(nothingUngrouped(in: queue)); ignoring it",
+                    file: file, line: line)
+                return
+            }
             queue.add(.group(actions))
         }
         return self
@@ -175,10 +201,15 @@ public final class Kinieta {
     /// the time of the call. The copies run on the group handle, so they
     /// answer to it rather than to the grouped handles.
     @discardableResult
-    public func `repeat`(times: Int = 1) -> Kinieta {
+    public func `repeat`(times: Int = 1, file: StaticString = #fileID, line: UInt = #line) -> Kinieta {
         let replay = children.map { ActionType.sequence($0.timeline) }
         let copy = timeline.map { $0.replacingTimelines(with: replay) }
         editUnstarted { queue in
+            if times <= 0 {
+                Kinieta.ignored("repeat(times:) was given \(times) times; ignoring it", file: file, line: line)
+            } else if copy.isEmpty {
+                Kinieta.ignored("repeat(times:) has nothing to repeat: the timeline is empty", file: file, line: line)
+            }
             for _ in 0..<max(times, 0) {
                 for type in copy { queue.add(type) }
             }
@@ -201,6 +232,17 @@ public final class Kinieta {
         if state == .finished && !queue.isEmpty { restart() }
     }
 
+    /// Why an edit found no unstarted step, for warnings. Read before the edit
+    /// is applied.
+    private var nothingPending: String {
+        timeline.isEmpty ? "the timeline is empty" : "every action in it has already started"
+    }
+
+    /// Why `then` or `parallel()` found nothing to gather in `queue`, for warnings.
+    private func nothingUngrouped(in queue: ActionQueue) -> String {
+        queue.isEmpty ? nothingPending : "nothing was added since the last then or parallel()"
+    }
+
     /// Runs a finished timeline again from the steps waiting in its queue.
     /// A timeline whose group is still running rejoins it; otherwise it
     /// leaves the group and the engine drives it.
@@ -219,28 +261,39 @@ public final class Kinieta {
     // MARK: Easing
 
     /// Applies `easing` to the previous animation, including one wrapped by `delay`.
+    /// Does nothing if the previous step is not an animation or has started.
     @discardableResult
-    public func easing(_ easing: Easing) -> Kinieta {
+    public func easing(_ easing: Easing, file: StaticString = #fileID, line: UInt = #line) -> Kinieta {
         editUnstarted { queue in
-            guard let last = queue.popLast() else { return }
-            queue.add(last.withEasing(easing.bezier) ?? last)
+            guard let last = queue.popLast() else {
+                Kinieta.ignored(
+                    "easing(_:) has no animation to ease: \(nothingPending); ignoring it", file: file, line: line)
+                return
+            }
+            guard let eased = last.withEasing(easing.bezier) else {
+                Kinieta.ignored(
+                    "easing(_:) follows a \(last.callName), not an animation; ignoring it", file: file, line: line)
+                queue.add(last)
+                return
+            }
+            queue.add(eased)
         }
         return self
     }
 
     @discardableResult
-    public func easeIn(_ curve: Easing.Curve = .quad) -> Kinieta {
-        easing(.in(curve))
+    public func easeIn(_ curve: Easing.Curve = .quad, file: StaticString = #fileID, line: UInt = #line) -> Kinieta {
+        easing(.in(curve), file: file, line: line)
     }
 
     @discardableResult
-    public func easeOut(_ curve: Easing.Curve = .quad) -> Kinieta {
-        easing(.out(curve))
+    public func easeOut(_ curve: Easing.Curve = .quad, file: StaticString = #fileID, line: UInt = #line) -> Kinieta {
+        easing(.out(curve), file: file, line: line)
     }
 
     @discardableResult
-    public func easeInOut(_ curve: Easing.Curve = .quad) -> Kinieta {
-        easing(.inOut(curve))
+    public func easeInOut(_ curve: Easing.Curve = .quad, file: StaticString = #fileID, line: UInt = #line) -> Kinieta {
+        easing(.inOut(curve), file: file, line: line)
     }
 
     // MARK: Completion
@@ -248,9 +301,13 @@ public final class Kinieta {
     /// Calls `block` when the previous action finishes. Does nothing once
     /// that action has started.
     @discardableResult
-    public func onComplete(_ block: @escaping Block) -> Kinieta {
+    public func onComplete(_ block: @escaping Block, file: StaticString = #fileID, line: UInt = #line) -> Kinieta {
         editUnstarted { queue in
-            guard let last = queue.popLast() else { return }
+            guard let last = queue.popLast() else {
+                Kinieta.ignored(
+                    "onComplete(_:) has no action to follow: \(nothingPending); ignoring it", file: file, line: line)
+                return
+            }
             queue.add(last.withCompletion(block))
         }
         return self

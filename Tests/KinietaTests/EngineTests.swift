@@ -1775,6 +1775,158 @@ struct EngineTests {
         #expect(approx(view.frame.origin.x, 100) && approx(view.frame.origin.y, 0))
     }
 
+    // MARK: Ignored chain calls
+
+    #if DEBUG
+    /// The warnings `body` raises about chain calls that did nothing.
+    private func ignoredCalls(_ body: () -> Void) -> [IgnoredCall] {
+        let previous = Kinieta.ignoredCallSink
+        defer { Kinieta.ignoredCallSink = previous }
+        var calls: [IgnoredCall] = []
+        Kinieta.ignoredCallSink = { calls.append($0) }
+        body()
+        return calls
+    }
+
+    @Test func easingThatFollowsNoAnimationIsReportedAndChangesNothing() {
+        let cases: [(step: String, build: (Kinieta) -> Kinieta)] = [
+            ("wait", { $0.animate(.x(1), duration: 1).wait(1) }),
+            ("parallel() or then", { $0.animate(.x(1), duration: 1).animate(.y(1), duration: 1).parallel() }),
+            ("parallel() or then", { $0.animate(.x(1), duration: 1).then }),
+            ("delayed wait", { $0.wait(1).delay(1) }),
+        ]
+        for (step, build) in cases {
+            let k = build(Kinieta(for: makeView()))
+            defer { k.cancel() }
+            let before = descriptions(k)
+            let calls = ignoredCalls { k.easeOut() }
+            #expect(calls.map(\.message) == ["easing(_:) follows a \(step), not an animation; ignoring it"])
+            #expect(descriptions(k) == before)
+        }
+    }
+
+    @Test func easingAGroupHandleIsReported() {
+        let group = Kinieta.group(makeView().animate(.x(1), duration: 1))
+        defer { group.cancel() }
+        let calls = ignoredCalls { group.easeInOut(.back) }
+        #expect(calls.map(\.message) == ["easing(_:) follows a Kinieta.group, not an animation; ignoring it"])
+    }
+
+    @Test func modifiersOnAnEmptyTimelineAreReported() {
+        let k = Kinieta(for: makeView())
+        defer { k.cancel() }
+        let calls = ignoredCalls {
+            k.delay(1).onComplete {}.easeIn().parallel().then.repeat(times: 2)
+        }
+        #expect(
+            calls.map(\.message) == [
+                "delay(_:) has no action to postpone: the timeline is empty; ignoring it",
+                "onComplete(_:) has no action to follow: the timeline is empty; ignoring it",
+                "easing(_:) has no animation to ease: the timeline is empty; ignoring it",
+                "parallel() has nothing to run together: the timeline is empty; ignoring it",
+                "then has nothing to seal: the timeline is empty; ignoring it",
+                "repeat(times:) has nothing to repeat: the timeline is empty",
+            ])
+        #expect(k.timeline.isEmpty)
+    }
+
+    @Test func modifiersAfterEveryActionHasStartedAreReported() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        let handle = view.animate(.x(100), duration: 1)
+        defer { handle.cancel() }
+        frames.step(0.25)
+        #expect(handle.state == .running)
+        let calls = ignoredCalls { handle.delay(1).onComplete {}.easeIn().parallel().then }
+        let reason = "every action in it has already started; ignoring it"
+        #expect(
+            calls.map(\.message) == [
+                "delay(_:) has no action to postpone: \(reason)",
+                "onComplete(_:) has no action to follow: \(reason)",
+                "easing(_:) has no animation to ease: \(reason)",
+                "parallel() has nothing to run together: \(reason)",
+                "then has nothing to seal: \(reason)",
+            ])
+    }
+
+    @Test func thenOrParallelWithNothingNewToGatherIsReported() {
+        let k = Kinieta(for: makeView()).animate(.x(1), duration: 1).animate(.y(1), duration: 1).parallel()
+        defer { k.cancel() }
+        let calls = ignoredCalls { k.parallel().then }
+        let reason = "nothing was added since the last then or parallel(); ignoring it"
+        #expect(
+            calls.map(\.message) == [
+                "parallel() has nothing to run together: \(reason)",
+                "then has nothing to seal: \(reason)",
+            ])
+        #expect(descriptions(k) == ["Group (2)"])
+    }
+
+    @Test(arguments: [0, -1])
+    func repeatingZeroOrFewerTimesIsReported(times: Int) {
+        let k = Kinieta(for: makeView()).animate(.x(1), duration: 1)
+        defer { k.cancel() }
+        let calls = ignoredCalls { k.repeat(times: times) }
+        #expect(calls.map(\.message) == ["repeat(times:) was given \(times) times; ignoring it"])
+        #expect(descriptions(k) == ["Animation (x)"])
+    }
+
+    @Test func animateOnAGroupHandleIsReported() {
+        let group = Kinieta.group(makeView().animate(.x(1), duration: 1))
+        defer { group.cancel() }
+        let calls = ignoredCalls { group.animate(.y(1), duration: 1) }
+        #expect(
+            calls.map(\.message) == [
+                "animate(_:duration:) was called on a group handle, which has no view; ignoring it"
+            ])
+    }
+
+    @Test func warningsCarryTheCallSite() {
+        let k = Kinieta(for: makeView()).wait(1)
+        defer { k.cancel() }
+        let easeLine: UInt = #line + 1
+        let easing = ignoredCalls { k.easeIn() }
+        #expect(easing.map(\.site) == [IgnoredCall.Site(fileID: #fileID, line: easeLine)])
+        let completionLine: UInt = #line + 1
+        let completion = ignoredCalls { Kinieta(for: makeView()).onComplete {}.cancel() }
+        #expect(completion.map(\.site) == [IgnoredCall.Site(fileID: #fileID, line: completionLine)])
+        // `then` is a property and cannot take its caller's location.
+        let then = ignoredCalls { _ = k.then.then }
+        #expect(then.count == 1 && then.first?.site == nil)
+    }
+
+    @Test func validChainsRaiseNoWarnings() {
+        var handles: [Kinieta] = []
+        let calls = ignoredCalls {
+            handles.append(
+                makeView().animate(.x(250), .y(500), duration: 0.5).easeInOut(.cubic)
+                    .wait(0.5)
+                    .animate(.x(300), .y(200), duration: 0.5).easeInOut(.cubic)
+                    .animate(.x(0), .y(0), duration: 0.5).delay(0.2)
+                    .repeat(times: 1))
+            handles.append(
+                makeView().animate(.x(200), duration: 1.0).easeInOut(.cubic)
+                    .animate(.alpha(0), duration: 0.2).delay(0.8).easeOut()
+                    .parallel()
+                    .onComplete {})
+            handles.append(
+                makeView().animate(.x(300), duration: 1.0)
+                    .then
+                    .animate(.x(200), duration: 1.0)
+                    .animate(.alpha(0), duration: 0.2)
+                    .parallel())
+            let slide = makeView().animate(.x(374), duration: 1.0).easeInOut(.cubic)
+            let spin = makeView().animate(.rotation(degrees: 360), .alpha(0), duration: 1.2)
+            handles.append(
+                Kinieta.group(slide, spin).delay(0.5).onComplete {}.wait(1.0).onComplete {}.repeat(times: 1))
+            handles.append(Kinieta(for: makeView()).animate(.x(1), duration: 1).easeIn().wait(1).onComplete {})
+        }
+        for handle in handles { handle.cancel() }
+        #expect(calls.isEmpty)
+    }
+    #endif
+
     // MARK: Invalid durations
 
     @Test func negativeWaitIsZeroAndDoesNotFastForward() {

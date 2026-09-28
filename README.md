@@ -153,7 +153,7 @@ Kinieta.group(slide, spin)
     .onComplete { print("a second later") }
 ```
 
-The group handle has no view of its own, so `animate` on it does nothing and logs a warning; animate the grouped timelines instead.
+The group handle has no view of its own, so `animate` on it does nothing and, in debug builds, logs a warning; animate the grouped timelines instead.
 
 The group handle controls its members: `cancel()` cancels every timeline in the group (their `finished()` calls return), and `pause()` and `resume()` pause and resume them all. A member can still be cancelled or paused on its own, but cannot resume while its group is paused.
 
@@ -176,7 +176,7 @@ await handle.finished()  // suspends until the timeline finishes or is cancelled
 
 `cancel()` and `pause()` take effect immediately, even from inside an `onComplete` block, at any depth of `then`, `delay`, `parallel` or `Kinieta.group`: the next action does not start in that frame, the other members of a group are not advanced, and a cancelled timeline stays `.cancelled` and runs no further completion blocks, including the group's.
 
-A handle can be extended at any time, not only while chaining. Actions added to a running timeline play after the ones already there; actions added to a finished timeline start it again on the next frame, and `finished()` waits for them. `Kinieta(for: view)` gives an empty handle to build later. Easing, `delay`, `onComplete`, `then` and `parallel` only reach actions that have not started yet, and a cancelled timeline ignores further calls. A finished timeline forgets its actions, so a later `repeat` copies only what was added since.
+A handle can be extended at any time, not only while chaining. Actions added to a running timeline play after the ones already there; actions added to a finished timeline start it again on the next frame, and `finished()` waits for them. `Kinieta(for: view)` gives an empty handle to build later. Easing, `delay`, `onComplete`, `then` and `parallel` only reach actions that have not started yet (debug builds warn when one finds nothing to act on; see [Troubleshooting](#troubleshooting)), and a cancelled timeline ignores further calls. A finished timeline forgets its actions, so a later `repeat` copies only what was added since.
 
 Handles hold their view weakly and never keep it alive. When the view is deallocated the timeline is cancelled on the next frame: the rest of it does not run, no further completion blocks are called, and the handle ends `.cancelled`.
 
@@ -227,6 +227,28 @@ The display link only runs while something can move. When every timeline is paus
 Kinieta is UIKit only. The sources are guarded with `canImport(UIKit)`, so the package resolves and builds as an empty module on other platforms, such as native macOS, which keeps tooling happy but is not a supported target.
 
 CI checks this on macOS and Linux (Swift 6.3): `swift build` succeeds and `swift test` runs 0 tests, because the tests are guarded the same way. Depending on Kinieta does not pull in swift-snapshot-testing or its swift-syntax dependency; SwiftPM resolves only dependencies of the products you use, and snapshot testing is used by the test target alone.
+
+## Troubleshooting
+
+### A chain call does nothing
+
+Some chain calls have nothing to act on and are ignored. In debug builds each one logs a warning with the file and line of the call, under the subsystem `Kinieta`, category `Chain`, so it shows in Xcode's console and in Console.app:
+
+```
+easing(_:) follows a wait, not an animation; ignoring it (MyApp/CardView.swift:42)
+```
+
+| Call | Ignored when | Fix |
+| --- | --- | --- |
+| `easing`, `easeIn`, `easeOut`, `easeInOut` | the previous step is not an animation: a `wait`, `parallel()`, `then` or `Kinieta.group` | put the easing straight after the `animate` it shapes; inside a `parallel()` block, ease each animation before `parallel()` |
+| `delay`, `onComplete`, easing | the timeline is empty, or every action in it has already started | chain it straight after the action, before the next frame |
+| `parallel()`, `then` | nothing was added since the last `then` or `parallel()`, the timeline is empty, or everything has started | drop the extra call |
+| `repeat(times:)` | `times` is zero or negative, or the timeline is empty | pass 1 or more; a finished timeline forgets its actions, so repeat before it ends |
+| `animate` | the handle is a `Kinieta.group` handle, which has no view | animate the grouped timelines |
+
+`then` is a property, so its warning has no file and line. Release builds neither check nor log these calls. A cancelled timeline ignores every call without a warning.
+
+Invalid durations and frame rate ranges, and timelines left out of a `Kinieta.group`, are logged in every build, under the categories `Timeline` and `Engine`.
 
 ## Example app
 

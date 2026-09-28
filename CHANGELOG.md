@@ -14,6 +14,13 @@ All notable changes to Kinieta are documented here. The format follows
   asked for 60–120 Hz), so the system can drop below 60 Hz to save power or
   under thermal pressure. Invalid ranges are ignored with a warning. The
   example app has a 60/120 Hz toggle.
+- Debug builds log a warning, with the file and line of the call, for every
+  chain call that is ignored: easing that follows no animation, `delay`,
+  `onComplete` or easing with no unstarted action, `then` or `parallel()` with
+  nothing to gather, `repeat(times:)` with zero or fewer times or an empty
+  timeline, and `animate` on a group handle. They use the `Kinieta` subsystem,
+  category `Chain`; release builds log nothing. See "Troubleshooting" in the
+  README. The chain methods take `file:` and `line:` default arguments for this.
 - tvOS 17 and Mac Catalyst 17 support. `Package.swift` declares both, the
   podspec declares tvOS (CocoaPods builds Catalyst from the iOS spec), and CI
   builds for tvOS and runs the tests on Mac Catalyst. The snapshot suite stays
@@ -55,7 +62,7 @@ All notable changes to Kinieta are documented here. The format follows
 - `onComplete`, `delay` and `repeat` on a `Kinieta.group` handle
   were silently dropped; the group is now an ordinary step of the handle's
   timeline. `animate` on a group handle, which has no view, is ignored with a
-  logged warning instead of finishing instantly.
+  warning in debug builds instead of finishing instantly.
 - A colour with no RGB value, such as `UIColor(patternImage:)`, was read as
   transparent, so animating to or from it faded instead. It now switches as
   the animation starts, with a logged warning.
