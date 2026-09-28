@@ -235,6 +235,8 @@ xcodebuild -project Example/KinietaDemo.xcodeproj -scheme KinietaDemo -destinati
 xcrun swift-format lint --strict --recursive Sources Tests Example/KinietaDemo
 ```
 
+`scripts/ci-local.sh` runs every CI job locally (the three above plus Mac Catalyst, tvOS, and `swift build`/`swift test` on macOS and in a Linux container via Docker) and stops at the first failure. Pass check names to run a subset, e.g. `scripts/ci-local.sh lint ios`.
+
 Visual regression is covered by snapshot tests: each property is rendered at five progress points, the colour paths at their midpoint, and dynamic colours in light and dark appearance. Reference images live in `Tests/KinietaTests/__Snapshots__`. After an intentional visual change, re-record them on the pinned iPhone 17 Pro / iOS 26.5 simulator and review the PNGs before committing:
 
 ```
