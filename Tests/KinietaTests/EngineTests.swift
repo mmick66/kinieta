@@ -810,6 +810,50 @@ struct EngineTests {
         #expect(!completed)
     }
 
+    @Test(.timeLimit(.minutes(1)))
+    func cancellingAnAwaitingTaskLeavesThePausedTimelineAlone() async {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        let handle = view.animate(.x(100), duration: 1)
+        frames.step(0.5)
+        handle.pause()
+        var otherReturned = false
+        let other = Task {
+            await handle.finished()
+            otherReturned = true
+        }
+        let cancelled = Task { await handle.finished() }
+        while handle.waiters.count < 2 { await Task.yield() }
+
+        cancelled.cancel()
+        await cancelled.value
+        #expect(handle.isPaused)
+        #expect(handle.waiters.count == 1)
+        #expect(!otherReturned)
+
+        handle.resume()
+        frames.step(0.5)
+        await other.value
+        #expect(otherReturned)
+        #expect(handle.state == .finished)
+        #expect(approx(view.frame.origin.x, 100))
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func anAlreadyCancelledTaskDoesNotWaitForTheTimeline() async {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let handle = makeView().wait(.infinity)
+        // Cancelled before it runs, so it reaches finished() already cancelled.
+        let task = Task { await handle.finished() }
+        task.cancel()
+        await task.value
+        #expect(handle.isRunning)
+        #expect(handle.waiters.isEmpty)
+        handle.cancel()
+    }
+
     @Test func pauseAndResumeHoldTheTimeline() {
         let frames = ManualFrameDriver.install()
         defer { frames.uninstall() }

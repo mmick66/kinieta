@@ -49,7 +49,9 @@ public final class Kinieta {
     /// already running or done, so `repeat` can copy the whole chain. Emptied
     /// when the timeline ends, which releases the completion blocks it holds.
     private(set) var timeline: [ActionType] = []
-    private var waiters: [CheckedContinuation<Void, Never>] = []
+    /// The tasks suspended in `finished()`, keyed so a cancelled one can leave.
+    private(set) var waiters: [Int: CheckedContinuation<Void, Never>] = [:]
+    private var nextWaiter = 0
 
     /// The group driving this timeline, if any. A timeline is driven either by
     /// the engine or by exactly one group, never both.
@@ -295,9 +297,25 @@ public final class Kinieta {
     ///
     /// Actions added while waiting are waited for too. Actions added to a
     /// finished timeline start it again, and a later call waits for them.
+    ///
+    /// Cancelling the awaiting task makes this return straight away, without
+    /// waiting for the timeline. The timeline itself carries on: call
+    /// ``cancel()`` to stop it too. Other tasks awaiting it keep waiting.
     public func finished() async {
         if state == .finished || state == .cancelled { return }
-        await withCheckedContinuation { waiters.append($0) }
+        let id = nextWaiter
+        nextWaiter += 1
+        await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                if Task.isCancelled {
+                    continuation.resume()
+                } else {
+                    waiters[id] = continuation
+                }
+            }
+        } onCancel: {
+            Task { @MainActor [weak self] in self?.waiters.removeValue(forKey: id)?.resume() }
+        }
     }
 
     /// Moves to a terminal state. The first one wins, so a timeline cancelled
@@ -311,8 +329,8 @@ public final class Kinieta {
         mainSequence.pending = ActionQueue()
         mainSequence.currentAction = nil
         members = nil
-        let pending = waiters
-        waiters = []
+        let pending = waiters.values
+        waiters = [:]
         for waiter in pending { waiter.resume() }
     }
 
