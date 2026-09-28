@@ -191,7 +191,14 @@ Engine.shared.colorInterpolation = .hsb   // .rgb, .hsb or .lch
 
 ### Reduce Motion
 
-When the user has Reduce Motion on, animations snap to their end state and completion blocks still run. Pauses keep their duration so sequence timing is preserved. Opt out with `Engine.shared.respectsReduceMotion = false`.
+When the user has Reduce Motion on, movement snaps and fades stay, as Apple's Human Interface Guidelines recommend: position, size and rotation (`.x`, `.y`, `.width`, `.height`, `.frame`, `.rotation`) jump to their end state, while `.alpha`, `.background`, `.borderColor`, `.borderWidth` and `.cornerRadius` still animate over the full duration. An animation with only movement in it finishes on its first frame. Completion blocks still run, and pauses keep their duration so sequence timing is preserved.
+
+```swift
+Engine.shared.reduceMotionBehavior = .snapAll        // snap every property, as 1.0 did
+Engine.shared.respectsReduceMotion = false           // ignore Reduce Motion entirely
+```
+
+The setting is read as each animation starts. The example app shows whether Reduce Motion is on and lets you switch between the two behaviours.
 
 ### Frame rate
 

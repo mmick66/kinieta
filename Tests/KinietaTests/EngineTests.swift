@@ -425,6 +425,84 @@ struct EngineTests {
         #expect(forced.update(frame(0.5)) == .running)
     }
 
+    @Test func reduceMotionSnapsMotionButKeepsFadesAndColours() {
+        Engine.shared.isReduceMotionEnabled = { true }
+        defer { Engine.shared.isReduceMotionEnabled = { UIAccessibility.isReduceMotionEnabled } }
+        #expect(Engine.shared.reduceMotionBehavior == .snapMotion)
+        let view = makeView()
+        view.backgroundColor = .black
+        var completed = false
+        let a = animation(
+            view, [.x(100), .alpha(0), .background(.white, interpolation: .rgb)], duration: 1.0,
+            completion: { completed = true })
+
+        #expect(a.update(frame(0.25)) == .running)
+        #expect(view.frame.origin.x == 100)
+        #expect(approx(view.alpha, 0.75, 1e-6))
+        #expect(approx(rgb(view.backgroundColor).red, 0.25, 0.01))
+        #expect(!completed)
+
+        #expect(a.update(frame(0.75)) == .finished(overshoot: 0))
+        #expect(view.frame.origin.x == 100)
+        #expect(view.alpha == 0)
+        #expect(completed)
+    }
+
+    @Test func snapAllUnderReduceMotionKeepsTheOneZeroBehaviour() {
+        Engine.shared.isReduceMotionEnabled = { true }
+        Engine.shared.reduceMotionBehavior = .snapAll
+        defer {
+            Engine.shared.isReduceMotionEnabled = { UIAccessibility.isReduceMotionEnabled }
+            Engine.shared.reduceMotionBehavior = .snapMotion
+        }
+        let view = makeView()
+        var completed = false
+        let a = animation(view, [.x(100), .alpha(0)], duration: 1.0, completion: { completed = true })
+        #expect(a.update(frame(0.016)).isFinished)
+        #expect(view.frame.origin.x == 100)
+        #expect(view.alpha == 0)
+        #expect(completed)
+    }
+
+    @Test func reduceMotionBehaviourIsIgnoredWhenReduceMotionIsOff() {
+        Engine.shared.isReduceMotionEnabled = { false }
+        Engine.shared.reduceMotionBehavior = .snapAll
+        defer {
+            Engine.shared.isReduceMotionEnabled = { UIAccessibility.isReduceMotionEnabled }
+            Engine.shared.reduceMotionBehavior = .snapMotion
+        }
+        let view = makeView()
+        let a = animation(view, [.x(100), .alpha(0)], duration: 1.0)
+        #expect(a.update(frame(0.5)) == .running)
+        #expect(approx(view.frame.origin.x, 50, 1e-6))
+        #expect(approx(view.alpha, 0.5, 1e-6))
+    }
+
+    @Test func onlyPositionSizeAndRotationCountAsMotion() {
+        let motion: [Property] = [.x(1), .y(1), .width(1), .height(1), .frame(.zero), .rotation(degrees: 1)]
+        let still: [Property] = [.alpha(1), .background(.red), .borderColor(.red), .borderWidth(1), .cornerRadius(1)]
+        let motionKeys = motion.map(\.key.isMotion)
+        let stillKeys = still.map(\.key.isMotion)
+        #expect(motionKeys == Array(repeating: true, count: motion.count))
+        #expect(stillKeys == Array(repeating: false, count: still.count))
+    }
+
+    @Test func reduceMotionKeepsTheTimingOfATimelineThatFades() {
+        Engine.shared.isReduceMotionEnabled = { true }
+        defer { Engine.shared.isReduceMotionEnabled = { UIAccessibility.isReduceMotionEnabled } }
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        let handle = view.animate(.x(100), duration: 1.0).animate(.alpha(0), duration: 1.0)
+        frames.step(0.016)
+        #expect(view.frame.origin.x == 100)
+        frames.step(0.5)
+        #expect(approx(view.alpha, 0.5, 0.02))
+        frames.step(0.5)
+        #expect(view.alpha == 0)
+        #expect(handle.state == .finished)
+    }
+
     // MARK: Colour
 
     private func rgb(_ color: UIColor?) -> ColorMath.RGB {

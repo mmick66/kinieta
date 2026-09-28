@@ -36,8 +36,10 @@ Guidelines, and returns a handle you can control.
   its timeline is cancelled on the next frame, without running any further
   completion blocks.
 - Zero-duration animations and pauses run their completion blocks.
-- Animations snap to their end state when Reduce Motion is on. Set
-  `Engine.shared.respectsReduceMotion = false` to opt out.
+- Movement snaps to its end state when Reduce Motion is on, while fades and
+  colour changes still animate. Set `Engine.shared.reduceMotionBehavior =
+  .snapAll` to snap everything, or `Engine.shared.respectsReduceMotion = false`
+  to opt out.
 - `then` keeps the order of the actions it seals.
 
 ## Distribution

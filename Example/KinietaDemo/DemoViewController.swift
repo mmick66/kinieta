@@ -11,6 +11,8 @@ final class DemoViewController: UIViewController {
     private let darkSwatch = UIView()
     private var timelineSquares: [UIView] = []
     private let timelineStatus = UILabel()
+    private let reduceMotionStatus = UILabel()
+    private let reduceMotionPicker = UISegmentedControl(items: ["Snap motion", "Snap all"])
     private var running: [Kinieta] = []
     private lazy var frameRateButton = UIBarButtonItem(
         title: nil, style: .plain, target: self, action: #selector(toggleFrameRate))
@@ -30,6 +32,10 @@ final class DemoViewController: UIViewController {
         navigationItem.leftBarButtonItem = UIBarButtonItem(
             title: "Reset", style: .plain, target: self, action: #selector(reset))
         buildLayout()
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(updateReduceMotionStatus),
+            name: UIAccessibility.reduceMotionStatusDidChangeNotification, object: nil)
+        updateReduceMotionStatus()
     }
 
     override func viewDidAppear(_ animated: Bool) {
@@ -122,6 +128,17 @@ final class DemoViewController: UIViewController {
         timelineStatus.textColor = .secondaryLabel
         timelineStatus.text = "Idle"
         stack.addArrangedSubview(timelineStatus)
+
+        addHeader(
+            "Reduce Motion",
+            detail: "Turn it on in Settings › Accessibility › Motion, then play: the squares jump, "
+                + "while fades and colours still animate unless you pick Snap all.")
+        reduceMotionPicker.addTarget(self, action: #selector(changeReduceMotionBehavior), for: .valueChanged)
+        stack.addArrangedSubview(reduceMotionPicker)
+        reduceMotionStatus.font = .preferredFont(forTextStyle: .footnote)
+        reduceMotionStatus.textColor = .secondaryLabel
+        reduceMotionStatus.numberOfLines = 0
+        stack.addArrangedSubview(reduceMotionStatus)
     }
 
     private func addHeader(_ title: String, detail: String) {
@@ -221,6 +238,26 @@ final class DemoViewController: UIViewController {
 
     private func updateFrameRateButton() {
         frameRateButton.title = Engine.shared.preferredFrameRateRange.maximum <= 60 ? "60 Hz" : "120 Hz"
+    }
+
+    /// Picks which properties snap under Reduce Motion. It applies to animations
+    /// that start afterwards, so it takes effect on the next Play.
+    @objc private func changeReduceMotionBehavior() {
+        Engine.shared.reduceMotionBehavior = reduceMotionPicker.selectedSegmentIndex == 1 ? .snapAll : .snapMotion
+        updateReduceMotionStatus()
+    }
+
+    @objc private func updateReduceMotionStatus() {
+        let snapsAll = Engine.shared.reduceMotionBehavior == .snapAll
+        reduceMotionPicker.selectedSegmentIndex = snapsAll ? 1 : 0
+        guard UIAccessibility.isReduceMotionEnabled, Engine.shared.respectsReduceMotion else {
+            reduceMotionStatus.text = "Reduce Motion is off: everything animates."
+            return
+        }
+        reduceMotionStatus.text =
+            snapsAll
+            ? "Reduce Motion is on: every property snaps to its end state."
+            : "Reduce Motion is on: movement snaps, fades and colours still animate."
     }
 
     @objc private func reset() {

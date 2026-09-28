@@ -35,6 +35,15 @@ public enum Property: Sendable {
     /// listed twice in one animation the last value wins.
     enum Key: String {
         case x, y, width, height, frame, alpha, rotation, background, borderColor, borderWidth, cornerRadius
+
+        /// Whether the property moves, resizes or rotates the view. Under
+        /// Reduce Motion these snap; fades and colour changes still animate.
+        var isMotion: Bool {
+            switch self {
+            case .x, .y, .width, .height, .frame, .rotation: return true
+            case .alpha, .background, .borderColor, .borderWidth, .cornerRadius: return false
+            }
+        }
     }
 
     var key: Key {

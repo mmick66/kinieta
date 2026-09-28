@@ -25,6 +25,13 @@ All notable changes to Kinieta are documented here. The format follows
 
 ### Changed
 
+- Reduce Motion now snaps only movement: `.x`, `.y`, `.width`, `.height`,
+  `.frame` and `.rotation` jump to their end state, while `.alpha`, colours,
+  `.borderWidth` and `.cornerRadius` still animate over the full duration, as
+  Apple's Human Interface Guidelines recommend. An animation with only
+  movement in it still finishes on its first frame. Set
+  `Engine.shared.reduceMotionBehavior = .snapAll` for 1.0's behaviour, which
+  snapped every property. The example app shows the setting and can switch it.
 - CocoaPods: this release, not 1.0.0, is the final podspec release. It is
   published to trunk before trunk becomes read-only in December 2026. Use
   Swift Package Manager.

@@ -44,6 +44,17 @@ protocol FrameDriver: AnyObject {
     func stop()
 }
 
+/// What an animation does when the user has Reduce Motion switched on.
+public enum ReduceMotionBehavior: Sendable, Equatable {
+    /// Position, size and rotation (`.x`, `.y`, `.width`, `.height`, `.frame`,
+    /// `.rotation`) snap to their end state. Opacity, colours, border width and
+    /// corner radius still animate over the full duration. The default.
+    case snapMotion
+    /// Every property snaps to its end state and the animation finishes on its
+    /// first frame. Kinieta 1.0's behaviour.
+    case snapAll
+}
+
 @MainActor
 public final class Engine {
 
@@ -139,9 +150,16 @@ public final class Engine {
     public var colorInterpolation: ColorInterpolation = .lch
 
     /// When `true` (the default) and the user has Reduce Motion switched on,
-    /// animations snap to their end state. Pauses keep their duration so the
-    /// timing of sequences and completion blocks is preserved.
+    /// animations snap to their end state as ``reduceMotionBehavior`` says.
+    /// Pauses keep their duration so the timing of sequences and completion
+    /// blocks is preserved.
     public var respectsReduceMotion = true
+
+    /// Which properties snap under Reduce Motion. The default, `.snapMotion`,
+    /// snaps position, size and rotation but keeps fades and colour changes,
+    /// as Apple's Human Interface Guidelines recommend. `.snapAll` snaps
+    /// everything, as Kinieta 1.0 did. Read when each animation starts.
+    public var reduceMotionBehavior: ReduceMotionBehavior = .snapMotion
 
     /// The default ``preferredFrameRateRange``: 120 Hz where the display offers
     /// it, but the system may go as low as 30 Hz to save power or under
@@ -193,6 +211,16 @@ public final class Engine {
 
     var shouldSkipMotion: Bool {
         respectsReduceMotion && isReduceMotionEnabled()
+    }
+
+    /// Whether an animation starting now should snap `key` to its end state
+    /// instead of interpolating it.
+    func snapsUnderReduceMotion(_ key: Property.Key) -> Bool {
+        guard shouldSkipMotion else { return false }
+        switch reduceMotionBehavior {
+        case .snapAll: return true
+        case .snapMotion: return key.isMotion
+        }
     }
 
     // MARK: API

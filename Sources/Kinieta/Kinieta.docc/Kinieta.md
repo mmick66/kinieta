@@ -51,6 +51,18 @@ as zero.
 - ``Engine/preferredFrameRateRange``
 - ``Engine/defaultFrameRateRange``
 
+### Reduce Motion
+
+When the user has Reduce Motion on, position, size and rotation snap to their
+end state, while opacity, colours, border width and corner radius still animate
+over the full duration, so fades and colour changes keep giving feedback.
+Completion blocks run and pauses keep their duration, so a timeline's timing is
+unchanged.
+
+- ``Engine/reduceMotionBehavior``
+- ``ReduceMotionBehavior``
+- ``Engine/respectsReduceMotion``
+
 ### Migrating
 
 - <doc:MigratingFrom0.5>
