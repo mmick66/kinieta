@@ -6,6 +6,7 @@
       "Bash(swift:*)",
       "Bash(swiftlint:*)",
       "Bash(xcodebuild:*)",
+      "Bash(scripts/ci-local.sh:*)",
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(git push origin wt/*)",

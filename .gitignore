@@ -21,3 +21,6 @@ xcuserdata/
 # Claude Code agent worktrees and dispatcher logs
 .claude/worktrees/
 .claude/orchestrate.log
+
+# Linux build products from scripts/ci-local.sh (spm-linux)
+.build-linux/
