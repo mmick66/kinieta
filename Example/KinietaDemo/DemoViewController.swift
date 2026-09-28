@@ -12,6 +12,8 @@ final class DemoViewController: UIViewController {
     private var timelineSquares: [UIView] = []
     private let timelineStatus = UILabel()
     private var running: [Kinieta] = []
+    private lazy var frameRateButton = UIBarButtonItem(
+        title: nil, style: .plain, target: self, action: #selector(toggleFrameRate))
 
     private let pink = UIColor(red: 1.00, green: 0.44, blue: 0.75, alpha: 1.00)
     private let cyan = UIColor(red: 0.00, green: 0.80, blue: 0.90, alpha: 1.00)
@@ -20,8 +22,11 @@ final class DemoViewController: UIViewController {
         super.viewDidLoad()
         title = "Kinieta"
         view.backgroundColor = .systemBackground
-        navigationItem.rightBarButtonItem = UIBarButtonItem(
-            title: "Play", style: .done, target: self, action: #selector(playAll))
+        navigationItem.rightBarButtonItems = [
+            UIBarButtonItem(title: "Play", style: .done, target: self, action: #selector(playAll)),
+            frameRateButton,
+        ]
+        updateFrameRateButton()
         navigationItem.leftBarButtonItem = UIBarButtonItem(
             title: "Reset", style: .plain, target: self, action: #selector(reset))
         buildLayout()
@@ -203,6 +208,19 @@ final class DemoViewController: UIViewController {
             self?.timelineStatus.text = "Done: three timelines, one completion"
         }
         running.append(group)
+    }
+
+    /// Switches the engine between at most 60 Hz and up to 120 Hz. It takes
+    /// effect on the next frame, so it can be flipped while the gallery plays.
+    @objc private func toggleFrameRate() {
+        let capped = Engine.shared.preferredFrameRateRange.maximum <= 60
+        Engine.shared.preferredFrameRateRange =
+            capped ? Engine.defaultFrameRateRange : CAFrameRateRange(minimum: 30, maximum: 60, preferred: 60)
+        updateFrameRateButton()
+    }
+
+    private func updateFrameRateButton() {
+        frameRateButton.title = Engine.shared.preferredFrameRateRange.maximum <= 60 ? "60 Hz" : "120 Hz"
     }
 
     @objc private func reset() {

@@ -1,5 +1,5 @@
 #if canImport(UIKit)
-import Foundation
+import QuartzCore
 
 @testable import Kinieta
 
@@ -21,6 +21,8 @@ final class ManualFrameDriver: FrameDriver {
     private var previous: (any FrameDriver)?
 
     var isRunning: Bool { onFrame != nil }
+
+    var preferredFrameRateRange = CAFrameRateRange.default
 
     /// How many times the engine started and stopped this driver.
     private(set) var starts = 0

@@ -195,7 +195,17 @@ When the user has Reduce Motion on, animations snap to their end state and compl
 
 ### Frame rate
 
-The engine advances by real elapsed time, so it stays on schedule through dropped frames and on 60 Hz and 120 Hz displays alike. It asks for 120 Hz on ProMotion devices; iPhones only honour that when the app's Info.plist sets `CADisableMinimumFrameDurationOnPhone` to `YES`.
+The engine advances by real elapsed time, so it stays on schedule through dropped frames and on 60 Hz and 120 Hz displays alike. By default it asks for 120 Hz on ProMotion devices and lets the system drop as low as 30 Hz to save power or under thermal pressure; iPhones only go above 60 Hz when the app's Info.plist sets `CADisableMinimumFrameDurationOnPhone` to `YES`.
+
+Change the range with `Engine.shared.preferredFrameRateRange`. It applies from the next frame, even mid-animation, and only affects smoothness and power, never how long an animation takes. Invalid ranges are ignored with a warning.
+
+```swift
+Engine.shared.preferredFrameRateRange = CAFrameRateRange(minimum: 30, maximum: 60, preferred: 60)  // slow fades: save battery
+Engine.shared.preferredFrameRateRange = .default                                                 // let the system decide
+Engine.shared.preferredFrameRateRange = Engine.defaultFrameRateRange                             // back to the default
+```
+
+The example app has a 60 Hz / 120 Hz toggle in its navigation bar to compare the two while the gallery plays.
 
 The display link only runs while something can move. When every timeline is paused, or waiting on `wait(.infinity)`, the engine stops it, so a paused handle you let go of costs no frames; `resume()`, `cancel()` or a new animation starts it again.
 

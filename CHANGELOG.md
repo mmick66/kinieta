@@ -8,6 +8,12 @@ All notable changes to Kinieta are documented here. The format follows
 
 ### Added
 
+- `Engine.shared.preferredFrameRateRange` sets the frame rates the engine asks
+  the display for; it applies from the next frame, even mid-animation. The
+  default, `Engine.defaultFrameRateRange`, is 30–120 Hz preferring 120 (1.0
+  asked for 60–120 Hz), so the system can drop below 60 Hz to save power or
+  under thermal pressure. Invalid ranges are ignored with a warning. The
+  example app has a 60/120 Hz toggle.
 - tvOS 17 and Mac Catalyst 17 support. `Package.swift` declares both, the
   podspec declares tvOS (CocoaPods builds Catalyst from the iOS spec), and CI
   builds for tvOS and runs the tests on Mac Catalyst. The snapshot suite stays

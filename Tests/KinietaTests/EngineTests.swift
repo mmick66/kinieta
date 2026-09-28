@@ -770,6 +770,77 @@ struct EngineTests {
         #expect(approx(view.frame.origin.x, 100))
     }
 
+    // MARK: Frame rate
+
+    private func sameRange(_ a: CAFrameRateRange, _ b: CAFrameRateRange) -> Bool {
+        a.minimum == b.minimum && a.maximum == b.maximum && a.preferred == b.preferred
+    }
+
+    @Test func installedDriverTakesTheEngineFrameRateRange() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        #expect(sameRange(frames.preferredFrameRateRange, Engine.defaultFrameRateRange))
+    }
+
+    @Test func settingTheFrameRateRangeChangesItOnARunningDriver() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        defer { Engine.shared.preferredFrameRateRange = Engine.defaultFrameRateRange }
+        let view = makeView()
+        let handle = view.animate(.x(100), duration: 1)
+        defer { handle.cancel() }
+        frames.step(0.25)
+        #expect(frames.isRunning)
+
+        let sixty = CAFrameRateRange(minimum: 30, maximum: 60, preferred: 60)
+        Engine.shared.preferredFrameRateRange = sixty
+        #expect(sameRange(frames.preferredFrameRateRange, sixty))
+        #expect(frames.isRunning)
+        #expect(frames.starts == 1)
+        frames.step(0.25)
+        #expect(approx(view.frame.origin.x, 50, 0.5))
+    }
+
+    @Test func invalidFrameRateRangesAreIgnored() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        defer { Engine.shared.preferredFrameRateRange = Engine.defaultFrameRateRange }
+        let valid = CAFrameRateRange(minimum: 30, maximum: 60, preferred: 60)
+        Engine.shared.preferredFrameRateRange = valid
+        let invalid = [
+            CAFrameRateRange(minimum: 120, maximum: 60, preferred: 60),
+            CAFrameRateRange(minimum: 30, maximum: 60, preferred: 120),
+            CAFrameRateRange(minimum: -1, maximum: 60, preferred: 60),
+            CAFrameRateRange(minimum: 30, maximum: .infinity, preferred: 60),
+            CAFrameRateRange(minimum: 30, maximum: 60, preferred: .nan),
+        ]
+        for range in invalid {
+            Engine.shared.preferredFrameRateRange = range
+            #expect(sameRange(Engine.shared.preferredFrameRateRange, valid))
+            #expect(sameRange(frames.preferredFrameRateRange, valid))
+        }
+        Engine.shared.preferredFrameRateRange = .default
+        #expect(sameRange(frames.preferredFrameRateRange, .default))
+    }
+
+    @Test func displayLinkDriverAppliesTheRangeToItsRunningLink() throws {
+        let driver = Engine.DisplayLinkDriver()
+        #expect(sameRange(driver.preferredFrameRateRange, Engine.defaultFrameRateRange))
+        driver.start { _ in }
+        defer { driver.stop() }
+        let link = try #require(driver.displayLink)
+        #expect(sameRange(link.preferredFrameRateRange, Engine.defaultFrameRateRange))
+
+        let sixty = CAFrameRateRange(minimum: 30, maximum: 60, preferred: 60)
+        driver.preferredFrameRateRange = sixty
+        #expect(sameRange(link.preferredFrameRateRange, sixty))
+
+        driver.stop()
+        driver.start { _ in }
+        let restarted = try #require(driver.displayLink)
+        #expect(sameRange(restarted.preferredFrameRateRange, sixty))
+    }
+
     // MARK: End to end through the public handle
 
     @Test(.timeLimit(.minutes(1)))

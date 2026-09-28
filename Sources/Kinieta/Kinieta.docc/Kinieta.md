@@ -48,6 +48,8 @@ as zero.
 ### Engine settings
 
 - ``Engine``
+- ``Engine/preferredFrameRateRange``
+- ``Engine/defaultFrameRateRange``
 
 ### Migrating
 

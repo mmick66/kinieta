@@ -25,6 +25,7 @@
 
 #if canImport(UIKit)
 import UIKit
+import os
 
 /// Delivers frames to the engine while it has actions that can make progress.
 ///
@@ -34,6 +35,9 @@ import UIKit
 protocol FrameDriver: AnyObject {
     /// `true` between `start(onFrame:)` and `stop()`.
     var isRunning: Bool { get }
+    /// The frame rates the driver asks the display for. Applies immediately
+    /// while running, and to every later `start(onFrame:)`.
+    var preferredFrameRateRange: CAFrameRateRange { get set }
     /// Starts delivering frames to `onFrame`. Does nothing if already running.
     func start(onFrame: @escaping (Engine.Frame) -> Void)
     /// Stops delivering frames and releases `onFrame`.
@@ -84,18 +88,22 @@ public final class Engine {
     /// Drives the engine from a `CADisplayLink` on the main run loop.
     @MainActor
     final class DisplayLinkDriver: FrameDriver {
-        private var displayLink: CADisplayLink?
+        private(set) var displayLink: CADisplayLink?
         private var clock = FrameClock()
         private var onFrame: ((Frame) -> Void)?
 
         var isRunning: Bool { displayLink != nil }
+
+        var preferredFrameRateRange = Engine.defaultFrameRateRange {
+            didSet { displayLink?.preferredFrameRateRange = preferredFrameRateRange }
+        }
 
         func start(onFrame: @escaping (Frame) -> Void) {
             guard displayLink == nil else { return }
             self.onFrame = onFrame
             clock.reset()
             let link = CADisplayLink(target: self, selector: #selector(update(_:)))
-            link.preferredFrameRateRange = CAFrameRateRange(minimum: 60, maximum: 120, preferred: 120)
+            link.preferredFrameRateRange = preferredFrameRateRange
             link.add(to: .main, forMode: .common)
             displayLink = link
         }
@@ -119,7 +127,10 @@ public final class Engine {
     /// registered action can make progress, hands them to the new one.
     var driver: any FrameDriver = DisplayLinkDriver() {
         willSet { driver.stop() }
-        didSet { refreshDriver() }
+        didSet {
+            driver.preferredFrameRateRange = preferredFrameRateRange
+            refreshDriver()
+        }
     }
 
     private var actions: [Action] = []
@@ -131,6 +142,51 @@ public final class Engine {
     /// animations snap to their end state. Pauses keep their duration so the
     /// timing of sequences and completion blocks is preserved.
     public var respectsReduceMotion = true
+
+    /// The default ``preferredFrameRateRange``: 120 Hz where the display offers
+    /// it, but the system may go as low as 30 Hz to save power or under
+    /// thermal pressure.
+    public static let defaultFrameRateRange = CAFrameRateRange(minimum: 30, maximum: 120, preferred: 120)
+
+    private static let logger = Logger(subsystem: "Kinieta", category: "Engine")
+
+    /// The frame rates the engine asks the display for while anything is
+    /// animating. Changing it takes effect on the next frame, including in
+    /// the middle of an animation.
+    ///
+    /// Animations advance by real elapsed time, so the range changes how
+    /// smooth they look and how much power they use, never how long they take.
+    /// Lower it for slow fades and colour transitions to save battery, or pass
+    /// `CAFrameRateRange.default` to let the system decide. On iPhone, rates
+    /// above 60 Hz also need `CADisableMinimumFrameDurationOnPhone` in the
+    /// app's Info.plist.
+    ///
+    /// An invalid range (negative or non-finite rates, a minimum above the
+    /// maximum, or a preferred rate outside them) is ignored with a warning.
+    public var preferredFrameRateRange = Engine.defaultFrameRateRange {
+        didSet {
+            guard Self.isValid(preferredFrameRateRange) else {
+                let range = preferredFrameRateRange
+                Self.logger.warning(
+                    "Ignoring invalid frame rate range \(range.minimum, privacy: .public)–\(range.maximum, privacy: .public), preferred \(range.preferred ?? 0, privacy: .public)"
+                )
+                preferredFrameRateRange = oldValue
+                return
+            }
+            driver.preferredFrameRateRange = preferredFrameRateRange
+        }
+    }
+
+    /// Whether `range` is one `CADisplayLink` accepts. A zero preferred rate
+    /// means "no preference"; `CAFrameRateRange.default` is all zeros.
+    static func isValid(_ range: CAFrameRateRange) -> Bool {
+        let preferred = range.preferred ?? 0
+        let rates = [range.minimum, range.maximum, preferred]
+        guard rates.allSatisfy({ $0.isFinite && $0 >= 0 }), range.minimum <= range.maximum else {
+            return false
+        }
+        return preferred == 0 || (range.minimum...range.maximum).contains(preferred)
+    }
 
     /// Injectable for tests; production reads the accessibility setting.
     var isReduceMotionEnabled: () -> Bool = { UIAccessibility.isReduceMotionEnabled }
