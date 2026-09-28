@@ -56,34 +56,66 @@ public struct Easing: Sendable, Equatable {
         switch (curve, placement) {
         case (.custom(let bezier), _): return bezier
 
-        case (.sine, .in): return Bezier(0.47, 0, 0.745, 0.715)
-        case (.sine, .out): return Bezier(0.39, 0.575, 0.565, 1.0)
-        case (.sine, .inOut): return Bezier(0.445, 0.05, 0.55, 0.95)
+        case (.sine, .in): return Preset.sineIn
+        case (.sine, .out): return Preset.sineOut
+        case (.sine, .inOut): return Preset.sineInOut
 
-        case (.quad, .in): return Bezier(0.55, 0.085, 0.68, 0.53)
-        case (.quad, .out): return Bezier(0.25, 0.46, 0.45, 0.94)
-        case (.quad, .inOut): return Bezier(0.455, 0.03, 0.515, 0.955)
+        case (.quad, .in): return Preset.quadIn
+        case (.quad, .out): return Preset.quadOut
+        case (.quad, .inOut): return Preset.quadInOut
 
-        case (.cubic, .in): return Bezier(0.55, 0.055, 0.675, 0.19)
-        case (.cubic, .out): return Bezier(0.215, 0.61, 0.355, 1.0)
-        case (.cubic, .inOut): return Bezier(0.645, 0.045, 0.355, 1.0)
+        case (.cubic, .in): return Preset.cubicIn
+        case (.cubic, .out): return Preset.cubicOut
+        case (.cubic, .inOut): return Preset.cubicInOut
 
-        case (.quart, .in): return Bezier(0.895, 0.03, 0.685, 0.22)
-        case (.quart, .out): return Bezier(0.165, 0.84, 0.44, 1.0)
-        case (.quart, .inOut): return Bezier(0.77, 0, 0.175, 1.0)
+        case (.quart, .in): return Preset.quartIn
+        case (.quart, .out): return Preset.quartOut
+        case (.quart, .inOut): return Preset.quartInOut
 
-        case (.quint, .in): return Bezier(0.755, 0.05, 0.855, 0.06)
-        case (.quint, .out): return Bezier(0.23, 1.0, 0.32, 1.0)
-        case (.quint, .inOut): return Bezier(0.86, 0, 0.07, 1.0)
+        case (.quint, .in): return Preset.quintIn
+        case (.quint, .out): return Preset.quintOut
+        case (.quint, .inOut): return Preset.quintInOut
 
-        case (.expo, .in): return Bezier(0.95, 0.05, 0.795, 0.035)
-        case (.expo, .out): return Bezier(0.19, 1.0, 0.22, 1.0)
-        case (.expo, .inOut): return Bezier(1.0, 0, 0, 1.0)
+        case (.expo, .in): return Preset.expoIn
+        case (.expo, .out): return Preset.expoOut
+        case (.expo, .inOut): return Preset.expoInOut
 
-        case (.back, .in): return Bezier(0.6, -0.28, 0.735, 0.045)
-        case (.back, .out): return Bezier(0.175, 0.885, 0.32, 1.275)
-        case (.back, .inOut): return Bezier(0.68, -0.55, 0.265, 1.55)
+        case (.back, .in): return Preset.backIn
+        case (.back, .out): return Preset.backOut
+        case (.back, .inOut): return Preset.backInOut
         }
+    }
+
+    /// The preset curves, baked once on first use and shared by every
+    /// easing that names them.
+    private enum Preset {
+        static let sineIn = Bezier(0.47, 0, 0.745, 0.715)
+        static let sineOut = Bezier(0.39, 0.575, 0.565, 1.0)
+        static let sineInOut = Bezier(0.445, 0.05, 0.55, 0.95)
+
+        static let quadIn = Bezier(0.55, 0.085, 0.68, 0.53)
+        static let quadOut = Bezier(0.25, 0.46, 0.45, 0.94)
+        static let quadInOut = Bezier(0.455, 0.03, 0.515, 0.955)
+
+        static let cubicIn = Bezier(0.55, 0.055, 0.675, 0.19)
+        static let cubicOut = Bezier(0.215, 0.61, 0.355, 1.0)
+        static let cubicInOut = Bezier(0.645, 0.045, 0.355, 1.0)
+
+        static let quartIn = Bezier(0.895, 0.03, 0.685, 0.22)
+        static let quartOut = Bezier(0.165, 0.84, 0.44, 1.0)
+        static let quartInOut = Bezier(0.77, 0, 0.175, 1.0)
+
+        static let quintIn = Bezier(0.755, 0.05, 0.855, 0.06)
+        static let quintOut = Bezier(0.23, 1.0, 0.32, 1.0)
+        static let quintInOut = Bezier(0.86, 0, 0.07, 1.0)
+
+        static let expoIn = Bezier(0.95, 0.05, 0.795, 0.035)
+        static let expoOut = Bezier(0.19, 1.0, 0.22, 1.0)
+        static let expoInOut = Bezier(1.0, 0, 0, 1.0)
+
+        static let backIn = Bezier(0.6, -0.28, 0.735, 0.045)
+        static let backOut = Bezier(0.175, 0.885, 0.32, 1.275)
+        static let backInOut = Bezier(0.68, -0.55, 0.265, 1.55)
     }
 }
 #endif

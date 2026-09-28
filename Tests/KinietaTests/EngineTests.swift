@@ -1624,6 +1624,23 @@ struct EngineTests {
         #expect(handle.state == .finished)
     }
 
+    @Test func handleExtendedInTheFrameItFinishedKeepsRunning() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let first = makeView()
+        let second = makeView()
+        let early = first.animate(.x(100), duration: 1)
+        // Updated after `early` in the same frame, once `early` has finished.
+        second.animate(.x(100), duration: 1).onComplete { early.animate(.y(100), duration: 1) }
+        frames.step(1)
+        #expect(early.isRunning)
+        frames.step(0.5)
+        #expect(approx(first.frame.origin.y, 50, 0.5))
+        frames.step(0.5)
+        #expect(early.state == .finished)
+        #expect(approx(first.frame.origin.y, 100))
+    }
+
     @Test func cancelledHandleIgnoresAppends() {
         let frames = ManualFrameDriver.install()
         defer { frames.uninstall() }

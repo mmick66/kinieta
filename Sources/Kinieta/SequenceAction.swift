@@ -7,9 +7,9 @@ import Foundation
 @MainActor
 final class SequenceAction: Action {
 
-    /// The actions still to come, as descriptions. `Kinieta` keeps this in
-    /// step with the unstarted end of its timeline.
-    var pending: ActionQueue
+    /// The sequence's steps, as descriptions: the ones already started, then
+    /// the ones still to come. A main sequence's queue is its handle's timeline.
+    var queue: ActionQueue
 
     var completion: Block?
 
@@ -47,7 +47,7 @@ final class SequenceAction: Action {
     }
 
     init(_ types: [ActionType] = [], control: TimelineControl = TimelineControl(), completion: Block? = nil) {
-        self.pending = ActionQueue(types)
+        self.queue = ActionQueue(types)
         self.control = control
         self.completion = completion
     }
@@ -58,7 +58,7 @@ final class SequenceAction: Action {
 
         var frame = frame
         while true {
-            if currentAction == nil { currentAction = pending.popFirstAction(control: control) }
+            if currentAction == nil { currentAction = queue.popFirstAction(control: control) }
             guard let current = currentAction else {
                 completion?()
                 return .finished(overshoot: frame.duration)
@@ -72,7 +72,7 @@ final class SequenceAction: Action {
                 // the timeline; honour that before anything else runs.
                 if isCancelled { return .finished(overshoot: 0) }
                 if isPaused { return .running }
-                if pending.isEmpty {
+                if queue.isEmpty {
                     completion?()
                     return .finished(overshoot: overshoot)
                 }

@@ -253,8 +253,14 @@ public final class Engine {
     }
 
     private func update(with frame: Frame) {
+        var finished = Set<ObjectIdentifier>()
         for action in actions where action.update(frame).isFinished {
-            remove(action)
+            finished.insert(ObjectIdentifier(action))
+        }
+        // One pass for all of them. Only the first entry of each goes: a
+        // completion block may have added one again after it finished.
+        if !finished.isEmpty {
+            actions.removeAll { finished.remove(ObjectIdentifier($0)) != nil }
         }
         // An action may have become idle this frame without finishing.
         refreshDriver()

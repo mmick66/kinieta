@@ -42,6 +42,11 @@ All notable changes to Kinieta are documented here. The format follows
 - CocoaPods: this release, not 1.0.0, is the final podspec release. It is
   published to trunk before trunk becomes read-only in December 2026. Use
   Swift Package Manager.
+- Faster timelines. The preset easings are baked once and shared instead of
+  per call, and timelines are built and run in linear time: a 10,000-step
+  timeline builds and runs about 45 times faster (3.3 s to 0.07 s in a debug
+  build on the iOS Simulator). Many timelines finishing on the same frame
+  leave the engine in one pass.
 
 ### Deprecated
 

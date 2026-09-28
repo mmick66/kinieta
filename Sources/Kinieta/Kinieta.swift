@@ -46,13 +46,12 @@ public final class Kinieta {
     public var isRunning: Bool { state == .running }
     public var isPaused: Bool { state == .paused }
 
-    /// The running instance. Its queue holds the steps of `timeline` that have
-    /// not started yet, always as a suffix of `timeline`.
+    /// The running instance. Its queue is the timeline.
     let mainSequence: SequenceAction
     /// Every step added since the handle was made or last finished, including the ones
     /// already running or done, so `repeat` can copy the whole chain. Emptied
     /// when the timeline ends, which releases the completion blocks it holds.
-    private(set) var timeline: [ActionType] = []
+    var timeline: [ActionType] { mainSequence.queue.steps }
     /// The tasks suspended in `finished()`, keyed so a cancelled one can leave.
     private(set) var waiters: [Int: CheckedContinuation<Void, Never>] = [:]
     private var nextWaiter = 0
@@ -138,7 +137,8 @@ public final class Kinieta {
         editUnstarted { queue in
             guard let last = queue.popLast() else {
                 Kinieta.ignored(
-                    "delay(_:) has no action to postpone: \(nothingPending); ignoring it", file: file, line: line)
+                    "delay(_:) has no action to postpone: \(nothingPending(in: queue)); ignoring it",
+                    file: file, line: line)
                 return
             }
             queue.add(.sequence([.pause(time), last]))
@@ -232,25 +232,24 @@ public final class Kinieta {
     /// `delay`, `onComplete`, `then()` and `parallel()` never touch them.
     ///
     /// If the edit adds steps to a finished timeline, the timeline starts again.
+    ///
+    /// The queue is edited in place, so an edit costs only what it changes
+    /// however long the timeline is. While it runs, `edit` must reach the
+    /// timeline only through the queue it is given.
     private func editUnstarted(_ edit: (inout ActionQueue) -> Void) {
         guard state != .cancelled else { return }
-        let started = timeline.count - mainSequence.pending.count
-        var queue = mainSequence.pending
-        edit(&queue)
-        timeline.replaceSubrange(started..., with: queue.types)
-        mainSequence.pending = queue
-        if state == .finished && !queue.isEmpty { restart() }
+        edit(&mainSequence.queue)
+        if state == .finished && !mainSequence.queue.isEmpty { restart() }
     }
 
-    /// Why an edit found no unstarted step, for warnings. Read before the edit
-    /// is applied.
-    private var nothingPending: String {
-        timeline.isEmpty ? "the timeline is empty" : "every action in it has already started"
+    /// Why an edit found no unstarted step in `queue`, for warnings.
+    private func nothingPending(in queue: ActionQueue) -> String {
+        queue.steps.isEmpty ? "the timeline is empty" : "every action in it has already started"
     }
 
     /// Why `then()` or `parallel()` found nothing to gather in `queue`, for warnings.
     private func nothingUngrouped(in queue: ActionQueue) -> String {
-        queue.isEmpty ? nothingPending : "nothing was added since the last then() or parallel()"
+        queue.isEmpty ? nothingPending(in: queue) : "nothing was added since the last then() or parallel()"
     }
 
     /// Runs a finished timeline again from the steps waiting in its queue.
@@ -277,7 +276,8 @@ public final class Kinieta {
         editUnstarted { queue in
             guard let last = queue.popLast() else {
                 Kinieta.ignored(
-                    "easing(_:) has no animation to ease: \(nothingPending); ignoring it", file: file, line: line)
+                    "easing(_:) has no animation to ease: \(nothingPending(in: queue)); ignoring it",
+                    file: file, line: line)
                 return
             }
             guard let eased = last.withEasing(easing.bezier) else {
@@ -315,7 +315,8 @@ public final class Kinieta {
         editUnstarted { queue in
             guard let last = queue.popLast() else {
                 Kinieta.ignored(
-                    "onComplete(_:) has no action to follow: \(nothingPending); ignoring it", file: file, line: line)
+                    "onComplete(_:) has no action to follow: \(nothingPending(in: queue)); ignoring it",
+                    file: file, line: line)
                 return
             }
             queue.add(last.withCompletion(block))
@@ -392,8 +393,7 @@ public final class Kinieta {
         self.state = state
         // Drop what has run: a completion block that captures this handle, or
         // an owner of it, would otherwise keep both alive.
-        timeline = []
-        mainSequence.pending = ActionQueue()
+        mainSequence.queue = ActionQueue()
         mainSequence.currentAction = nil
         members = nil
         let pending = waiters.values

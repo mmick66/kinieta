@@ -7,7 +7,8 @@ import Foundation
 /// control points, exactly as CSS `cubic-bezier()` and cubic-bezier.com do.
 ///
 /// The curve is baked into a lookup table once at creation, so solving is a
-/// binary search rather than root finding.
+/// binary search rather than root finding. Copies share the table, and the
+/// preset easings are baked once and reused.
 public struct Bezier: Sendable, Equatable {
 
     static let accuracy = 1000

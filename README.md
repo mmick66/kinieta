@@ -95,7 +95,7 @@ let snap = Bezier(0.16, 0.73, 0.89, 0.24)
 view.animate(.x(250), duration: 1.0).easing(.custom(snap))
 ```
 
-Curves are baked into a lookup table once and solved at time `x`, exactly like CSS `cubic-bezier()`. Curves such as `back` overshoot on purpose.
+Each curve is baked into a lookup table when it is made and solved at time `x`, exactly like CSS `cubic-bezier()`. The presets are baked once and shared, so easing costs no allocation; make a custom `Bezier` once and reuse it. Curves such as `back` overshoot on purpose.
 
 ### Sequencing
 
