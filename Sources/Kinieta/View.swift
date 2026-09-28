@@ -74,5 +74,12 @@ extension UIView {
     var borderColorOrClear: UIColor {
         layer.borderColor.map { UIColor(cgColor: $0) } ?? .clear
     }
+
+    /// The view's traits with any pending change applied, such as an
+    /// `overrideUserInterfaceStyle` set since the last layout pass.
+    var currentTraits: UITraitCollection {
+        updateTraitsIfNeeded()
+        return traitCollection
+    }
 }
 #endif

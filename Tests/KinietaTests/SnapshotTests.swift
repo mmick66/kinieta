@@ -90,7 +90,9 @@ struct SnapshotTests {
         // The targets are dynamic colours, so the end state must differ between appearances.
         for style in [UIUserInterfaceStyle.light, .dark] {
             for progress in Self.progressPoints {
-                let (stage, box) = stage()
+                // The appearance is set on the view itself, so the frames in between
+                // resolve against it rather than the app's traits.
+                let (stage, box) = stage { $0.overrideUserInterfaceStyle = style }
                 drive(box, [.background(.label), .borderColor(.secondaryLabel)], to: progress)
                 let name = style == .dark ? "dark" : "light"
                 assertSnapshot(of: stage, as: image(style), named: "dynamic-\(name)-\(Int(progress * 100))")

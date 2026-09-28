@@ -80,6 +80,23 @@ struct ColorTests {
         #expect(approx(ColorMath.lerpHue(90, 180, 0.5), 135, 1e-9))
     }
 
+    @Test func dynamicColoursResolveAgainstTheViewsTraits() {
+        // A dark view in a light app: .label is white for the view, black for the app.
+        let view = UIView()
+        view.overrideUserInterfaceStyle = .dark
+        view.backgroundColor = .white
+        UITraitCollection(userInterfaceStyle: .light).performAsCurrent {
+            let step = Property.background(.label).transformation(for: view, defaultColorInterpolation: .lch)
+            step(view, 0.5)
+            let mid = ColorMath.extractComponents(of: view.backgroundColor!)
+            #expect(mid.red > 0.95 && mid.green > 0.95 && mid.blue > 0.95, "\(mid)")
+            // The end state is still the dynamic colour, not the dark variant.
+            step(view, 1)
+            let light = UITraitCollection(userInterfaceStyle: .light)
+            #expect(view.backgroundColor?.resolvedColor(with: light) == UIColor.label.resolvedColor(with: light))
+        }
+    }
+
     @Test func rotationSetterMatchesCGAffineTransform() {
         let angle: CGFloat = 30.0
         let v = UIView()

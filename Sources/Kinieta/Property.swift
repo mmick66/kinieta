@@ -79,13 +79,15 @@ public enum Property: Sendable {
         case .cornerRadius(let to):
             return lerp(from: view.layer.cornerRadius, to: to) { $0.layer.cornerRadius = max($1, 0) }
         case .background(let to, let mode):
-            return colorLerp(from: view.backgroundColorOrClear, to: to, mode: mode ?? defaultColorInterpolation) {
-                $0.backgroundColor = $1
-            }
+            return colorLerp(
+                from: view.backgroundColorOrClear, to: to, mode: mode ?? defaultColorInterpolation,
+                traits: view.currentTraits
+            ) { $0.backgroundColor = $1 }
         case .borderColor(let to, let mode):
-            return colorLerp(from: view.borderColorOrClear, to: to, mode: mode ?? defaultColorInterpolation) {
-                $0.layer.borderColor = $1.cgColor
-            }
+            return colorLerp(
+                from: view.borderColorOrClear, to: to, mode: mode ?? defaultColorInterpolation,
+                traits: view.currentTraits
+            ) { $0.layer.borderColor = $1.cgColor }
         }
     }
 
@@ -98,14 +100,19 @@ public enum Property: Sendable {
     /// Colour progress is clamped to 0...1: an overshooting easing has no
     /// meaning outside the gamut. The endpoints are assigned as given, so a
     /// dynamic (light/dark) or wide-gamut target survives the animation.
+    ///
+    /// The frames in between are resolved against the view's own `traits`:
+    /// inside a display-link callback `UITraitCollection.current` is the
+    /// app-wide fallback, which ignores `overrideUserInterfaceStyle` and
+    /// presentation-level appearance.
     private func colorLerp(
-        from source: UIColor, to target: UIColor, mode: ColorInterpolation,
+        from source: UIColor, to target: UIColor, mode: ColorInterpolation, traits: UITraitCollection,
         apply: @escaping (UIView, UIColor) -> Void
     ) -> Transformation {
         // A fully transparent endpoint has no colour of its own. Fade the other
         // colour's alpha instead of passing through black.
-        var from = ColorMath.extractComponents(of: source)
-        var to = ColorMath.extractComponents(of: target)
+        var from = ColorMath.extractComponents(of: source.resolvedColor(with: traits))
+        var to = ColorMath.extractComponents(of: target.resolvedColor(with: traits))
         if from.alpha == 0 { from = to.withAlpha(0) }
         if to.alpha == 0 { to = from.withAlpha(0) }
 
