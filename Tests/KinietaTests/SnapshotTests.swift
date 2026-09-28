@@ -86,6 +86,15 @@ struct SnapshotTests {
         }
     }
 
+    @Test func frameOnARotatedView() {
+        // The box stays rotated about its centre while it moves and grows to the target.
+        for progress in Self.progressPoints {
+            let (stage, box) = stage { $0.rotation = 30 }
+            drive(box, [.frame(CGRect(x: 40, y: 40, width: 50, height: 30))], to: progress)
+            assertSnapshot(of: stage, as: image(), named: "rotated-frame-\(Int(progress * 100))")
+        }
+    }
+
     @Test func dynamicColoursInDarkAppearance() {
         // The targets are dynamic colours, so the end state must differ between appearances.
         for style in [UIUserInterfaceStyle.light, .dark] {

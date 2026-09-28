@@ -65,7 +65,7 @@ view.animate(.frame(target), .alpha(0), duration: 0.3)
 | --- | --- | --- |
 | `.x`, `.y` | `CGFloat` in points | position of the top-left corner |
 | `.width`, `.height` | `CGFloat` in points | size, keeping the top-left corner fixed |
-| `.frame` | `CGRect` | `frame` |
+| `.frame` | `CGRect` | position and size together, as the frame before any rotation |
 | `.alpha` | `0...1` | `alpha` |
 | `.rotation(degrees:)` | degrees | `transform`, keeping its scale and translation |
 | `.background` | `UIColor` | `backgroundColor` |
@@ -73,7 +73,7 @@ view.animate(.frame(target), .alpha(0), duration: 0.3)
 | `.borderWidth` | `CGFloat` in points | `layer.borderWidth` |
 | `.cornerRadius` | `CGFloat` in points | `layer.cornerRadius` |
 
-Position and size are interpolated through `center` and `bounds`, so they stay correct while a rotation is applied. Rotation is not wrapped: after `.rotation(degrees: 720)`, animating to `810` turns a quarter, and going from `270` to `360` turns 90°, not 450°. Sizes, border width and corner radius never go below zero, even with an overshooting curve.
+Position and size, `.frame` included, are interpolated through `center` and `bounds`, so they stay correct while a rotation is applied: on a rotated view `.frame` sets the rect it would occupy unrotated, not UIKit's bounding-box `frame`. Rotation is not wrapped: after `.rotation(degrees: 720)`, animating to `810` turns a quarter, and going from `270` to `360` turns 90°, not 450°. Sizes, border width and corner radius never go below zero, even with an overshooting curve.
 
 **Auto Layout.** Kinieta sets geometry directly. A view positioned by constraints snaps back on the next layout pass, which device rotation, size class changes and the keyboard all trigger. Animate unconstrained views, or animate constraint constants yourself.
 

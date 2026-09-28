@@ -70,7 +70,11 @@ public enum Property: Sendable {
         case .height(let to):
             return lerp(from: view.height, to: to) { $0.height = max($1, 0) }
         case .frame(let to):
-            return lerp(from: view.frame, to: to) { $0.frame = $1 }
+            // `size`, not `width`/`height`: those standardise a negative overshoot.
+            return lerp(from: view.untransformedFrame, to: to.standardized) { view, rect in
+                let size = CGSize(width: max(rect.size.width, 0), height: max(rect.size.height, 0))
+                view.untransformedFrame = CGRect(origin: rect.origin, size: size)
+            }
         case .alpha(let to):
             return lerp(from: view.alpha, to: to) { $0.alpha = $1 }
         case .rotation(let to):

@@ -61,6 +61,18 @@ extension UIView {
         }
     }
 
+    /// The frame the view has before its transform is applied: `x`, `y`,
+    /// `width` and `height` together. Unlike `frame` it stays defined while a
+    /// rotation is applied. Sizes are taken as given, not standardised.
+    var untransformedFrame: CGRect {
+        get { CGRect(x: x, y: y, width: width, height: height) }
+        set {
+            bounds.size = newValue.size
+            x = newValue.origin.x
+            y = newValue.origin.y
+        }
+    }
+
     /// Rotation in degrees, unwrapped: after rotating to 720 it reads 720, not 0.
     ///
     /// Setting it keeps the rest of the transform: the scale (and any shear)

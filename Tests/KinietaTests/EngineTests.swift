@@ -343,6 +343,44 @@ struct EngineTests {
         #expect(view.bounds.size == .zero)
     }
 
+    @Test func frameOnARotatedViewMovesItsCentreAndBounds() {
+        // A rotated view's `frame` is its bounding box; the target is the rect before rotation.
+        let view = makeView()
+        view.rotation = 45
+        let a = animation(view, [.frame(CGRect(x: 20, y: 30, width: 40, height: 60))], duration: 1.0)
+        _ = a.update(frame(0.5))
+        #expect(approx(view.center.x, 22.5) && approx(view.center.y, 32.5))
+        #expect(approx(view.bounds.width, 25) && approx(view.bounds.height, 35))
+        _ = a.update(frame(0.5))
+        #expect(approx(view.center.x, 40) && approx(view.center.y, 60))
+        #expect(view.bounds.size == CGSize(width: 40, height: 60))
+        #expect(approx(view.rotation, 45))
+    }
+
+    @Test func overshootingEasingNeverProducesANegativeFrame() {
+        let view = UIView(frame: CGRect(x: 0, y: 0, width: 100, height: 100))
+        let target = CGRect(x: 50, y: 50, width: 2, height: 2)
+        let a = animation(view, [.frame(target)], duration: 1.0, easing: .inOut(.back))
+        var clamped = false
+        for _ in 0..<40 {
+            _ = a.update(frame(0.025))
+            #expect(view.bounds.width >= 0 && view.bounds.height >= 0)
+            if view.bounds.size == .zero {
+                // Past the end, the corner keeps going instead of jumping back to a standardised origin.
+                clamped = true
+                #expect(view.frame.origin.x > 50 && view.frame.origin.y > 50)
+            }
+        }
+        #expect(clamped)
+        #expect(view.frame == target)
+    }
+
+    @Test func frameTargetWithANegativeSizeIsStandardised() {
+        let view = makeView()
+        _ = animation(view, [.frame(CGRect(x: 30, y: 40, width: -20, height: -10))], duration: 1.0).update(frame(1.0))
+        #expect(view.frame == CGRect(x: 10, y: 30, width: 20, height: 10))
+    }
+
     @Test func lastValueForARepeatedPropertyWins() {
         let view = makeView()
         _ = animation(view, [.width(20), .width(60)], duration: 1.0).update(frame(1.0))
