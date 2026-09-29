@@ -12,7 +12,9 @@
 #   evolution   iOS Simulator build with library evolution (job: evolution)
 #   spm-linux   swift build + swift test in Docker       (job: spm-linux)
 #
-# The tvOS build and the visionOS tests (jobs: tvos, visionos) run in CI only.
+# The tvOS build, the visionOS tests and the optional podspec lint (jobs: tvos, visionos, pod-lint)
+# run in CI only. `pod lib lint Kinieta.podspec --allow-warnings --platforms=ios` lints the podspec
+# here when CocoaPods is installed; tvOS needs a tvOS simulator runtime.
 #
 # Requires Xcode 26.6 with the iOS 26.5 simulator runtime, and a running Docker for spm-linux.
 # Full output of each check goes to .build/ci-local/<check>.log; on a failure the end of it is

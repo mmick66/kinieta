@@ -74,8 +74,9 @@ TEST_RUNNER_SNAPSHOT_TESTING_RECORD=all xcodebuild -scheme Kinieta \
 xcodebuild docbuild -scheme Kinieta -destination 'generic/platform=iOS Simulator'
 ```
 
-The tvOS build (`-destination 'generic/platform=tvOS Simulator' build`) and the visionOS tests
-(Apple Vision Pro / visionOS 26.5 simulator) run in CI only. CI is
+The tvOS build (`-destination 'generic/platform=tvOS Simulator' build`), the visionOS tests
+(Apple Vision Pro / visionOS 26.5 simulator) and the optional `pod lib lint` job run in CI only
+(`pod lib lint Kinieta.podspec --allow-warnings --platforms=ios` lints iOS locally). CI is
 `.github/workflows/ci.yml`; keep it, `scripts/ci-local.sh` and README "Development" in sync.
 
 ## Architecture Overview
