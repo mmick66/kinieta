@@ -4,8 +4,9 @@ import Testing
 
 @testable import Kinieta
 
-/// AppKit: position, size, rotation and `.alpha` on a layer-backed `NSView`,
-/// through the public API, on the engine the UIKit platforms share.
+/// AppKit: position, size, rotation, `.alpha` and the layer's colours on a
+/// layer-backed `NSView`, through the public API, on the engine the UIKit
+/// platforms share.
 ///
 /// Frames are stepped by a `ManualFrameDriver`, except in the smoke test on
 /// the real display link at the bottom.
@@ -217,6 +218,178 @@ struct AppKitTests {
         frames.step(0.5)
         #expect(view.frame.width == 60)
         #expect(approx(view.rotation, 90))
+    }
+
+    // MARK: Colours
+
+    /// The extended-sRGB components of a layer colour.
+    private func components(of color: CGColor?) -> ColorMath.RGB? {
+        color.flatMap(NSColor.init(cgColor:)).flatMap(ColorMath.extractComponents(of:))
+    }
+
+    private func same(_ a: ColorMath.RGB?, _ b: ColorMath.RGB?, tolerance: CGFloat = 1e-4) -> Bool {
+        guard let a, let b else { return false }
+        return [a.red - b.red, a.green - b.green, a.blue - b.blue, a.alpha - b.alpha].allSatisfy {
+            abs($0) <= tolerance
+        }
+    }
+
+    private func rgb(_ red: CGFloat, _ green: CGFloat, _ blue: CGFloat, _ alpha: CGFloat = 1) -> ColorMath.RGB {
+        ColorMath.RGB(red: red, green: green, blue: blue, alpha: alpha)
+    }
+
+    /// Black in the light appearances, white in the dark ones.
+    private let blackOrWhite = NSColor(name: nil) { appearance in
+        appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua ? .white : .black
+    }
+
+    @Test func backgroundAndBorderColourAnimateTheLayer() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        view.layer?.backgroundColor = NSColor.red.cgColor
+        view.animate(
+            .background(.blue, interpolation: .rgb), .borderColor(.green, interpolation: .rgb), duration: 1)
+        frames.step(0.5)
+        #expect(same(components(of: view.layer?.backgroundColor), rgb(0.5, 0, 0.5)))
+        // A layer's border colour starts out opaque black, as on UIKit.
+        #expect(same(components(of: view.layer?.borderColor), rgb(0, 0.5, 0)))
+        frames.step(0.5)
+        #expect(same(components(of: view.layer?.backgroundColor), rgb(0, 0, 1)))
+        #expect(same(components(of: view.layer?.borderColor), rgb(0, 1, 0)))
+    }
+
+    @Test func aViewWithoutALayerIsGivenOne() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = NSView(frame: CGRect(x: 0, y: 0, width: 10, height: 10))
+        #expect(view.layer == nil)
+        view.animate(.background(.red), duration: 1)
+        frames.step(1)
+        #expect(view.wantsLayer)
+        #expect(same(components(of: view.layer?.backgroundColor), rgb(1, 0, 0)))
+    }
+
+    @Test func coloursStillAnimateUnderReduceMotion() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        Engine.shared.isReduceMotionEnabled = { true }
+        let view = makeView()
+        view.layer?.backgroundColor = NSColor.black.cgColor
+        view.animate(.x(100), .background(.white, interpolation: .rgb), duration: 1)
+        frames.step(0.5)
+        #expect(approx(view.frame.origin.x, 100))
+        #expect(same(components(of: view.layer?.backgroundColor), rgb(0.5, 0.5, 0.5)))
+    }
+
+    @Test func extractingConvertsOtherColourSpacesAndNotPatterns() {
+        #expect(same(ColorMath.extractComponents(of: NSColor(white: 0.5, alpha: 0.25)), rgb(0.5, 0.5, 0.5, 0.25)))
+        let cmyk = NSColor(deviceCyan: 0, magenta: 1, yellow: 1, black: 0, alpha: 1)
+        let red = ColorMath.extractComponents(of: cmyk)
+        #expect(red.map { $0.red > 0.8 && $0.green < 0.3 && $0.blue < 0.3 } == true, "\(String(describing: red))")
+        let pattern = NSColor(patternImage: NSImage(size: CGSize(width: 2, height: 2)))
+        #expect(ColorMath.extractComponents(of: pattern) == nil)
+    }
+
+    /// AppKit converts with the ICC profile's rounded matrices, like UIKit.
+    @Test func displayP3MatchesAppKit() {
+        let steps = (0...4).map { CGFloat($0) / 4 }
+        for r in steps {
+            for g in steps {
+                for b in steps {
+                    let p3 = rgb(r, g, b, 0.5)
+                    let color = NSColor(displayP3Red: r, green: g, blue: b, alpha: 0.5)
+                    let extended = ColorMath.extractComponents(of: color)
+                    #expect(same(extended, p3.fromDisplayP3, tolerance: ColorMath.Gamut.tolerance), "\(p3)")
+                }
+            }
+        }
+    }
+
+    /// The extended-sRGB background `mode` gives at `progress` from `from` to `to`.
+    private func background(
+        from: NSColor, to: NSColor, _ mode: ColorInterpolation, at progress: CGFloat
+    ) -> ColorMath.RGB? {
+        let view = makeView()
+        view.layer?.backgroundColor = from.cgColor
+        Property.background(to, interpolation: mode).transformation(for: view, defaultColorInterpolation: .lch)(
+            view, progress)
+        return components(of: view.layer?.backgroundColor)
+    }
+
+    @Test(arguments: [ColorInterpolation.rgb, .hsb, .lch])
+    func displayP3ColoursStayWideOnTheWay(_ mode: ColorInterpolation) throws {
+        let red = NSColor(displayP3Red: 1, green: 0, blue: 0, alpha: 1)
+        let green = NSColor(displayP3Red: 0, green: 1, blue: 0, alpha: 1)
+        let tolerance = ColorMath.Gamut.tolerance
+
+        let mid = try #require(background(from: red, to: green, mode, at: 0.5))
+        #expect(!mid.isInUnitRange(tolerance: tolerance), "the midpoint is clipped to sRGB: \(mid)")
+        #expect(mid.displayP3.isInUnitRange(tolerance: tolerance), "the midpoint is outside Display P3: \(mid)")
+
+        // Just before the end the colour is already the target, so the last frame does not pop.
+        let nearEnd = background(from: red, to: green, mode, at: 0.999)
+        #expect(
+            same(nearEnd, ColorMath.extractComponents(of: green), tolerance: 0.01), "\(String(describing: nearEnd))")
+    }
+
+    @Test(arguments: [ColorInterpolation.rgb, .hsb, .lch])
+    func sRGBColoursStayInSRGBOnTheWay(_ mode: ColorInterpolation) throws {
+        let pink = NSColor(srgbRed: 1.00, green: 0.44, blue: 0.75, alpha: 1.00)
+        let cyan = NSColor(srgbRed: 0.00, green: 0.80, blue: 0.90, alpha: 1.00)
+        for progress in stride(from: CGFloat(0.1), to: 1, by: 0.1) {
+            let color = try #require(background(from: pink, to: cyan, mode, at: progress))
+            #expect(color.isInUnitRange(tolerance: 0), "\(progress): \(color)")
+        }
+    }
+
+    @Test func dynamicColoursResolveAgainstTheViewsAppearance() {
+        // A dark view in a light app: the colour is white for the view, black for the app.
+        let view = makeView()
+        view.appearance = NSAppearance(named: .darkAqua)
+        view.layer?.backgroundColor = NSColor.white.cgColor
+        NSAppearance(named: .aqua)!.performAsCurrentDrawingAppearance {
+            let step = Property.background(blackOrWhite).transformation(for: view, defaultColorInterpolation: .lch)
+            step(view, 0.5)
+            #expect(same(components(of: view.layer?.backgroundColor), rgb(1, 1, 1)))
+            step(view, 1)
+            #expect(same(components(of: view.layer?.backgroundColor), rgb(1, 1, 1)))
+        }
+    }
+
+    @Test func dynamicColoursFollowAnAppearanceChangeMidAnimation() throws {
+        // From a grey the midpoint shows which variant is in use.
+        let view = makeView()
+        view.appearance = NSAppearance(named: .aqua)
+        view.layer?.borderColor = NSColor.gray.cgColor
+        let step = Property.borderColor(blackOrWhite, interpolation: .rgb).transformation(
+            for: view, defaultColorInterpolation: .lch)
+        step(view, 0.5)
+        let light = try #require(components(of: view.layer?.borderColor))
+        #expect(light.red < 0.3, "\(light)")
+
+        view.appearance = NSAppearance(named: .darkAqua)
+        step(view, 0.5)
+        let dark = try #require(components(of: view.layer?.borderColor))
+        #expect(dark.red > 0.7, "\(dark)")
+        step(view, 1)
+        #expect(same(components(of: view.layer?.borderColor), rgb(1, 1, 1)))
+
+        view.appearance = NSAppearance(named: .aqua)
+        step(view, 0.5)
+        #expect(components(of: view.layer?.borderColor) == light)
+    }
+
+    @Test func nsColorAndCGColorAreInterpolatable() {
+        let red = NSColor(srgbRed: 1, green: 0, blue: 0, alpha: 1)
+        let blue = NSColor(srgbRed: 0, green: 0, blue: 1, alpha: 1)
+        #expect(red.interpolated(to: blue, progress: 0) === red)
+        #expect(red.interpolated(to: blue, progress: 1) === blue)
+        let mid = ColorMath.extractComponents(of: red.interpolated(to: blue, progress: 0.5))
+        #expect(
+            same(mid, ColorMath.RGB(red: 1, green: 0, blue: 0, alpha: 1).lch.lerp(rgb(0, 0, 1).lch, 0.5).rgb.clamped()))
+        let cgMid = red.cgColor.interpolated(to: blue.cgColor, progress: 0.5)
+        #expect(same(components(of: cgMid), mid))
     }
 
     @Test(.timeLimit(.minutes(1)))

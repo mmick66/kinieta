@@ -46,7 +46,7 @@ struct CustomPropertyTests {
         #expect(pink.interpolated(to: cyan, progress: 1) === cyan)
         #expect(pink.interpolated(to: cyan, progress: 1.4) === cyan)
 
-        let lch = try #require(ColorMath.interpolator(from: pink, to: cyan, mode: .lch, traits: nil))
+        let lch = try #require(ColorMath.interpolator(from: pink, to: cyan, mode: .lch, appearance: nil))
         let mid = pink.interpolated(to: cyan, progress: 0.5)
         #expect(ColorMath.extractComponents(of: mid) == ColorMath.extractComponents(of: lch(0.5)))
     }

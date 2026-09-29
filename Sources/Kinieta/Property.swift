@@ -37,11 +37,19 @@ public enum Property: Sendable {
     /// place, so positive angles turn counterclockwise unless the superview is
     /// flipped.
     case rotation(degrees: CGFloat)
-    // On AppKit, colours, layer properties and custom properties do not exist yet.
     #if canImport(UIKit)
     /// `interpolation` overrides `Engine.shared.colorInterpolation` for this property.
     case background(UIColor, interpolation: ColorInterpolation? = nil)
     case borderColor(UIColor, interpolation: ColorInterpolation? = nil)
+    #else
+    /// The layer's `backgroundColor`; a view without a layer is given one.
+    /// `interpolation` overrides `Engine.shared.colorInterpolation` for this property.
+    case background(NSColor, interpolation: ColorInterpolation? = nil)
+    /// The layer's `borderColor`; a view without a layer is given one.
+    case borderColor(NSColor, interpolation: ColorInterpolation? = nil)
+    #endif
+    // On AppKit, the other layer properties and custom properties do not exist yet.
+    #if canImport(UIKit)
     case borderWidth(CGFloat)
     case cornerRadius(CGFloat)
     /// A key path or constraint constant. Make one with
@@ -69,9 +77,9 @@ public enum Property: Sendable {
         case .height: return .height
         case .frame: return .frame
         case .rotation: return .transform
-        #if canImport(UIKit)
         case .background: return .background
         case .borderColor: return .borderColor
+        #if canImport(UIKit)
         case .borderWidth: return .borderWidth
         case .cornerRadius: return .cornerRadius
         case .extended(let custom): return custom.key
@@ -113,9 +121,9 @@ public enum Property: Sendable {
     var isMotion: Bool {
         switch self {
         case .x, .y, .width, .height, .frame, .rotation: return true
-        case .alpha: return false
+        case .alpha, .background, .borderColor: return false
         #if canImport(UIKit)
-        case .background, .borderColor, .borderWidth, .cornerRadius: return false
+        case .borderWidth, .cornerRadius: return false
         case .extended(let custom): return custom.isMotion
         #endif
         }
@@ -147,21 +155,21 @@ public enum Property: Sendable {
             }
         case .rotation(let to):
             return lerp(from: view.rotation, to: to) { $0.rotation = $1 }
+        case .background(let to, let mode):
+            let colors = Self.colorInterpolator(
+                from: view.animatedBackgroundColor, to: to, mode: mode ?? defaultColorInterpolation, view: view,
+                name: name)
+            return { view, factor in view.animatedBackgroundColor = colors(factor) }
+        case .borderColor(let to, let mode):
+            let colors = Self.colorInterpolator(
+                from: view.animatedBorderColor, to: to, mode: mode ?? defaultColorInterpolation, view: view,
+                name: name)
+            return { view, factor in view.animatedBorderColor = colors(factor) }
         #if canImport(UIKit)
         case .borderWidth(let to):
             return lerp(from: view.layer.borderWidth, to: to) { $0.layer.borderWidth = max($1, 0) }
         case .cornerRadius(let to):
             return lerp(from: view.layer.cornerRadius, to: to) { $0.layer.cornerRadius = max($1, 0) }
-        case .background(let to, let mode):
-            let colors = Self.colorInterpolator(
-                from: view.backgroundColorOrClear, to: to, mode: mode ?? defaultColorInterpolation, view: view,
-                name: name)
-            return { view, factor in view.backgroundColor = colors(factor) }
-        case .borderColor(let to, let mode):
-            let colors = Self.colorInterpolator(
-                from: view.borderColorOrClear, to: to, mode: mode ?? defaultColorInterpolation, view: view,
-                name: name)
-            return { view, factor in view.layer.borderColor = colors(factor).cgColor }
         case .extended(let custom):
             return custom.transformation(view, defaultColorInterpolation) ?? { _, _ in }
         #endif
@@ -191,36 +199,35 @@ public enum Property: Sendable {
         }
     }
 
-    #if canImport(UIKit)
     private static let logger = Logger(subsystem: "Kinieta", category: "Colour")
 
-    /// See ``ColorMath/interpolator(from:to:mode:traits:)``. A colour with
+    /// See ``ColorMath/interpolator(from:to:mode:appearance:)``. A colour with
     /// nothing to blend, such as a pattern, switches as soon as the animation starts.
     ///
-    /// Dynamic colours resolve against `view`'s traits, and again whenever
-    /// their colour appearance changes, such as dark mode toggled or a sheet
-    /// raised mid-animation: the colours in between follow the new variants
-    /// instead of snapping to them at the end.
+    /// Dynamic colours resolve against `view`'s traits, or its effective
+    /// appearance on AppKit, and again whenever that changes the colours,
+    /// such as dark mode toggled or a sheet raised mid-animation: the colours
+    /// in between follow the new variants instead of snapping to them at the end.
     @MainActor
     static func colorInterpolator(
-        from source: UIColor, to target: UIColor, mode: ColorInterpolation, view: UIView, name: String
-    ) -> (CGFloat) -> UIColor {
-        func colors(for traits: UITraitCollection) -> ((CGFloat) -> UIColor)? {
-            ColorMath.interpolator(from: source, to: target, mode: mode, traits: traits)
+        from source: PlatformColor, to target: PlatformColor, mode: ColorInterpolation, view: PlatformView,
+        name: String
+    ) -> (CGFloat) -> PlatformColor {
+        func colors(for appearance: PlatformAppearance) -> ((CGFloat) -> PlatformColor)? {
+            ColorMath.interpolator(from: source, to: target, mode: mode, appearance: appearance)
         }
-        var traits = view.currentTraits
-        guard var current = colors(for: traits) else {
+        var appearance = view.currentAppearance
+        guard var current = colors(for: appearance) else {
             logger.warning("\(name, privacy: .public) cannot blend a colour with no RGB value; snapping")
             return { factor in factor > 0 ? target : source }
         }
         return { [weak view] factor in
-            if let now = view?.currentTraits, now.hasDifferentColorAppearance(comparedTo: traits) {
-                traits = now
+            if let now = view?.currentAppearance, now.resolvesColorsDifferently(from: appearance) {
+                appearance = now
                 current = colors(for: now) ?? current
             }
             return current(factor)
         }
     }
-    #endif
 }
 #endif

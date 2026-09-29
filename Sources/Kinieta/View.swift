@@ -119,17 +119,22 @@ extension UIView {
         set { objc_setAssociatedObject(self, &rotationStateKey, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC) }
     }
 
-    var backgroundColorOrClear: UIColor {
-        backgroundColor ?? .clear
+    /// `backgroundColor`, clear when there is none.
+    var animatedBackgroundColor: UIColor {
+        get { backgroundColor ?? .clear }
+        set { backgroundColor = newValue }
     }
 
-    var borderColorOrClear: UIColor {
-        layer.borderColor.map { UIColor(cgColor: $0) } ?? .clear
+    /// The layer's `borderColor`, clear when there is none.
+    var animatedBorderColor: UIColor {
+        get { layer.borderColor.map { UIColor(cgColor: $0) } ?? .clear }
+        set { layer.borderColor = newValue.cgColor }
     }
 
-    /// The view's traits with any pending change applied, such as an
-    /// `overrideUserInterfaceStyle` set since the last layout pass.
-    var currentTraits: UITraitCollection {
+    /// What dynamic colours resolve against: the view's traits with any
+    /// pending change applied, such as an `overrideUserInterfaceStyle` set
+    /// since the last layout pass.
+    var currentAppearance: UITraitCollection {
         updateTraitsIfNeeded()
         return traitCollection
     }
@@ -259,6 +264,42 @@ extension NSView {
     var alpha: CGFloat {
         get { alphaValue }
         set { alphaValue = newValue }
+    }
+
+    // An `NSView` has no colours of its own: they are its layer's.
+
+    /// The layer's `backgroundColor`, clear when there is none. Setting it
+    /// gives a view without a layer one.
+    var animatedBackgroundColor: NSColor {
+        get { layer?.backgroundColor.flatMap(NSColor.init(cgColor:)) ?? .clear }
+        set { backingLayer.backgroundColor = layerColor(newValue) }
+    }
+
+    /// The layer's `borderColor`, clear when there is none. Setting it gives
+    /// a view without a layer one.
+    var animatedBorderColor: NSColor {
+        get { layer?.borderColor.flatMap(NSColor.init(cgColor:)) ?? .clear }
+        set { backingLayer.borderColor = layerColor(newValue) }
+    }
+
+    /// What dynamic colours resolve against.
+    var currentAppearance: NSAppearance {
+        effectiveAppearance
+    }
+
+    /// The view's layer, made if the view has none.
+    private var backingLayer: CALayer {
+        if let layer { return layer }
+        wantsLayer = true
+        return layer!
+    }
+
+    /// `color` for a layer, which takes a `CGColor`: a dynamic colour is
+    /// resolved against the view's appearance, not the app's.
+    private func layerColor(_ color: NSColor) -> CGColor {
+        var resolved: CGColor?
+        effectiveAppearance.performAsCurrentDrawingAppearance { resolved = color.cgColor }
+        return resolved ?? color.cgColor
     }
 }
 

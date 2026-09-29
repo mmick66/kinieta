@@ -5,6 +5,11 @@
 
 #if canImport(UIKit)
 import UIKit
+#elseif os(macOS)
+import AppKit
+#endif
+
+#if canImport(UIKit) || os(macOS)
 
 /// The colour arithmetic behind colour interpolation, in one place:
 /// sRGB ⇄ linear sRGB ⇄ CIE XYZ (D65) ⇄ CIE Lab ⇄ CIE LCh, and sRGB ⇄ HSB.
@@ -27,12 +32,35 @@ enum ColorMath {
     /// The gamma-encoded sRGB components of a colour. Wide-gamut colours come
     /// back in extended range, outside 0...1.
     ///
-    /// UIKit converts CMYK, Lab and XYZ colours itself. `nil` when a colour
-    /// has no RGB equivalent, such as a pattern image.
-    static func extractComponents(of color: UIColor) -> RGB? {
+    /// UIKit and AppKit convert CMYK, Lab, XYZ and grey colours themselves.
+    /// `nil` when a colour has no RGB equivalent, such as a pattern image.
+    ///
+    /// A dynamic colour resolves against the current traits on UIKit and
+    /// the current drawing appearance on AppKit; see
+    /// ``extractComponents(of:resolvedAgainst:)``.
+    static func extractComponents(of color: PlatformColor) -> RGB? {
         var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0
+        #if canImport(UIKit)
         guard color.getRed(&red, green: &green, blue: &blue, alpha: &alpha) else { return nil }
+        #else
+        // AppKit reads components only in an RGB colour space, and raises in any other.
+        guard let rgb = color.usingColorSpace(.extendedSRGB) else { return nil }
+        rgb.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+        #endif
         return RGB(red: red, green: green, blue: blue, alpha: alpha)
+    }
+
+    /// The components of `color` with a dynamic colour resolved against
+    /// `appearance`, or as ``extractComponents(of:)`` does when it is `nil`.
+    static func extractComponents(of color: PlatformColor, resolvedAgainst appearance: PlatformAppearance?) -> RGB? {
+        guard let appearance else { return extractComponents(of: color) }
+        #if canImport(UIKit)
+        return extractComponents(of: color.resolvedColor(with: appearance))
+        #else
+        var components: RGB?
+        appearance.performAsCurrentDrawingAppearance { components = extractComponents(of: color) }
+        return components
+        #endif
     }
 
     // MARK: Transfer functions and helpers
@@ -75,8 +103,13 @@ enum ColorMath {
             RGB(red: red, green: green, blue: blue, alpha: alpha)
         }
 
-        func color() -> UIColor {
+        /// The colour, in extended sRGB.
+        func color() -> PlatformColor {
+            #if canImport(UIKit)
             UIColor(red: red, green: green, blue: blue, alpha: alpha)
+            #else
+            NSColor(colorSpace: .extendedSRGB, components: [red, green, blue, alpha], count: 4)
+            #endif
         }
 
         /// Gamma-encoded Display P3, from these extended-range sRGB components.
@@ -159,11 +192,11 @@ enum ColorMath {
     enum Gamut: Equatable {
         case sRGB
         case displayP3
-        /// Not clipped: UIKit takes extended-range components and the display clips.
+        /// Not clipped: UIKit and AppKit take extended-range components and the display clips.
         case extended
 
         /// How far outside 0...1 an endpoint may be and still count as inside:
-        /// about a quarter of an 8-bit step, above the drift of UIKit's own conversions.
+        /// about a quarter of an 8-bit step, above the drift of the system's own conversions.
         static let tolerance: CGFloat = 1e-3
 
         /// The smallest gamut that holds both colours, so no frame in between is
@@ -315,7 +348,7 @@ enum ColorMath {
     }
 }
 
-// MARK: - Interpolating UIColor
+// MARK: - Interpolating colours
 
 extension ColorMath {
 
@@ -328,15 +361,17 @@ extension ColorMath {
     ///
     /// The colours in between are clipped to the smallest of sRGB and Display
     /// P3 that holds both endpoints, so a wide-gamut move does not pop at the
-    /// end. Dynamic colours are resolved against `traits` when given: inside a
-    /// display-link callback `UITraitCollection.current` is the app-wide
+    /// end. Dynamic colours are resolved against `appearance` when given:
+    /// the view's traits on UIKit, its effective appearance on AppKit. Inside
+    /// a display-link callback `UITraitCollection.current` is the app-wide
     /// fallback, which ignores `overrideUserInterfaceStyle` and
     /// presentation-level appearance.
     static func interpolator(
-        from source: UIColor, to target: UIColor, mode: ColorInterpolation, traits: UITraitCollection?
-    ) -> ((CGFloat) -> UIColor)? {
-        func resolved(_ color: UIColor) -> UIColor { traits.map { color.resolvedColor(with: $0) } ?? color }
-        guard var from = extractComponents(of: resolved(source)), var to = extractComponents(of: resolved(target))
+        from source: PlatformColor, to target: PlatformColor, mode: ColorInterpolation,
+        appearance: PlatformAppearance?
+    ) -> ((CGFloat) -> PlatformColor)? {
+        guard var from = extractComponents(of: source, resolvedAgainst: appearance),
+            var to = extractComponents(of: target, resolvedAgainst: appearance)
         else { return nil }
 
         // A fully transparent endpoint has no colour of its own. Fade the other

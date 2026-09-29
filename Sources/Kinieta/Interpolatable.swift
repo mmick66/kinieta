@@ -25,7 +25,8 @@ import AppKit
 /// ```
 ///
 /// Kinieta provides conformances for `CGFloat`, `Double`, `Float`, `CGPoint`,
-/// `CGSize`, `CGRect`, `CGAffineTransform`, `UIColor` and `CGColor`.
+/// `CGSize`, `CGRect`, `CGAffineTransform`, `UIColor` (`NSColor` on AppKit)
+/// and `CGColor`.
 public protocol Interpolatable {
     /// The value `progress` of the way from `self` to `target`.
     ///
@@ -169,7 +170,6 @@ private struct AffineParts {
     }
 }
 
-// Colours are UIKit only for now: `ColorMath` has no AppKit path yet.
 #if canImport(UIKit)
 extension UIColor: Interpolatable {}
 
@@ -182,18 +182,36 @@ extension Interpolatable where Self: UIColor {
     /// takes `Engine.shared.colorInterpolation` instead and resolves against
     /// the view's own traits, exactly like ``Property/background(_:interpolation:)``.
     public func interpolated(to target: Self, progress: CGFloat) -> Self {
-        let color = ColorMath.interpolator(from: self, to: target, mode: .lch, traits: nil)?(progress)
-        // A pattern has nothing to blend, so it switches; a subclass cannot be made, so it switches too.
-        return color as? Self ?? (progress > 0 ? target : self)
+        interpolatedColor(from: self, to: target, progress: progress)
     }
+}
+#else
+extension NSColor: Interpolatable {}
+
+extension Interpolatable where Self: NSColor {
+    /// The colour `progress` of the way to `target` through LCH, as
+    /// ``ColorInterpolation/lch`` describes, with progress clamped to 0...1.
+    /// Dynamic colours resolve against the current drawing appearance.
+    public func interpolated(to target: Self, progress: CGFloat) -> Self {
+        interpolatedColor(from: self, to: target, progress: progress)
+    }
+}
+#endif
+
+/// The `UIColor` or `NSColor` conformance, which cannot be written once:
+/// a public extension cannot be constrained through the internal `PlatformColor`.
+private func interpolatedColor<Color: PlatformColor>(from source: Color, to target: Color, progress: CGFloat) -> Color {
+    let color = ColorMath.interpolator(from: source, to: target, mode: .lch, appearance: nil)?(progress)
+    // A pattern has nothing to blend, so it switches; a subclass cannot be made, so it switches too.
+    return color as? Color ?? (progress > 0 ? target : source)
 }
 
 extension CGColor: Interpolatable {}
 
 extension Interpolatable where Self: CGColor {
     /// The colour `progress` of the way to `target` through LCH, like
-    /// `UIColor`, with progress clamped to 0...1. The colours in between are
-    /// sRGB, or Display P3 when an end is outside sRGB.
+    /// `UIColor`, or `NSColor` on AppKit, with progress clamped to 0...1. The
+    /// colours in between are sRGB, or Display P3 when an end is outside sRGB.
     ///
     /// A colour animated through
     /// ``Property/custom(_:to:isMotion:)-(ReferenceWritableKeyPath<UIView,Value>,_,_)``,
@@ -201,11 +219,14 @@ extension Interpolatable where Self: CGColor {
     public func interpolated(to target: Self, progress: CGFloat) -> Self {
         if progress <= 0 { return self }
         if progress >= 1 { return target }
-        let colors = ColorMath.interpolator(
-            from: UIColor(cgColor: self), to: UIColor(cgColor: target), mode: .lch, traits: nil)
+        #if canImport(UIKit)
+        let (from, to) = (UIColor(cgColor: self), UIColor(cgColor: target))
+        #else
+        guard let from = NSColor(cgColor: self), let to = NSColor(cgColor: target) else { return target }
+        #endif
+        let colors = ColorMath.interpolator(from: from, to: to, mode: .lch, appearance: nil)
         // A pattern has nothing to blend, so it switches.
         return colors?(progress).cgColor as? Self ?? target
     }
 }
-#endif
 #endif
