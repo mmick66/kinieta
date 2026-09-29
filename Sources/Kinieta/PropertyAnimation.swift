@@ -62,6 +62,9 @@ final class PropertyAnimation: Action {
         self.duration = engine.shouldSkipMotion && !snaps.contains(false) ? 0 : spec.duration
 
         guard let view = target.view else { return }
+        #if os(macOS)
+        engine.follow(view)
+        #endif
 
         // Take the keys over before reading the starting values, so an older
         // animation that already wrote this frame hands back what was on screen.

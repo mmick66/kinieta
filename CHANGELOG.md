@@ -18,8 +18,10 @@ All notable changes to Kinieta are documented here. The format follows
   effective appearance). The layer properties give a view without a layer one. Once a view is rotated,
   `.x`, `.y` and `.frame` stand for the frame it would have unrotated, so
   position, size and rotation animate independently, as on UIKit. Frames come
-  from the main screen's display link. `NSColor` and `CGColor` conform to
-  `Interpolatable` on macOS too. `Property.custom(_:to:isMotion:)` takes key
+  from the display link of the screen the latest animated view's window is
+  on, else the main screen's, and follow that window to another screen; with
+  no screen at all a timer drives them, so animations still finish. `NSColor`
+  and `CGColor` conform to `Interpolatable` on macOS too. `Property.custom(_:to:isMotion:)` takes key
   paths rooted in `NSView` or a subclass, such as `\.layer!.shadowOpacity` or
   `\NSBox.fillColor`, with colours interpolated like `.background`; a key path
   to `frameRotation` or `frameCenterRotation` shares `.rotation`'s key and

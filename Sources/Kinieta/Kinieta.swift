@@ -116,6 +116,9 @@ public final class Kinieta {
             mainSequence.control.target = ViewRef(view)
             mainSequence.control.onViewLost = { [weak self] in self?.cancel() }
             ViewReleaseObserver.observe(view, for: self)
+            #if os(macOS)
+            Engine.shared.follow(view)  // so the link starts on the view's screen
+            #endif
         }
         Engine.shared.add(mainSequence)
     }

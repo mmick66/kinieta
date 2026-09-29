@@ -105,44 +105,99 @@ public final class Engine {
     ///
     /// On UIKit the link is created directly rather than from `UIScreen`,
     /// which visionOS does not have. AppKit only hands out links for a view,
-    /// window or screen; the engine is shared by every view, so it takes the
-    /// main screen's, which keeps firing wherever the views are. Animations
-    /// advance by elapsed time, so a view on a screen with another refresh
-    /// rate still runs on schedule.
+    /// window or screen, and a view's link stops while the view is off screen;
+    /// the engine is shared by every view, so it takes the link from the screen
+    /// of the window the latest animation started on (see `follow(_:)`), else
+    /// from the main screen. It moves the link when that window changes screen
+    /// or the screens change. With no screen at all, as in a headless session,
+    /// a timer drives the engine instead, so animations still finish. Animations
+    /// advance by elapsed time either way, so a view on a screen with another
+    /// refresh rate still runs on schedule.
     @MainActor
     final class DisplayLinkDriver: FrameDriver {
         private(set) var displayLink: CADisplayLink?
         private var clock = FrameClock()
         private var onFrame: ((Frame) -> Void)?
 
+        #if os(macOS)
+        /// Delivers frames while there is no screen to take a link from.
+        private(set) var timer: Timer?
+
+        /// The display the current link came from; `nil` while the timer runs.
+        private(set) var displayID: CGDirectDisplayID?
+
+        /// The view of the latest animation to start. The link follows its window's screen.
+        private weak var followedView: NSView?
+
+        /// The screen to use when the followed view is not on one. Injectable for tests.
+        var fallbackScreen: () -> NSScreen? = { NSScreen.main ?? NSScreen.screens.first }
+
+        /// The timer's highest rate. With no screen to match there is no point going faster.
+        static let maximumTimerRate: Float = 60
+
+        var isRunning: Bool { displayLink != nil || timer != nil }
+        #else
         var isRunning: Bool { displayLink != nil }
+        #endif
 
         var preferredFrameRateRange = Engine.defaultFrameRateRange {
-            didSet { displayLink?.preferredFrameRateRange = preferredFrameRateRange }
+            didSet {
+                displayLink?.preferredFrameRateRange = preferredFrameRateRange
+                #if os(macOS)
+                if timer != nil { reattach() }
+                #endif
+            }
         }
 
         func start(onFrame: @escaping (Frame) -> Void) {
-            guard displayLink == nil else { return }
+            guard !isRunning else { return }
+            self.onFrame = onFrame
+            clock.reset()
+            attach()
+            #if os(macOS)
+            let center = NotificationCenter.default
+            center.addObserver(
+                self, selector: #selector(retarget(_:)), name: NSWindow.didChangeScreenNotification, object: nil)
+            center.addObserver(
+                self, selector: #selector(screensChanged(_:)),
+                name: NSApplication.didChangeScreenParametersNotification, object: nil)
+            #endif
+        }
+
+        func stop() {
+            detach()
+            onFrame = nil
+            #if os(macOS)
+            NotificationCenter.default.removeObserver(self)
+            #endif
+        }
+
+        /// Creates the link, or on AppKit without a screen, the timer.
+        private func attach() {
             #if canImport(UIKit)
             let link = CADisplayLink(target: self, selector: #selector(update(_:)))
             #else
-            guard let screen = NSScreen.main ?? NSScreen.screens.first else {
-                Engine.logger.warning("No screen to take a display link from; animations wait for one")
+            guard let screen = currentScreen() else {
+                Engine.logger.info("No screen to take a display link from; a timer drives the animations")
+                startTimer()
                 return
             }
             let link = screen.displayLink(target: self, selector: #selector(update(_:)))
+            displayID = screen.displayID
             #endif
-            self.onFrame = onFrame
-            clock.reset()
             link.preferredFrameRateRange = preferredFrameRateRange
             link.add(to: .main, forMode: .common)
             displayLink = link
         }
 
-        func stop() {
+        private func detach() {
             displayLink?.invalidate()
             displayLink = nil
-            onFrame = nil
+            #if os(macOS)
+            timer?.invalidate()
+            timer = nil
+            displayID = nil
+            #endif
         }
 
         @objc private func update(_ link: CADisplayLink) {
@@ -150,7 +205,65 @@ public final class Engine {
             let frame = clock.frame(at: link.timestamp, nominalDuration: nominal)
             onFrame?(frame)
         }
+
+        #if os(macOS)
+        /// Takes frames from the screen `view` is on, from now on. Moves a
+        /// running link there if it came from another screen.
+        func follow(_ view: NSView) {
+            followedView = view
+            retarget()
+        }
+
+        private func currentScreen() -> NSScreen? {
+            followedView?.window?.screen ?? fallbackScreen()
+        }
+
+        /// Replaces the link or timer, keeping the clock: links and the timer
+        /// all count in `CACurrentMediaTime()`, so the next frame still
+        /// advances by the time elapsed since the last one.
+        private func reattach() {
+            guard isRunning else { return }
+            detach()
+            attach()
+        }
+
+        /// Moves the link if the screen it should come from has changed.
+        @objc private func retarget(_ notification: Notification? = nil) {
+            guard isRunning, currentScreen()?.displayID != displayID else { return }
+            reattach()
+        }
+
+        /// A screen was added, removed or reconfigured. A link from a screen
+        /// that changed may no longer fire, so take a new one.
+        @objc private func screensChanged(_ notification: Notification) {
+            reattach()
+        }
+
+        /// Runs at the preferred rate, else the maximum, capped at `maximumTimerRate`.
+        private func startTimer() {
+            let range = preferredFrameRateRange
+            let asked = [range.preferred ?? 0, range.maximum].first { $0 > 0 } ?? Self.maximumTimerRate
+            let rate = min(asked, Self.maximumTimerRate)
+            let interval = 1 / TimeInterval(rate)
+            let timer = Timer(
+                timeInterval: interval, target: self, selector: #selector(tick(_:)), userInfo: nil, repeats: true)
+            RunLoop.main.add(timer, forMode: .common)
+            self.timer = timer
+        }
+
+        @objc private func tick(_ timer: Timer) {
+            let frame = clock.frame(at: CACurrentMediaTime(), nominalDuration: timer.timeInterval)
+            onFrame?(frame)
+        }
+        #endif
     }
+
+    #if os(macOS)
+    /// Takes frames from the screen `view` is on, when the driver can.
+    func follow(_ view: NSView) {
+        (driver as? DisplayLinkDriver)?.follow(view)
+    }
+    #endif
 
     /// The engine every timeline runs on. Change its settings here.
     public static let shared = Engine()
@@ -313,4 +426,13 @@ public final class Engine {
         refreshDriver()
     }
 }
+
+#if os(macOS)
+extension NSScreen {
+    /// The display this screen shows. It stays the same when AppKit replaces the `NSScreen`.
+    var displayID: CGDirectDisplayID? {
+        deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID
+    }
+}
+#endif
 #endif

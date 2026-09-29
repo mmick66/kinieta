@@ -8,8 +8,8 @@ import Testing
 /// width and corner radius, custom key paths and constraint constants on a layer-backed `NSView`, through
 /// the public API, on the engine the UIKit platforms share.
 ///
-/// Frames are stepped by a `ManualFrameDriver`, except in the smoke test on
-/// the real display link at the bottom.
+/// Frames are stepped by a `ManualFrameDriver`, except in the tests of the
+/// real display link and its timer at the bottom.
 @Suite(.serialized, .usesSharedEngine)
 @MainActor
 struct AppKitTests {
@@ -600,10 +600,103 @@ struct AppKitTests {
         #expect(paused.state == .cancelled && paused.view == nil)
     }
 
+    /// Makes `driver` the source of frames for `Engine.shared` until the returned closure is called.
+    private func install(_ driver: Engine.DisplayLinkDriver) -> () -> Void {
+        let previous = Engine.shared.driver
+        Engine.shared.driver = driver
+        return { Engine.shared.driver = previous }
+    }
+
     @Test(.timeLimit(.minutes(1)))
-    func realDisplayLinkRunsATimelineToCompletion() async throws {
-        #expect(Engine.shared.driver is Engine.DisplayLinkDriver)
-        try #require(!NSScreen.screens.isEmpty, "AppKit hands out display links only for a screen")
+    func withoutAScreenATimerDrivesTheTimelineToCompletion() async {
+        let driver = Engine.DisplayLinkDriver()
+        driver.fallbackScreen = { nil }
+        let uninstall = install(driver)
+        defer { uninstall() }
+        let view = makeView()
+        var completed = false
+        let handle = view.animate(.x(100), duration: 0.2).onComplete { completed = true }
+        #expect(driver.isRunning && driver.timer != nil && driver.displayLink == nil)
+        await handle.finished()
+        #expect(handle.state == .finished && completed)
+        #expect(approx(view.frame.origin.x, 100))
+        #expect(!driver.isRunning && driver.timer == nil)
+    }
+
+    @Test func theTimerRunsAtThePreferredOrMaximumRateUpTo60Hz() throws {
+        let driver = Engine.DisplayLinkDriver()
+        driver.fallbackScreen = { nil }
+        driver.start { _ in }
+        defer { driver.stop() }
+        #expect(approx(try #require(driver.timer).timeInterval, 1.0 / 60))
+        driver.preferredFrameRateRange = CAFrameRateRange(minimum: 10, maximum: 30, preferred: 30)
+        #expect(approx(try #require(driver.timer).timeInterval, 1.0 / 30))
+        driver.preferredFrameRateRange = CAFrameRateRange(minimum: 10, maximum: 24, preferred: 0)
+        #expect(approx(try #require(driver.timer).timeInterval, 1.0 / 24))
+        driver.preferredFrameRateRange = .default
+        #expect(approx(try #require(driver.timer).timeInterval, 1.0 / 60))
+    }
+
+    @Test func aScreenAppearingReplacesTheTimerWithADisplayLink() throws {
+        let screen = try #require(NSScreen.screens.first, "AppKit hands out display links only for a screen")
+        let driver = Engine.DisplayLinkDriver()
+        var available: NSScreen?
+        driver.fallbackScreen = { available }
+        driver.start { _ in }
+        defer { driver.stop() }
+        #expect(driver.timer != nil && driver.displayLink == nil)
+
+        available = screen
+        NotificationCenter.default.post(name: NSApplication.didChangeScreenParametersNotification, object: NSApp)
+        #expect(driver.timer == nil && driver.displayLink != nil)
+        #expect(driver.displayID == screen.displayID)
+
+        available = nil
+        NotificationCenter.default.post(name: NSApplication.didChangeScreenParametersNotification, object: NSApp)
+        #expect(driver.timer != nil && driver.displayLink == nil && driver.displayID == nil)
+
+        driver.stop()
+        NotificationCenter.default.post(name: NSApplication.didChangeScreenParametersNotification, object: NSApp)
+        #expect(!driver.isRunning)
+    }
+
+    @Test func theLinkFollowsTheScreenOfTheLatestAnimatedViewsWindow() throws {
+        let window = NSWindow(
+            contentRect: CGRect(x: 100, y: 100, width: 50, height: 50), styleMask: .borderless,
+            backing: .buffered, defer: true)
+        window.isReleasedWhenClosed = false
+        let screen = try #require(window.screen, "the window needs a screen to follow")
+        let driver = Engine.DisplayLinkDriver()
+        driver.fallbackScreen = { nil }
+        let uninstall = install(driver)
+        defer { uninstall() }
+
+        let outside = makeView()
+        let first = outside.animate(.x(100), duration: 1)
+        #expect(driver.timer != nil)  // a view outside a window has no screen
+
+        let inside = makeView()
+        window.contentView!.addSubview(inside)
+        let handle = inside.animate(.x(100), duration: 1)
+        #expect(driver.displayLink != nil && driver.timer == nil)
+        #expect(driver.displayID == screen.displayID)
+
+        // A later animation of a view without a screen takes the driver back to the fallback.
+        let last = outside.animate(.alpha(0), duration: 1)
+        #expect(driver.timer != nil && driver.displayID == nil)
+
+        // The followed view's window reports a screen change.
+        window.contentView!.addSubview(outside)
+        NotificationCenter.default.post(name: NSWindow.didChangeScreenNotification, object: window)
+        #expect(driver.displayLink != nil && driver.displayID == screen.displayID)
+
+        for running in [first, handle, last] { running.cancel() }
+        #expect(!driver.isRunning)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func realDisplayLinkRunsATimelineToCompletion() async {
+        #expect(Engine.shared.driver is Engine.DisplayLinkDriver)  // or its timer, on a Mac without a screen
         let view = makeView()
         let handle = view.animate(.x(100), .alpha(0), duration: 0.2)
         await handle.finished()
