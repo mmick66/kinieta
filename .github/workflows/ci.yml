@@ -23,15 +23,22 @@ jobs:
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_26.6.app
       - name: Xcode version
-        run: xcodebuild -version
+        id: xcode
+        run: |
+          xcodebuild -version
+          echo "build=$(xcodebuild -version | awk '/Build version/ { print $3 }')" >> "$GITHUB_OUTPUT"
       - name: Verify xcbeautify
         run: command -v xcbeautify || brew install xcbeautify && xcbeautify --version
-      - name: Cache DerivedData
+      # Only the resolved package checkouts are cached. The key changes with the
+      # Xcode build or the manifest, not with every source edit, so a push restores
+      # it exactly and saves nothing new. Package.resolved is not committed, so a
+      # restored cache still resolves `from:` ranges to their latest versions.
+      - name: Cache Swift packages
         uses: actions/cache@v4
         with:
-          path: DerivedData
-          key: deriveddata-${{ runner.os }}-${{ hashFiles('Package.swift', 'Sources/**', 'Tests/**') }}
-          restore-keys: deriveddata-${{ runner.os }}-
+          path: DerivedData/SourcePackages
+          key: spm-${{ runner.os }}-xcode-${{ steps.xcode.outputs.build }}-${{ hashFiles('Package.swift') }}
+          restore-keys: spm-${{ runner.os }}-
       - name: Test package
         run: |
           set -o pipefail
