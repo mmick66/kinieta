@@ -63,6 +63,17 @@ final class GroupAction: Action {
         return true
     }
 
+    /// Ends a started group without running it again and returns the members
+    /// it was still running, for another driver to take over.
+    func releaseMembers() -> [Action] {
+        guard case .running(let live) = phase else { return [] }
+        let members = live + joining
+        phase = .running([])
+        joining = []
+        hasEnded = true
+        return members
+    }
+
     func update(_ frame: Engine.Frame) -> ActionResult {
         var actions: [Action]
         switch phase {

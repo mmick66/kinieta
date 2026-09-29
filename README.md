@@ -203,7 +203,7 @@ Kinieta.group(slide, spin)
 
 The group handle has no view of its own, so `animate` on it does nothing and, in debug builds, logs a warning; animate the grouped timelines instead.
 
-The group handle controls its members: `cancel()` cancels every timeline in the group (their `finished()` calls return), and `pause()` and `resume()` pause and resume them all. A member can still be cancelled or paused on its own, but cannot resume while its group is paused.
+The group handle controls its members: `cancel()` cancels every timeline in the group (their `finished()` calls return), and `pause()` and `resume()` pause and resume them all. A member can still be cancelled or paused on its own, but cannot resume while its group is paused. If you let go of a paused group handle, its members leave the group, still paused: resume or cancel each on its own handle.
 
 A timeline belongs to at most one group. `Kinieta.group` leaves out, with a logged warning, any timeline that is already in a group or has already finished or been cancelled; a timeline listed twice runs once. A member extended after it finished rejoins its group if the group is still running, and otherwise runs on its own.
 

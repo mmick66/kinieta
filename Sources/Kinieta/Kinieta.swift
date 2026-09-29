@@ -98,8 +98,18 @@ public final class Kinieta {
     /// A paused timeline, or one waiting forever, that loses its handle can
     /// never move again. The engine lets go of it once nothing is running.
     /// Deferred, since the engine may be mid-frame or releasing this handle itself.
+    ///
+    /// A paused group handle is one such timeline, but its members have handles
+    /// of their own that can still resume or cancel them: the engine takes over
+    /// the ones the group was still running, and they keep their state.
     deinit {
-        Task { @MainActor in Engine.shared.refreshDriver() }
+        let orphaned = state == .paused ? members : nil
+        Task { @MainActor in
+            for case let sequence as SequenceAction in orphaned?.releaseMembers() ?? [] {
+                sequence.handle?.leaveReleasedGroup()
+            }
+            Engine.shared.refreshDriver()
+        }
     }
 
     // MARK: - Building the timeline
@@ -285,6 +295,13 @@ public final class Kinieta {
         Engine.shared.add(mainSequence)
     }
 
+    /// Hands this timeline to the engine after its group handle was released
+    /// while paused. Does nothing if it has since joined another group or ended.
+    private func leaveReleasedGroup() {
+        guard owner == nil, state == .running || state == .paused else { return }
+        Engine.shared.add(mainSequence)
+    }
+
     // MARK: Easing
 
     /// Applies `easing` to the previous animation, including one wrapped by `delay`.
@@ -362,7 +379,8 @@ public final class Kinieta {
     ///
     /// While every timeline is paused the engine stops requesting frames.
     /// Releasing the handle of a paused timeline lets the engine release the
-    /// timeline too, since nothing can resume it.
+    /// timeline too, since nothing can resume it. Releasing a paused group
+    /// handle leaves the timelines in it paused, each resumable on its own handle.
     public func pause() {
         guard state == .running else { return }
         mainSequence.isPaused = true
@@ -372,7 +390,8 @@ public final class Kinieta {
     }
 
     /// Continues a paused timeline. Resuming a group handle also resumes every
-    /// timeline in the group; a timeline cannot resume while its group is paused.
+    /// timeline in the group; a timeline cannot resume while its group is paused,
+    /// unless the group's handle has been released.
     public func resume() {
         guard state == .paused, owner?.isPaused != true else { return }
         mainSequence.isPaused = false
@@ -433,7 +452,9 @@ public final class Kinieta {
     /// has no view, so `animate` on it does nothing.
     ///
     /// Cancelling, pausing or resuming the returned handle does the same to
-    /// every timeline in the group. A timeline belongs to at most one group:
+    /// every timeline in the group. If the handle is released while paused,
+    /// the timelines it was running stay paused and leave the group: resume
+    /// or cancel each on its own handle. A timeline belongs to at most one group:
     /// one that is already in a group, has finished or was cancelled is left
     /// out with a warning, and a timeline listed twice runs once.
     @discardableResult

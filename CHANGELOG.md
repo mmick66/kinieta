@@ -193,6 +193,11 @@ All notable changes to Kinieta are documented here. The format follows
   cancel it, so the engine now lets go of it once nothing else is animating.
   A completion block that captures the handle still keeps it, and its
   timeline, alive.
+- Releasing a paused group handle left the timelines in it stuck: their own
+  handles reported `.paused`, then `.running` after `resume()`, but nothing
+  drove them, so they never moved and their `finished()` never returned. The
+  engine now takes them over, still paused, and `resume()` or `cancel()` on
+  each handle works as it does outside a group.
 - When a view was deallocated only its running animation stopped: a
   following `wait` still held the display link, later completion blocks ran
   and the handle ended `.finished`. The whole timeline is now cancelled

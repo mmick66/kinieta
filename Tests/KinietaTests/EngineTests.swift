@@ -2276,6 +2276,95 @@ struct EngineTests {
         #expect(sequence == nil)
     }
 
+    @Test(.timeLimit(.minutes(1)))
+    func aMemberOfAPausedGroupRunsOnAfterTheGroupHandleIsReleased() async {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        let member = view.animate(.x(100), duration: 1)
+        let other = view.animate(.alpha(0.5), duration: 0.5)
+        weak var sequence: SequenceAction?
+        var completed = false
+        do {
+            let group = Kinieta.group(member, other) { completed = true }
+            sequence = group.mainSequence
+            frames.step(0.5)  // `other` finishes; `member` is halfway
+            group.pause()
+        }
+        // The engine takes `member` over, still paused, then drops the group.
+        while sequence != nil { await Task.yield() }
+        #expect(member.isPaused && other.state == .finished)
+        #expect(!frames.isRunning)
+        member.resume()
+        frames.step(0.25)
+        #expect(approx(view.frame.origin.x, 75, 0.5))
+        frames.step(0.25)
+        #expect(member.state == .finished && !completed)
+        #expect(approx(view.frame.origin.x, 100))
+        await member.finished()
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func aMemberExtendedWhileItsGroupIsPausedRunsOnAfterTheGroupHandleIsReleased() async {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        let member = view.animate(.x(100), duration: 0.5)
+        weak var sequence: SequenceAction?
+        do {
+            let group = Kinieta.group(member, view.animate(.alpha(0.5), duration: 1))
+            sequence = group.mainSequence
+            frames.step(0.5)
+            group.pause()
+            member.animate(.x(0), duration: 0.5)  // rejoins the paused group, paused
+            #expect(member.isPaused)
+        }
+        while sequence != nil { await Task.yield() }
+        member.resume()
+        frames.step(0.5)
+        #expect(member.state == .finished)
+        #expect(approx(view.frame.origin.x, 0))
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func aMemberRegroupedBeforeItsReleasedGroupIsHandedOverRunsOnce() async {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        let member = view.animate(.x(100), duration: 1)
+        weak var released: Action?
+        do {
+            let group = Kinieta.group(member)
+            frames.step(0.5)
+            released = group.mainSequence.currentAction
+            group.pause()
+        }
+        // Before the engine takes it over, a new group does.
+        let regrouped = Kinieta.group(member)
+        frames.step(0.5)  // paused: nothing moves, and the engine drops the released group
+        while released != nil { await Task.yield() }  // held until the engine has had its chance to take it
+        member.resume()
+        frames.step(0.25)
+        #expect(approx(view.frame.origin.x, 75, 0.5))  // driven once per frame
+        frames.step(0.25)
+        #expect(member.state == .finished && regrouped.state == .finished)
+    }
+
+    @Test func aRunningGroupWhoseHandleIsReleasedKeepsDrivingItsMembers() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        let member = view.animate(.x(100), duration: 1)
+        var completed = false
+        Kinieta.group(member) { completed = true }  // the handle is released at once
+        frames.step(0.5)
+        member.pause()
+        member.resume()
+        frames.step(0.5)
+        #expect(member.state == .finished && completed)
+        #expect(approx(view.frame.origin.x, 100))
+    }
+
     // MARK: Smoke test on the real display link
 
     @Test(.timeLimit(.minutes(1)))
