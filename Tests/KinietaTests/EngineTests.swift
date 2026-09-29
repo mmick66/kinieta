@@ -23,6 +23,12 @@ import UIKit
 @MainActor
 struct EngineTests {
 
+    // Tests must not depend on the host's accessibility settings: on Mac Catalyst,
+    // UIAccessibility reads the Mac's Reduce Motion switch, which some CI runners have on.
+    init() {
+        Engine.shared.isReduceMotionEnabled = { false }
+    }
+
     private func frame(_ dt: TimeInterval) -> Engine.Frame {
         Engine.Frame(dt)
     }
@@ -409,7 +415,7 @@ struct EngineTests {
 
     @Test func reduceMotionSnapsAnimationsButKeepsPauses() {
         Engine.shared.isReduceMotionEnabled = { true }
-        defer { Engine.shared.isReduceMotionEnabled = { UIAccessibility.isReduceMotionEnabled } }
+        defer { Engine.shared.isReduceMotionEnabled = { false } }
         let view = makeView()
         var completed = false
         let a = animation(view, [.x(100)], duration: 1.0, completion: { completed = true })
@@ -428,7 +434,7 @@ struct EngineTests {
 
     @Test func reduceMotionSnapsMotionButKeepsFadesAndColours() {
         Engine.shared.isReduceMotionEnabled = { true }
-        defer { Engine.shared.isReduceMotionEnabled = { UIAccessibility.isReduceMotionEnabled } }
+        defer { Engine.shared.isReduceMotionEnabled = { false } }
         #expect(Engine.shared.reduceMotionBehavior == .snapMotion)
         let view = makeView()
         view.backgroundColor = .black
@@ -453,7 +459,7 @@ struct EngineTests {
         Engine.shared.isReduceMotionEnabled = { true }
         Engine.shared.reduceMotionBehavior = .snapAll
         defer {
-            Engine.shared.isReduceMotionEnabled = { UIAccessibility.isReduceMotionEnabled }
+            Engine.shared.isReduceMotionEnabled = { false }
             Engine.shared.reduceMotionBehavior = .snapMotion
         }
         let view = makeView()
@@ -469,7 +475,7 @@ struct EngineTests {
         Engine.shared.isReduceMotionEnabled = { false }
         Engine.shared.reduceMotionBehavior = .snapAll
         defer {
-            Engine.shared.isReduceMotionEnabled = { UIAccessibility.isReduceMotionEnabled }
+            Engine.shared.isReduceMotionEnabled = { false }
             Engine.shared.reduceMotionBehavior = .snapMotion
         }
         let view = makeView()
@@ -490,7 +496,7 @@ struct EngineTests {
 
     @Test func reduceMotionKeepsTheTimingOfATimelineThatFades() {
         Engine.shared.isReduceMotionEnabled = { true }
-        defer { Engine.shared.isReduceMotionEnabled = { UIAccessibility.isReduceMotionEnabled } }
+        defer { Engine.shared.isReduceMotionEnabled = { false } }
         let frames = ManualFrameDriver.install()
         defer { frames.uninstall() }
         let view = makeView()

@@ -21,6 +21,12 @@ import UIKit
 @MainActor
 struct SnapshotTests {
 
+    // Tests must not depend on the host's accessibility settings: on Mac Catalyst,
+    // UIAccessibility reads the Mac's Reduce Motion switch, which some CI runners have on.
+    init() {
+        Engine.shared.isReduceMotionEnabled = { false }
+    }
+
     nonisolated static let progressPoints: [CGFloat] = [0, 0.25, 0.5, 0.75, 1]
 
     struct Case: Sendable {
