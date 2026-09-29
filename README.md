@@ -292,7 +292,7 @@ The display link only runs while something can move. When every timeline is paus
 
 #### macOS (experimental)
 
-On native macOS, Kinieta animates `NSView` with the same timeline API, but only `.x`, `.y` and `.alpha` so far. The other properties, colours and custom key paths are UIKit only for now and do not compile on AppKit.
+On native macOS, Kinieta animates `NSView` with the same timeline API, but only `.x`, `.y`, `.width`, `.height`, `.frame`, `.rotation` and `.alpha` so far. Colours, the layer properties and custom key paths are UIKit only for now and do not compile on AppKit.
 
 ```swift
 let square = NSView(frame: NSRect(x: 20, y: 20, width: 80, height: 80))
@@ -300,10 +300,10 @@ square.wantsLayer = true
 square.animate(.x(300), .alpha(0.5), duration: 0.6)
     .easeInOut()
     .then()
-    .animate(.y(200), duration: 0.4)
+    .animate(.y(200), .rotation(degrees: 90), duration: 0.4)
 ```
 
-`.x` and `.y` set the view's frame origin, in its superview's coordinates: from the bottom left unless the superview is flipped. `.alpha` sets `alphaValue`. Frames come from the main screen's display link, and Reduce Motion follows the Mac's accessibility setting.
+Geometry is in the superview's coordinates: from the bottom left unless the superview is flipped. `.x`, `.y`, `.width`, `.height` and `.frame` set the view's frame, and resizing keeps the origin where it is. `.rotation` sets `frameRotation` but turns the view about its centre, like `frameCenterRotation`, and reads back unwrapped, as on UIKit; positive angles turn counterclockwise unless the superview is flipped. Once a view is rotated, its `frame.origin` is the corner AppKit pivots on, so `.x`, `.y` and `.frame` stand for the frame the view would have unrotated, centred where it is: position, size and rotation animate independently, as they do on UIKit. `.alpha` sets `alphaValue`. Frames come from the main screen's display link, and Reduce Motion follows the Mac's accessibility setting.
 
 On other platforms, such as Linux, the sources compile away and the package builds as an empty module, which keeps tooling happy but is not a supported target. CI checks this on Linux (Swift 6.3): `swift build` succeeds and `swift test` runs 0 tests. Depending on Kinieta does not pull in swift-snapshot-testing or its swift-syntax dependency; SwiftPM resolves only dependencies of the products you use, and snapshot testing is used by the test target alone.
 

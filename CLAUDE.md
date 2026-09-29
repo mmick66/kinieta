@@ -94,13 +94,13 @@ The tvOS build (`-destination 'generic/platform=tvOS Simulator' build`), the vis
 ## Architecture Overview
 
 A UIKit animation library (iOS, tvOS, Mac Catalyst 17+, visionOS 1+), Swift 6, main-actor
-isolated, with experimental AppKit support (macOS 14+: `.x`, `.y`, `.alpha` only). Sources are
-behind `canImport(UIKit) || os(macOS)` (`os(macOS)` is false under Catalyst); `Platform.swift`
-aliases `PlatformView` to `UIView` or `NSView`. Colours (`ColorMath`) and `CustomProperty` are
-UIKit only. Linux builds an empty module.
+isolated, with experimental AppKit support (macOS 14+: position, size, `.rotation` and `.alpha`
+only). Sources are behind `canImport(UIKit) || os(macOS)` (`os(macOS)` is false under
+Catalyst); `Platform.swift` aliases `PlatformView` to `UIView` or `NSView`. Colours (`ColorMath`)
+and `CustomProperty` are UIKit only. Linux builds an empty module.
 
 - `View.swift`: `UIView.animate(...)` / `wait(_:)` entry points; geometry goes through
-  `center` and `bounds`, not `frame`.
+  `center` and `bounds`, not `frame`; on `NSView`, through the unrotated frame about its centre.
 - `Kinieta.swift`: the public handle. Each handle owns a `SequenceAction` (its timeline) and
   exposes the chain API (`easing`, `delay`, `then()`, `parallel()`, `repeat`, `onComplete`),
   control (`cancel`, `pause`, `resume`, `finished()`) and `Kinieta.group`.

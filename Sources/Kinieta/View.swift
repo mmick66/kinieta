@@ -155,21 +155,104 @@ nonisolated(unsafe) private var rotationStateKey: UInt8 = 0
 
 #else
 
-// AppKit has no `center`, and a view is positioned by its frame in its
-// superview's coordinates: from the bottom left unless the superview is
-// flipped. `.x` and `.y` write the frame's origin, which is what an AppKit
-// developer expects them to mean.
+// AppKit has no `center` or `transform`: a view is positioned by its frame in
+// its superview's coordinates, from the bottom left unless the superview is
+// flipped, and turned by `frameRotation` about the frame's origin. So that
+// position, size and rotation animate independently, as on UIKit, they work
+// on the frame the view would have unrotated, turned about its centre: `.x`
+// and `.y` are that frame's origin, which is exactly `frame.origin` while the
+// view is not rotated, and a rotation leaves the centre where it is.
 
 extension NSView {
 
     var x: CGFloat {
-        get { frame.origin.x }
-        set { setFrameOrigin(NSPoint(x: newValue, y: frame.origin.y)) }
+        get { untransformedOrigin.x }
+        set { untransformedOrigin.x = newValue }
     }
 
     var y: CGFloat {
-        get { frame.origin.y }
-        set { setFrameOrigin(NSPoint(x: frame.origin.x, y: newValue)) }
+        get { untransformedOrigin.y }
+        set { untransformedOrigin.y = newValue }
+    }
+
+    /// Resizing keeps the unrotated origin where it is, like `setFrameSize`
+    /// on a view that is not rotated.
+    var width: CGFloat {
+        get { frame.width }
+        set {
+            let origin = untransformedOrigin
+            setFrameSize(NSSize(width: newValue, height: frame.height))
+            untransformedOrigin = origin
+        }
+    }
+
+    var height: CGFloat {
+        get { frame.height }
+        set {
+            let origin = untransformedOrigin
+            setFrameSize(NSSize(width: frame.width, height: newValue))
+            untransformedOrigin = origin
+        }
+    }
+
+    /// `x`, `y`, `width` and `height` together: `frame` while the view is not
+    /// rotated. Sizes are taken as given, not standardised.
+    var untransformedFrame: CGRect {
+        get { CGRect(origin: untransformedOrigin, size: frame.size) }
+        set {
+            setFrameSize(newValue.size)
+            untransformedOrigin = newValue.origin
+        }
+    }
+
+    /// The frame's origin before `frameRotation` turns it about the frame's
+    /// centre. `frame.origin` is the corner the rotation pivots on, so the
+    /// two differ by the centre's offset from it, rotated or not; with no
+    /// rotation that difference is exactly zero.
+    private var untransformedOrigin: CGPoint {
+        get {
+            let offset = pivotOffset
+            return CGPoint(x: frame.origin.x + offset.dx, y: frame.origin.y + offset.dy)
+        }
+        set {
+            let offset = pivotOffset
+            setFrameOrigin(NSPoint(x: newValue.x - offset.dx, y: newValue.y - offset.dy))
+        }
+    }
+
+    /// The centre's offset from the frame's origin after the rotation, less
+    /// the same offset before it.
+    private var pivotOffset: CGVector {
+        let (halfWidth, halfHeight) = (frame.width / 2, frame.height / 2)
+        let angle = frameRotation.degreesToRadians
+        return CGVector(
+            dx: halfWidth * cos(angle) - halfHeight * sin(angle) - halfWidth,
+            dy: halfWidth * sin(angle) + halfHeight * cos(angle) - halfHeight)
+    }
+
+    /// Rotation about the view's centre in degrees, unwrapped: after rotating
+    /// to 720 it reads 720, not 0. It is `frameRotation`, which wraps, with
+    /// the origin moved so the centre stays put, like `frameCenterRotation`.
+    ///
+    /// The logical angle is remembered together with the `frameRotation` it
+    /// produced. If something else has rotated the view since, the angle is
+    /// read back from `frameRotation` instead.
+    var rotation: CGFloat {
+        get {
+            if let state = rotationState, state.frameRotation == frameRotation { return state.degrees }
+            return frameRotation
+        }
+        set {
+            let origin = untransformedOrigin
+            frameRotation = newValue
+            untransformedOrigin = origin
+            rotationState = RotationState(degrees: newValue, frameRotation: frameRotation)
+        }
+    }
+
+    private var rotationState: RotationState? {
+        get { objc_getAssociatedObject(self, &rotationStateKey) as? RotationState }
+        set { objc_setAssociatedObject(self, &rotationStateKey, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC) }
     }
 
     /// `alphaValue`, under UIKit's name, so both platforms share `.alpha`.
@@ -178,5 +261,19 @@ extension NSView {
         set { alphaValue = newValue }
     }
 }
+
+/// The last angle Kinieta gave a view, with the `frameRotation` AppKit stored
+/// for it, to tell whether it is still current.
+private final class RotationState {
+    let degrees: CGFloat
+    let frameRotation: CGFloat
+
+    init(degrees: CGFloat, frameRotation: CGFloat) {
+        self.degrees = degrees
+        self.frameRotation = frameRotation
+    }
+}
+
+nonisolated(unsafe) private var rotationStateKey: UInt8 = 0
 #endif
 #endif

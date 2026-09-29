@@ -27,17 +27,18 @@ public enum ColorInterpolation: Sendable, Equatable {
 public enum Property: Sendable {
     case x(CGFloat)
     case y(CGFloat)
-    // On AppKit only `.x`, `.y` and `.alpha` exist so far.
-    #if canImport(UIKit)
     case width(CGFloat)
     case height(CGFloat)
     case frame(CGRect)
-    #endif
     case alpha(CGFloat)
-    #if canImport(UIKit)
     /// Rotation about the view's centre, in degrees. Starts from the angle the
-    /// view was last rotated to, unwrapped, and keeps any scale in the transform.
+    /// view was last rotated to, unwrapped. On UIKit it keeps any scale in the
+    /// transform. On AppKit it sets `frameRotation` with the centre kept in
+    /// place, so positive angles turn counterclockwise unless the superview is
+    /// flipped.
     case rotation(degrees: CGFloat)
+    // On AppKit, colours, layer properties and custom properties do not exist yet.
+    #if canImport(UIKit)
     /// `interpolation` overrides `Engine.shared.colorInterpolation` for this property.
     case background(UIColor, interpolation: ColorInterpolation? = nil)
     case borderColor(UIColor, interpolation: ColorInterpolation? = nil)
@@ -64,11 +65,11 @@ public enum Property: Sendable {
         case .x: return .x
         case .y: return .y
         case .alpha: return .alpha
-        #if canImport(UIKit)
         case .width: return .width
         case .height: return .height
         case .frame: return .frame
         case .rotation: return .transform
+        #if canImport(UIKit)
         case .background: return .background
         case .borderColor: return .borderColor
         case .borderWidth: return .borderWidth
@@ -82,9 +83,7 @@ public enum Property: Sendable {
     /// over on its own. `.frame` writes position and size as `.x`, `.y`,
     /// `.width` and `.height`, so a later `.x` takes only the position.
     var keys: [Key] {
-        #if canImport(UIKit)
         if case .frame = self { return [.x, .y, .width, .height] }
-        #endif
         return [key]
     }
 
@@ -100,24 +99,22 @@ public enum Property: Sendable {
 
     /// The name used in descriptions and log messages.
     var name: String {
-        #if canImport(UIKit)
         switch self {
+        #if canImport(UIKit)
         case .extended(let custom): return custom.name
-        case .rotation: return "rotation"
-        default: break
-        }
         #endif
-        return String(describing: key)
+        case .rotation: return "rotation"
+        default: return String(describing: key)
+        }
     }
 
     /// Whether the property moves, resizes or rotates something. Under
     /// Reduce Motion these snap; fades and colour changes still animate.
     var isMotion: Bool {
         switch self {
-        case .x, .y: return true
+        case .x, .y, .width, .height, .frame, .rotation: return true
         case .alpha: return false
         #if canImport(UIKit)
-        case .width, .height, .frame, .rotation: return true
         case .background, .borderColor, .borderWidth, .cornerRadius: return false
         case .extended(let custom): return custom.isMotion
         #endif
@@ -139,7 +136,6 @@ public enum Property: Sendable {
             return lerp(from: view.y, to: to) { $0.y = $1 }
         case .alpha(let to):
             return lerp(from: view.alpha, to: to) { $0.alpha = $1 }
-        #if canImport(UIKit)
         case .width(let to):
             return lerp(from: view.width, to: to) { $0.width = max($1, 0) }
         case .height(let to):
@@ -151,6 +147,7 @@ public enum Property: Sendable {
             }
         case .rotation(let to):
             return lerp(from: view.rotation, to: to) { $0.rotation = $1 }
+        #if canImport(UIKit)
         case .borderWidth(let to):
             return lerp(from: view.layer.borderWidth, to: to) { $0.layer.borderWidth = max($1, 0) }
         case .cornerRadius(let to):
@@ -174,7 +171,6 @@ public enum Property: Sendable {
     /// One transformation per key in `keys`, in the same order.
     @MainActor
     func transformations(for view: PlatformView, defaultColorInterpolation: ColorInterpolation) -> [Transformation] {
-        #if canImport(UIKit)
         guard case .frame(let target) = self else {
             return [transformation(for: view, defaultColorInterpolation: defaultColorInterpolation)]
         }
@@ -187,9 +183,6 @@ public enum Property: Sendable {
             lerp(from: view.width, to: to.size.width) { $0.width = max($1, 0) },
             lerp(from: view.height, to: to.size.height) { $0.height = max($1, 0) },
         ]
-        #else
-        return [transformation(for: view, defaultColorInterpolation: defaultColorInterpolation)]
-        #endif
     }
 
     private func lerp<T: Interpolatable>(from: T, to: T, apply: @escaping (PlatformView, T) -> Void) -> Transformation {
