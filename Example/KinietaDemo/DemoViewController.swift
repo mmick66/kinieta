@@ -3,8 +3,9 @@ import UIKit
 
 /// A gallery of what Kinieta does: every easing preset on its own track, the
 /// three colour interpolation modes side by side, a composed timeline, one
-/// handle driven by Pause, Resume and Cancel buttons, and a view placed by
-/// Auto Layout that animates its constraint.
+/// handle driven by Pause, Resume and Cancel buttons, a square whose movement
+/// newer animations take over mid-flight, and a view placed by Auto Layout
+/// that animates its constraint.
 final class DemoViewController: UIViewController {
 
     private let stack = UIStackView()
@@ -22,6 +23,10 @@ final class DemoViewController: UIViewController {
     private let controlsSquare = UIView()
     private let controlsStatus = UILabel()
     private var controlsHandle: Kinieta?
+    private let interruptTrack = UIView()
+    private let interruptSquare = UIView()
+    private let interruptStatus = UILabel()
+    private var interruptHandles: [Kinieta] = []
     private let autoLayoutTrack = UIView()
     private let autoLayoutSquare = UIView()
     private var autoLayoutCentre: NSLayoutConstraint!
@@ -185,6 +190,34 @@ final class DemoViewController: UIViewController {
         updateControlButtons()
 
         addHeader(
+            "Interrupting",
+            detail: "Play starts a 3 s move with a colour change. Tap Left or Right while it runs: "
+                + "the new animation takes x over from where the square is, and the colour keeps going.")
+        interruptTrack.backgroundColor = .secondarySystemFill
+        interruptTrack.layer.cornerRadius = 8
+        interruptTrack.heightAnchor.constraint(equalToConstant: 44).isActive = true
+        interruptSquare.backgroundColor = pink
+        interruptSquare.layer.cornerRadius = 6
+        interruptSquare.frame = CGRect(x: 6, y: 6, width: 32, height: 32)
+        interruptTrack.addSubview(interruptSquare)
+        stack.addArrangedSubview(interruptTrack)
+        let directions = UIStackView()
+        directions.distribution = .fillEqually
+        directions.spacing = 8
+        for (title, action) in [("Left", #selector(moveLeft)), ("Right", #selector(moveRight))] {
+            let button = UIButton(configuration: .gray())
+            button.configuration?.title = title
+            button.addTarget(self, action: action, for: .touchUpInside)
+            directions.addArrangedSubview(button)
+        }
+        stack.addArrangedSubview(directions)
+        interruptStatus.font = .preferredFont(forTextStyle: .footnote)
+        interruptStatus.textColor = .secondaryLabel
+        interruptStatus.numberOfLines = 0
+        interruptStatus.text = "Idle"
+        stack.addArrangedSubview(interruptStatus)
+
+        addHeader(
             "Auto Layout",
             detail: "The square is centred by a constraint, and .constant animates its constant. "
                 + "Rotate while it plays: the track resizes and the square keeps its place and keeps going.")
@@ -273,8 +306,19 @@ final class DemoViewController: UIViewController {
     }
 
     /// Everything but the Auto Layout row, which rotation leaves running.
+    ///
+    /// Pressed again while the gallery plays, it starts over from where every
+    /// view is instead of putting them back. The old timelines are cancelled
+    /// first: a newer animation takes a property over, but a later step of an
+    /// old timeline would take it back.
     private func playGallery() {
-        resetGallery()
+        if running.contains(where: { $0.state == .running || $0.state == .paused }) {
+            for handle in running { handle.cancel() }
+            running.removeAll()
+            resetControls()
+        } else {
+            resetGallery()
+        }
         view.layoutIfNeeded()
         for entry in easingTracks {
             let end = entry.track.bounds.width - 38
@@ -314,7 +358,47 @@ final class DemoViewController: UIViewController {
             self?.timelineStatus.text = "Done: three timelines, one completion"
         }
         running.append(group)
+        playInterrupt()
         playControls()
+    }
+
+    // MARK: Interrupting
+
+    /// Cancels the previous run's handles, if any, but leaves the square where it is.
+    private func playInterrupt() {
+        for handle in interruptHandles { handle.cancel() }
+        interruptHandles.removeAll()
+        let end = interruptTrack.bounds.width - 38
+        interruptStatus.text = "Running…"
+        let handle =
+            interruptSquare
+            .animate(.x(end), .background(cyan), duration: 3.0).easeInOut(.sine)
+            .onComplete { [weak self] in
+                self?.interruptStatus.text = "The 3 s animation completed: it kept the colour change to the end"
+            }
+        interruptHandles.append(handle)
+    }
+
+    @objc private func moveLeft() {
+        move(to: 6)
+    }
+
+    @objc private func moveRight() {
+        move(to: interruptTrack.bounds.width - 38)
+    }
+
+    /// Nothing is cancelled: the newest animation of `x` owns it until it ends.
+    private func move(to x: CGFloat) {
+        interruptHandles.removeAll { $0.state == .finished }
+        interruptHandles.append(interruptSquare.animate(.x(x), duration: 0.8).easeOut(.cubic))
+    }
+
+    private func resetInterrupt() {
+        for handle in interruptHandles { handle.cancel() }
+        interruptHandles.removeAll()
+        interruptSquare.frame = CGRect(x: 6, y: 6, width: 32, height: 32)
+        interruptSquare.backgroundColor = pink
+        interruptStatus.text = "Idle"
     }
 
     // MARK: Auto Layout
@@ -474,6 +558,7 @@ final class DemoViewController: UIViewController {
             square.alpha = 1
         }
         timelineStatus.text = "Idle"
+        resetInterrupt()
         resetControls()
     }
 

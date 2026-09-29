@@ -216,6 +216,20 @@ A handle can be extended at any time, not only while chaining. Actions added to 
 
 Handles hold their view weakly and never keep it alive. When the view is deallocated the timeline is cancelled on the next frame: the rest of it does not run, no further completion blocks are called, and the handle ends `.cancelled`.
 
+### Interrupting
+
+A newer animation of a property takes it over from an older one still running on the same view, as UIKit does with `beginFromCurrentState`. The newer animation starts from the value on screen, and the older one stops writing that property but keeps animating the rest:
+
+```swift
+view.animate(.x(300), .alpha(0), duration: 2.0)
+// A second later:
+view.animate(.x(0), duration: 0.5)   // x turns back from about 150; alpha keeps fading to 0
+```
+
+Nothing has to be cancelled. The older animation keeps its duration, so its completion block runs when the properties it kept finish, or at its scheduled end if all were taken, and the rest of its timeline stays on schedule. A later step of that timeline takes the property back when it starts, so cancel the older handle if you are replacing the whole timeline.
+
+`.frame` counts as `.x`, `.y`, `.width` and `.height`, so a newer `.x` takes only the position from an older `.frame`, and a newer `.frame` takes all four from older animations. A `.custom` key path is matched by the key path itself, and a `.constant` by its constraint, whichever view's timeline animates it.
+
 ### Colour
 
 Colours interpolate through the perceptual CIE LCH space by default, with hue taking the shorter arc. Choose per property or change the engine default. The endpoints are assigned exactly as given, so a dynamic colour such as `.systemBackground` keeps adapting to Dark Mode after the animation, and a Display P3 colour keeps its gamut. The frames in between are clipped to sRGB only when both endpoints are in sRGB; between Display P3 colours they stay in Display P3, so a wide-gamut animation keeps its saturation on the way instead of jumping to it on the last frame. Fading to or from `.clear` fades alpha instead of passing through black.
@@ -291,7 +305,7 @@ Invalid durations and frame rate ranges, and timelines left out of a `Kinieta.gr
 
 ## Example app
 
-`Example/KinietaDemo.xcodeproj` is a gallery: every easing preset on its own track, the three colour spaces side by side, a composed timeline with a grouped completion, a Controls section that pauses, resumes and cancels one handle and reports when `await finished()` returns, and an Auto Layout row whose square is centred by a constraint and swings by animating its constant. It lays out within the safe area and replays at the new size when the device rotates, since Kinieta sets frames that Auto Layout does not update; the Auto Layout row instead keeps playing through the rotation. Launch it with the `-autoplay` argument to start playing on launch.
+`Example/KinietaDemo.xcodeproj` is a gallery: every easing preset on its own track, the three colour spaces side by side, a composed timeline with a grouped completion, a Controls section that pauses, resumes and cancels one handle and reports when `await finished()` returns, an Interrupting row whose Left and Right buttons take a square's position over mid-flight while its colour change carries on, and an Auto Layout row whose square is centred by a constraint and swings by animating its constant. It lays out within the safe area and replays at the new size when the device rotates, since Kinieta sets frames that Auto Layout does not update; the Auto Layout row instead keeps playing through the rotation. Pressing Play while the gallery runs starts it again from where the views are. Launch it with the `-autoplay` argument to start playing on launch.
 
 ## Development
 

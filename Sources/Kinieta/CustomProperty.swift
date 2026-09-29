@@ -23,7 +23,22 @@ public struct CustomProperty: @unchecked Sendable {
     let key: AnyHashable
     let name: String
     let isMotion: Bool
+    /// The object written when it is not the view: a constraint's identity.
+    /// A newer animation of the same key on this object takes it over,
+    /// whichever view's timeline runs it.
+    let target: ObjectIdentifier?
     let transformation: Builder
+
+    init(
+        key: AnyHashable, name: String, isMotion: Bool, target: ObjectIdentifier? = nil,
+        transformation: @escaping Builder
+    ) {
+        self.key = key
+        self.name = name
+        self.isMotion = isMotion
+        self.target = target
+        self.transformation = transformation
+    }
 
     fileprivate static let logger = Logger(subsystem: "Kinieta", category: "Property")
 }
@@ -120,7 +135,7 @@ public extension Property {
         let identifier = ObjectIdentifier(constraint)
         let name = "constant(\(constraint.identifier ?? "\(identifier)"))"
         return .extended(
-            CustomProperty(key: identifier, name: name, isMotion: true) { [weak constraint] _, _ in
+            CustomProperty(key: identifier, name: name, isMotion: true, target: identifier) { [weak constraint] _, _ in
                 guard let constraint else { return nil }
                 let from = constraint.constant
                 let container = constraint.layoutContainer

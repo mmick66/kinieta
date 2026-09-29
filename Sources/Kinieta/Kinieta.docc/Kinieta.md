@@ -57,6 +57,11 @@ laying out its views every frame so a constrained view does not snap back.
 
 ### Controlling it
 
+A newer animation of a property takes it over from an older one still running
+on the same view, starting from the value on screen. The older animation stops
+writing that property, keeps animating the rest and runs its completion block
+when its duration ends. `.frame` counts as `.x`, `.y`, `.width` and `.height`.
+
 - ``Kinieta/State``
 - ``Kinieta/state``
 

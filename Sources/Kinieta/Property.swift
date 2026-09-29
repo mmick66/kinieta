@@ -63,6 +63,24 @@ public enum Property: Sendable {
         }
     }
 
+    /// The keys the property writes, each of which a newer animation can take
+    /// over on its own. `.frame` writes position and size as `.x`, `.y`,
+    /// `.width` and `.height`, so a later `.x` takes only the position.
+    var keys: [Key] {
+        switch self {
+        case .frame: return [.x, .y, .width, .height]
+        default: return [key]
+        }
+    }
+
+    /// The object whose `keys` the property writes: the view, or the
+    /// constraint of a `.constant`, which any view's timeline can animate.
+    @MainActor
+    func owner(on view: UIView) -> ObjectIdentifier {
+        if case .extended(let custom) = self, let target = custom.target { return target }
+        return ObjectIdentifier(view)
+    }
+
     /// The name used in descriptions and log messages.
     var name: String {
         switch self {
@@ -100,11 +118,10 @@ public enum Property: Sendable {
             return lerp(from: view.width, to: to) { $0.width = max($1, 0) }
         case .height(let to):
             return lerp(from: view.height, to: to) { $0.height = max($1, 0) }
-        case .frame(let to):
-            // `size`, not `width`/`height`: those standardise a negative overshoot.
-            return lerp(from: view.untransformedFrame, to: to.standardized) { view, rect in
-                let size = CGSize(width: max(rect.size.width, 0), height: max(rect.size.height, 0))
-                view.untransformedFrame = CGRect(origin: rect.origin, size: size)
+        case .frame:
+            let parts = transformations(for: view, defaultColorInterpolation: defaultColorInterpolation)
+            return { view, factor in
+                for part in parts { part(view, factor) }
             }
         case .alpha(let to):
             return lerp(from: view.alpha, to: to) { $0.alpha = $1 }
@@ -127,6 +144,23 @@ public enum Property: Sendable {
         case .extended(let custom):
             return custom.transformation(view, defaultColorInterpolation) ?? { _, _ in }
         }
+    }
+
+    /// One transformation per key in `keys`, in the same order.
+    @MainActor
+    func transformations(for view: UIView, defaultColorInterpolation: ColorInterpolation) -> [Transformation] {
+        guard case .frame(let target) = self else {
+            return [transformation(for: view, defaultColorInterpolation: defaultColorInterpolation)]
+        }
+        // Each side on its own, from the frame before the transform. The size is
+        // clamped, not standardised, when an easing overshoots below zero.
+        let to = target.standardized
+        return [
+            lerp(from: view.x, to: to.origin.x) { $0.x = $1 },
+            lerp(from: view.y, to: to.origin.y) { $0.y = $1 },
+            lerp(from: view.width, to: to.size.width) { $0.width = max($1, 0) },
+            lerp(from: view.height, to: to.size.height) { $0.height = max($1, 0) },
+        ]
     }
 
     private func lerp<T: Interpolatable>(from: T, to: T, apply: @escaping (UIView, T) -> Void) -> Transformation {

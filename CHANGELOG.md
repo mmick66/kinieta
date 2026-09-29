@@ -8,6 +8,15 @@ All notable changes to Kinieta are documented here. The format follows
 
 ### Added
 
+- A newer animation of a property takes it over from an older one still
+  running on the same view, like UIKit's `beginFromCurrentState`. It starts
+  from the value on screen; the older animation stops writing that property,
+  keeps animating the rest and runs its completion block on schedule. Before,
+  both wrote the property every frame. `.frame` counts as `.x`, `.y`, `.width`
+  and `.height`, and a `.constant` is matched by its constraint. See
+  "Interrupting" in the README. In the example app, pressing Play again
+  continues from where the views are, and an Interrupting row retargets a
+  moving square.
 - `Property.custom(_:to:isMotion:)` animates any writable key path of a
   view, such as `\.layer.shadowOpacity`, `\.tintColor` or
   `\UILabel.textColor`, to an `Interpolatable` value. Colours go through the

@@ -99,7 +99,8 @@ isolated. All sources are behind `canImport(UIKit)`.
   exposes the chain API (`easing`, `delay`, `then()`, `parallel()`, `repeat`, `onComplete`),
   control (`cancel`, `pause`, `resume`, `finished()`) and `Kinieta.group`.
 - Actions: the `Action` protocol, with `SequenceAction` (one after another), `GroupAction`
-  (together), `PropertyAnimation` (interpolates `Property` values on one view) and
+  (together), `PropertyAnimation` (interpolates `Property` values on one view; its `owners`
+  table gives each view and `Property.Key` to the newest animation started on it) and
   `PauseAction` (`wait`; `delay` is a pause sequenced before the action). A sequence's
   `ActionQueue` holds `ActionType` descriptions that become live actions only when they start,
   which is why chain calls can still edit actions that have not started.

@@ -265,7 +265,12 @@ public final class Engine {
         }
     }
 
+    /// Counts the frames the engine has run, so an animation can tell whether
+    /// it has already written the view during the current one.
+    private(set) var frameNumber = 0
+
     private func update(with frame: Frame) {
+        frameNumber &+= 1
         var finished = Set<ObjectIdentifier>()
         for action in actions where action.update(frame).isFinished {
             finished.insert(ObjectIdentifier(action))
