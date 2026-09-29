@@ -51,6 +51,133 @@ struct CustomPropertyTests {
         #expect(ColorMath.extractComponents(of: mid) == ColorMath.extractComponents(of: lch(0.5)))
     }
 
+    // MARK: Transforms
+
+    @Test func aTransformRotatesWithoutShrinking() {
+        let quarter = CGAffineTransform(rotationAngle: .pi / 2)
+        let mid = CGAffineTransform.identity.interpolated(to: quarter, progress: 0.5)
+        // Entry by entry it would be scaled by cos 45°, about 0.71.
+        #expect(approx(mid, CGAffineTransform(rotationAngle: .pi / 4)))
+        #expect(approx(mid.a * mid.d - mid.b * mid.c, 1))
+    }
+
+    @Test func aTransformTurnsTheShorterWayRound() {
+        let from = CGAffineTransform(rotationAngle: 170 * .pi / 180)
+        let to = CGAffineTransform(rotationAngle: -170 * .pi / 180)
+        #expect(approx(from.interpolated(to: to, progress: 0.5), CGAffineTransform(rotationAngle: .pi)))
+        #expect(
+            approx(to.interpolated(to: from, progress: 0.25), CGAffineTransform(rotationAngle: -175 * .pi / 180)))
+    }
+
+    @Test func aTransformInterpolatesEachPartAndKeepsItsEnds() {
+        func transform(scale: CGFloat, degrees: CGFloat, x: CGFloat) -> CGAffineTransform {
+            CGAffineTransform(scaleX: scale, y: scale * 2)
+                .concatenating(CGAffineTransform(rotationAngle: degrees * .pi / 180))
+                .concatenating(CGAffineTransform(translationX: x, y: -x))
+        }
+        let from = transform(scale: 1, degrees: 10, x: 0), to = transform(scale: 3, degrees: 70, x: 100)
+        #expect(approx(from.interpolated(to: to, progress: 0.5), transform(scale: 2, degrees: 40, x: 50)))
+        // An overshoot extrapolates every part.
+        #expect(approx(from.interpolated(to: to, progress: 1.5), transform(scale: 4, degrees: 100, x: 150)))
+        #expect(from.interpolated(to: to, progress: 0) == from)
+        #expect(from.interpolated(to: to, progress: 1) == to)
+    }
+
+    @Test func anyTransformSurvivesItsDecomposition() {
+        let transforms = [
+            CGAffineTransform(a: 1, b: 0.5, c: 0.25, d: 1, tx: 3, ty: 4),
+            CGAffineTransform(a: -2, b: 1, c: 0.5, d: 3, tx: 0, ty: -7),
+            CGAffineTransform(a: 0.3, b: -1.2, c: 2, d: 0.1, tx: 1, ty: 1),
+            CGAffineTransform(a: 0, b: 0, c: 1, d: 2, tx: 5, ty: 0),
+            CGAffineTransform(a: 0, b: 0, c: 0, d: 0, tx: 5, ty: 6),
+            CGAffineTransform(scaleX: -1, y: -1),
+        ]
+        for t in transforms {
+            #expect(approx(t.interpolated(to: t, progress: 0.5), t), "\(t)")
+        }
+    }
+
+    @Test func aFlipScalesThroughZeroInsteadOfTurning() {
+        let flipX = CGAffineTransform(scaleX: -1, y: 1), flipY = CGAffineTransform(scaleX: 1, y: -1)
+        #expect(
+            approx(
+                CGAffineTransform.identity.interpolated(to: flipX, progress: 0.5), CGAffineTransform(scaleX: 0, y: 1)))
+        #expect(
+            approx(
+                CGAffineTransform.identity.interpolated(to: flipY, progress: 0.5), CGAffineTransform(scaleX: 1, y: 0)))
+        // A flip in x is a flip in y and half a turn: going from one to the other turns, not squashes.
+        let mid = flipX.interpolated(to: flipY, progress: 0.5)
+        #expect(
+            approx(mid, CGAffineTransform(scaleX: 1, y: -1).concatenating(CGAffineTransform(rotationAngle: .pi / 2))))
+    }
+
+    @Test func aTransformGrowingFromNothingDoesNotSpin() {
+        let target = CGAffineTransform(rotationAngle: .pi / 2)
+        let mid = CGAffineTransform(scaleX: 0, y: 0).interpolated(to: target, progress: 0.5)
+        #expect(
+            approx(mid, CGAffineTransform(scaleX: 0.5, y: 0.5).concatenating(CGAffineTransform(rotationAngle: .pi / 2)))
+        )
+    }
+
+    @Test func aViewTransformAnimatesThroughItsKeyPathAndIsMotion() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = UIView(frame: CGRect(x: 10, y: 20, width: 100, height: 50))
+        let target = CGAffineTransform(scaleX: 3, y: 3).rotated(by: .pi / 2)
+        view.animate(.custom(\.transform, to: target), duration: 1)
+        frames.step(0.5)
+        #expect(approx(view.transform, CGAffineTransform(scaleX: 2, y: 2).rotated(by: .pi / 4)))
+        // The transform leaves the untransformed geometry alone.
+        #expect(view.center == CGPoint(x: 60, y: 45))
+        #expect(view.bounds.size == CGSize(width: 100, height: 50))
+        frames.step(0.5)
+        #expect(view.transform == target)
+        #expect(Property.custom(\.transform, to: .identity).isMotion)
+        #expect(!Property.custom(\.transform, to: .identity, isMotion: false).isMotion)
+    }
+
+    // MARK: CGColor
+
+    @Test func aCGColorInterpolatesLikeItsUIColor() throws {
+        let pink = CGColor(srgbRed: 1, green: 0.44, blue: 0.75, alpha: 1)
+        let cyan = CGColor(srgbRed: 0, green: 0.8, blue: 0.9, alpha: 1)
+        #expect(pink.interpolated(to: cyan, progress: 0) === pink)
+        #expect(pink.interpolated(to: cyan, progress: 1) === cyan)
+        #expect(pink.interpolated(to: cyan, progress: -0.4) === pink)
+        let mid = UIColor(cgColor: pink.interpolated(to: cyan, progress: 0.5))
+        let reference = UIColor(cgColor: pink).interpolated(to: UIColor(cgColor: cyan), progress: 0.5)
+        #expect(ColorMath.extractComponents(of: mid) == ColorMath.extractComponents(of: reference))
+    }
+
+    @Test func aShadowColourAnimatesThroughTheEngineInterpolation() throws {
+        Engine.shared.colorInterpolation = .rgb
+        defer { Engine.shared.colorInterpolation = .lch }
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = UIView()
+        view.layer.shadowColor = UIColor.red.cgColor
+        let blue = UIColor.blue.cgColor
+        view.animate(.custom(\.layer.shadowColor, to: blue), duration: 1)
+        frames.step(0.5)
+        let mid = try #require(view.layer.shadowColor.flatMap { ColorMath.extractComponents(of: UIColor(cgColor: $0)) })
+        #expect(approx(mid.red, 0.5) && approx(mid.green, 0) && approx(mid.blue, 0.5))
+        frames.step(0.5)
+        #expect(view.layer.shadowColor === blue)
+        #expect(!Property.custom(\.layer.shadowColor, to: blue).isMotion)
+    }
+
+    @Test func aMissingCGColorFadesInFromClear() throws {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = UIView()
+        view.layer.shadowColor = nil
+        view.animate(.custom(\.layer.shadowColor, to: UIColor.blue.cgColor), duration: 1)
+        frames.step(0.5)
+        let mid = try #require(view.layer.shadowColor.flatMap { ColorMath.extractComponents(of: UIColor(cgColor: $0)) })
+        #expect(approx(mid.alpha, 0.5, 1e-3))
+        #expect(approx(mid.blue, 1, 1e-3) && approx(mid.red, 0, 1e-3))
+    }
+
     @Test func aTypeOfYourOwnAnimatesThroughAKeyPath() {
         let frames = ManualFrameDriver.install()
         defer { frames.uninstall() }
@@ -280,6 +407,11 @@ struct CustomPropertyTests {
         container.layoutIfNeeded()
         return (container, child, leading)
     }
+}
+
+/// Every entry within 1e-9.
+private func approx(_ a: CGAffineTransform, _ b: CGAffineTransform) -> Bool {
+    [a.a - b.a, a.b - b.b, a.c - b.c, a.d - b.d, a.tx - b.tx, a.ty - b.ty].allSatisfy { abs($0) < 1e-9 }
 }
 
 /// A value type Kinieta knows nothing about.

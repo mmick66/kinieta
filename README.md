@@ -73,6 +73,7 @@ view.animate(.frame(target), .alpha(0), duration: 0.3)
 | `.borderWidth` | `CGFloat` in points | `layer.borderWidth` |
 | `.cornerRadius` | `CGFloat` in points | `layer.cornerRadius` |
 | `.custom(keyPath, to:)` | any `Interpolatable` | the view's key path; see [Custom properties](#custom-properties) |
+| `.custom(\.transform, to:)` | `CGAffineTransform` | `transform` as a whole, decomposed into translation, rotation, scale and shear |
 | `.constant(constraint, to:)` | `CGFloat` in points | an `NSLayoutConstraint`'s `constant`, laying out its views each frame |
 
 Position and size, `.frame` included, are interpolated through `center` and `bounds`, so they stay correct while a rotation is applied: on a rotated view `.frame` sets the rect it would occupy unrotated, not UIKit's bounding-box `frame`. Rotation is not wrapped: after `.rotation(degrees: 720)`, animating to `810` turns a quarter, and going from `270` to `360` turns 90°, not 450°. Sizes, border width and corner radius never go below zero, even with an overshooting curve.
@@ -97,7 +98,7 @@ button.animate(.custom(\.tintColor, to: .systemGreen), duration: 0.5)
 
 The starting value is read when the animation starts, like every property. Colours animate exactly like `.background`: through `Engine.shared.colorInterpolation`, resolved against the view's own traits, with the target assigned as given. An optional key path whose current value is `nil` fades a colour in from clear and switches any other value on the first frame. A key path rooted in a subclass, such as `\UILabel.textColor`, does nothing on a view of another class and logs a warning. Listing the same key path twice in one animation keeps the last value, like the built-in properties. `.custom` and `.constant` are main-actor functions, like `animate`.
 
-The value must conform to `Interpolatable`. `CGFloat`, `Double`, `Float`, `CGPoint`, `CGSize`, `CGRect` and `UIColor` do; conform your own types with one method:
+The value must conform to `Interpolatable`. `CGFloat`, `Double`, `Float`, `CGPoint`, `CGSize`, `CGRect`, `CGAffineTransform`, `UIColor` and `CGColor` do; conform your own types with one method:
 
 ```swift
 extension CGVector: Interpolatable {
@@ -111,7 +112,18 @@ extension CGVector: Interpolatable {
 
 Progress runs from 0 to 1, and past either end under an overshooting easing such as `back`.
 
-Custom key paths count as fades for [Reduce Motion](#reduce-motion) and keep animating. Pass `isMotion: true` for one that moves, resizes, rotates or scales something, so it snaps: `.custom(\.bounds, to: target, isMotion: true)`.
+A `CGColor`, such as `\.layer.shadowColor`, animates like a `UIColor`, through the engine's colour interpolation.
+
+A `CGAffineTransform` is not blended entry by entry, which would shrink a view halfway through a quarter turn. Like Core Animation, Kinieta splits each end into a translation, a rotation, a scale on each axis and a shear, interpolates those and puts them back together:
+
+```swift
+view.animate(.custom(\.transform, to: CGAffineTransform(scaleX: 1.5, y: 1.5).rotated(by: .pi / 4)), duration: 0.4)
+view.animate(.custom(\.transform, to: .identity), duration: 0.4)
+```
+
+The rotation takes the shorter way round, since a transform cannot tell a half turn from one and a half; for more, or to spin past 180°, use `.rotation(degrees:)`. A flip such as `CGAffineTransform(scaleX: -1, y: 1)` scales through zero instead of turning. `.custom(\.transform)` and `.rotation` both write the transform but are separate properties, so animate one or the other on a view at a time.
+
+Custom key paths count as fades for [Reduce Motion](#reduce-motion) and keep animating, except a `CGAffineTransform`, which counts as motion and snaps. Pass `isMotion: true` for any other one that moves, resizes, rotates or scales something, so it snaps too: `.custom(\.bounds, to: target, isMotion: true)`; `isMotion: false` keeps a transform animating.
 
 ### Easing
 
@@ -241,7 +253,7 @@ Engine.shared.colorInterpolation = .hsb   // .rgb, .hsb or .lch
 
 ### Reduce Motion
 
-When the user has Reduce Motion on, movement snaps and fades stay, as Apple's Human Interface Guidelines recommend: position, size and rotation (`.x`, `.y`, `.width`, `.height`, `.frame`, `.rotation`), constraint constants (`.constant`) and key paths marked `isMotion: true` jump to their end state, while `.alpha`, `.background`, `.borderColor`, `.borderWidth`, `.cornerRadius` and other `.custom` key paths still animate over the full duration. An animation with only movement in it finishes on its first frame. Completion blocks still run, and pauses keep their duration so sequence timing is preserved.
+When the user has Reduce Motion on, movement snaps and fades stay, as Apple's Human Interface Guidelines recommend: position, size and rotation (`.x`, `.y`, `.width`, `.height`, `.frame`, `.rotation`), constraint constants (`.constant`), `CGAffineTransform` key paths such as `\.transform` and key paths marked `isMotion: true` jump to their end state, while `.alpha`, `.background`, `.borderColor`, `.borderWidth`, `.cornerRadius` and other `.custom` key paths still animate over the full duration. An animation with only movement in it finishes on its first frame. Completion blocks still run, and pauses keep their duration so sequence timing is preserved.
 
 ```swift
 Engine.shared.reduceMotionBehavior = .snapAll        // snap every property, as 1.0 did

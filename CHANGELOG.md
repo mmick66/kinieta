@@ -28,8 +28,16 @@ All notable changes to Kinieta are documented here. The format follows
   Reduce Motion. The example app has an Auto Layout row that keeps playing
   through rotation.
 - The public `Interpolatable` protocol, adopted by `CGFloat`, `Double`,
-  `Float`, `CGPoint`, `CGSize`, `CGRect` and `UIColor` (through LCH). Conform
-  your own types to animate them with `.custom`.
+  `Float`, `CGPoint`, `CGSize`, `CGRect`, `CGAffineTransform`, `UIColor` and
+  `CGColor` (both through LCH). Conform your own types to animate them with
+  `.custom`.
+- `.custom(\.transform, to:)` animates a view's `CGAffineTransform` the way
+  Core Animation does: each end is decomposed into translation, rotation
+  (the shorter way round), scale and shear, so a view keeps its size while it
+  turns and a flip scales through zero. A transform key path counts as motion
+  for Reduce Motion unless you pass `isMotion: false`. A `CGColor` key path,
+  such as `\.layer.shadowColor`, animates through the engine's colour
+  interpolation like `.background`.
 - `Engine.shared.preferredFrameRateRange` sets the frame rates the engine asks
   the display for; it applies from the next frame, even mid-animation. The
   default, `Engine.defaultFrameRateRange`, is 30–120 Hz preferring 120 (1.0

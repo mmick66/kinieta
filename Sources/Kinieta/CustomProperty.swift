@@ -51,19 +51,23 @@ public extension Property {
     /// view.animate(.custom(\.layer.shadowOpacity, to: 0.4), duration: 0.3)
     /// ```
     ///
-    /// The starting value is read when the animation starts. `UIColor` values
-    /// interpolate like ``background(_:interpolation:)``: through
-    /// `Engine.shared.colorInterpolation`, resolved against the view's traits.
+    /// The starting value is read when the animation starts. `UIColor` and
+    /// `CGColor` values interpolate like ``background(_:interpolation:)``:
+    /// through `Engine.shared.colorInterpolation`, resolved against the view's
+    /// traits. A `CGAffineTransform`, such as `\.transform`, is decomposed
+    /// and rotates the shorter way round; see
+    /// ``Interpolatable/interpolated(to:progress:)``.
     ///
     /// - Parameters:
     ///   - keyPath: The property to animate, such as `\.layer.shadowOpacity`.
     ///   - value: The value to animate to.
-    ///   - isMotion: Pass `true` when the value moves, resizes, rotates or
-    ///     scales something, so it snaps under Reduce Motion like `.x` or
-    ///     `.rotation` do. By default it animates like a fade.
+    ///   - isMotion: Whether the value moves, resizes, rotates or scales
+    ///     something, so it snaps under Reduce Motion like `.x` or `.rotation`
+    ///     do. By default a `CGAffineTransform` does and anything else
+    ///     animates like a fade.
     @MainActor
     static func custom<Value: Interpolatable>(
-        _ keyPath: ReferenceWritableKeyPath<UIView, Value>, to value: Value, isMotion: Bool = false
+        _ keyPath: ReferenceWritableKeyPath<UIView, Value>, to value: Value, isMotion: Bool? = nil
     ) -> Property {
         custom(keyPath: keyPath, to: value, isMotion: isMotion)
     }
@@ -79,11 +83,12 @@ public extension Property {
     /// - Parameters:
     ///   - keyPath: The property to animate, rooted in the subclass, such as `\UILabel.textColor`.
     ///   - value: The value to animate to.
-    ///   - isMotion: Pass `true` when the value moves, resizes, rotates or
-    ///     scales something, so it snaps under Reduce Motion.
+    ///   - isMotion: Whether the value moves, resizes, rotates or scales
+    ///     something, so it snaps under Reduce Motion. By default a
+    ///     `CGAffineTransform` does and anything else animates like a fade.
     @MainActor
     static func custom<Root: UIView, Value: Interpolatable>(
-        _ keyPath: ReferenceWritableKeyPath<Root, Value>, to value: Value, isMotion: Bool = false
+        _ keyPath: ReferenceWritableKeyPath<Root, Value>, to value: Value, isMotion: Bool? = nil
     ) -> Property {
         custom(keyPath: keyPath, to: value, isMotion: isMotion)
     }
@@ -94,7 +99,7 @@ public extension Property {
     /// other value switches to `value` as soon as the animation starts.
     @MainActor
     static func custom<Value: Interpolatable>(
-        _ keyPath: ReferenceWritableKeyPath<UIView, Value?>, to value: Value, isMotion: Bool = false
+        _ keyPath: ReferenceWritableKeyPath<UIView, Value?>, to value: Value, isMotion: Bool? = nil
     ) -> Property {
         custom(keyPath: keyPath, to: value, isMotion: isMotion)
     }
@@ -106,7 +111,7 @@ public extension Property {
     /// other value switches to `value` as soon as the animation starts.
     @MainActor
     static func custom<Root: UIView, Value: Interpolatable>(
-        _ keyPath: ReferenceWritableKeyPath<Root, Value?>, to value: Value, isMotion: Bool = false
+        _ keyPath: ReferenceWritableKeyPath<Root, Value?>, to value: Value, isMotion: Bool? = nil
     ) -> Property {
         custom(keyPath: keyPath, to: value, isMotion: isMotion)
     }
@@ -153,11 +158,11 @@ extension Property {
 
     @MainActor
     fileprivate static func custom<Root: UIView, Value: Interpolatable>(
-        keyPath: ReferenceWritableKeyPath<Root, Value>, to value: Value, isMotion: Bool
+        keyPath: ReferenceWritableKeyPath<Root, Value>, to value: Value, isMotion: Bool?
     ) -> Property {
         let name = String(describing: keyPath)
         return .extended(
-            CustomProperty(key: keyPath, name: name, isMotion: isMotion) { view, colorMode in
+            CustomProperty(key: keyPath, name: name, isMotion: isMotion ?? Value.isMotion) { view, colorMode in
                 guard let root = view.as(Root.self, for: name) else { return nil }
                 let values = interpolator(
                     from: root[keyPath: keyPath], to: value, colorMode: colorMode, view: view, name: name)
@@ -167,13 +172,13 @@ extension Property {
 
     @MainActor
     fileprivate static func custom<Root: UIView, Value: Interpolatable>(
-        keyPath: ReferenceWritableKeyPath<Root, Value?>, to value: Value, isMotion: Bool
+        keyPath: ReferenceWritableKeyPath<Root, Value?>, to value: Value, isMotion: Bool?
     ) -> Property {
         let name = String(describing: keyPath)
         return .extended(
-            CustomProperty(key: keyPath, name: name, isMotion: isMotion) { view, colorMode in
+            CustomProperty(key: keyPath, name: name, isMotion: isMotion ?? Value.isMotion) { view, colorMode in
                 guard let root = view.as(Root.self, for: name) else { return nil }
-                guard let from = root[keyPath: keyPath] ?? (UIColor.clear as? Value) else {
+                guard let from = root[keyPath: keyPath] ?? Value.clear else {
                     return { view, factor in if factor > 0 { (view as? Root)?[keyPath: keyPath] = value } }
                 }
                 let values = interpolator(from: from, to: value, colorMode: colorMode, view: view, name: name)
@@ -191,7 +196,32 @@ extension Property {
             let colors = colorInterpolator(from: source, to: target, mode: colorMode, view: view, name: name)
             return { factor in colors(factor) as? Value ?? from.interpolated(to: to, progress: factor) }
         }
+        if Value.self == CGColor.self {
+            // Checked by type: a CoreFoundation cast from `Value` always succeeds.
+            let source = from as! CGColor, target = to as! CGColor
+            let colors = colorInterpolator(
+                from: UIColor(cgColor: source), to: UIColor(cgColor: target), mode: colorMode, view: view, name: name)
+            return { factor in
+                // The ends as given, not a copy made through `UIColor`.
+                if factor <= 0 { return from }
+                if factor >= 1 { return to }
+                return colors(factor).cgColor as! Value
+            }
+        }
         return { factor in from.interpolated(to: to, progress: factor) }
+    }
+}
+
+extension Interpolatable {
+    /// Whether a `.custom` key path of this type counts as motion by default:
+    /// a transform moves, rotates or scales the view; other values fade.
+    fileprivate static var isMotion: Bool { self == CGAffineTransform.self }
+
+    /// The value an optional colour key path starts from when it is `nil`.
+    fileprivate static var clear: Self? {
+        if self == UIColor.self { return UIColor.clear as? Self }
+        if self == CGColor.self { return UIColor.clear.cgColor as? Self }
+        return nil
     }
 }
 

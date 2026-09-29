@@ -76,7 +76,7 @@ when its duration ends. `.frame` counts as `.x`, `.y`, `.width` and `.height`.
 ### Reduce Motion
 
 When the user has Reduce Motion on, position, size, rotation, constraint
-constants and key paths marked `isMotion` snap to their end state, while
+constants, transforms and key paths marked `isMotion` snap to their end state, while
 opacity, colours, border width, corner radius and other key paths still animate
 over the full duration, so fades and colour changes keep giving feedback.
 Completion blocks run and pauses keep their duration, so a timeline's timing is

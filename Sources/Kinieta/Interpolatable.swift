@@ -20,7 +20,7 @@ import UIKit
 /// ```
 ///
 /// Kinieta provides conformances for `CGFloat`, `Double`, `Float`, `CGPoint`,
-/// `CGSize`, `CGRect` and `UIColor`.
+/// `CGSize`, `CGRect`, `CGAffineTransform`, `UIColor` and `CGColor`.
 public protocol Interpolatable {
     /// The value `progress` of the way from `self` to `target`.
     ///
@@ -76,6 +76,94 @@ extension CGRect: Interpolatable {
     }
 }
 
+extension CGAffineTransform: Interpolatable {
+    /// The transform `progress` of the way to `target`, decomposed like Core
+    /// Animation does rather than blended entry by entry, which would shrink
+    /// a view as it rotates.
+    ///
+    /// Each end is split into a translation, a rotation, a scale on each axis
+    /// and a shear, applied in the order scale, shear, rotation, translation;
+    /// the parts are interpolated and composed again. The rotation takes the
+    /// shorter way round, since a transform cannot tell a half turn from one
+    /// and a half: for more, animate ``Property/rotation(degrees:)``. A flip,
+    /// such as `CGAffineTransform(scaleX: -1, y: 1)`, scales through zero
+    /// instead of turning. A transform that scales to nothing takes its
+    /// rotation from the other end. Progress 0 and 1 give the ends exactly.
+    public func interpolated(to target: CGAffineTransform, progress: CGFloat) -> CGAffineTransform {
+        if progress == 0 { return self }
+        if progress == 1 { return target }
+        var from = AffineParts(self), to = AffineParts(target)
+        // A flip on either axis combined with a half turn is the same flip on
+        // the other axis. Match them so a flip does not turn on the way.
+        if (from.scaleX < 0 && to.scaleY < 0) || (from.scaleY < 0 && to.scaleX < 0) { from.turnHalfWay() }
+        let fromAngle = from.angle ?? to.angle ?? 0
+        let toAngle = to.angle ?? fromAngle
+        return AffineParts(
+            translation: from.translation.interpolated(to: to.translation, progress: progress),
+            scaleX: from.scaleX.interpolated(to: to.scaleX, progress: progress),
+            scaleY: from.scaleY.interpolated(to: to.scaleY, progress: progress),
+            shear: from.shear.interpolated(to: to.shear, progress: progress),
+            angle: fromAngle + (toAngle - fromAngle).remainder(dividingBy: 2 * .pi) * progress
+        ).transform
+    }
+}
+
+/// A transform as a scale, a shear, a rotation and a translation, applied in
+/// that order: the linear part is `[[scaleX, 0], [shear, scaleY]]` times the
+/// rotation, in Core Graphics' row-vector convention.
+private struct AffineParts {
+    var translation: CGPoint
+    var scaleX: CGFloat
+    var scaleY: CGFloat
+    var shear: CGFloat
+    /// In radians; `nil` when the linear part is zero and has no direction.
+    var angle: CGFloat?
+
+    init(translation: CGPoint, scaleX: CGFloat, scaleY: CGFloat, shear: CGFloat, angle: CGFloat?) {
+        self.translation = translation
+        self.scaleX = scaleX
+        self.scaleY = scaleY
+        self.shear = shear
+        self.angle = angle
+    }
+
+    init(_ t: CGAffineTransform) {
+        translation = CGPoint(x: t.tx, y: t.ty)
+        scaleX = hypot(t.a, t.b)
+        // A mirror image puts its flip on the axis that is flipped most, as
+        // CSS does, so a flip in x stays a flip in x.
+        if t.a * t.d - t.b * t.c < 0, t.a < t.d { scaleX = -scaleX }
+        if scaleX != 0 {
+            let cosine = t.a / scaleX, sine = t.b / scaleX
+            angle = atan2(sine, cosine)
+            shear = t.c * cosine + t.d * sine
+            scaleY = t.d * cosine - t.c * sine
+        } else {
+            // The x axis collapses: the rotation is wherever the y axis points.
+            let length = hypot(t.c, t.d)
+            angle = length == 0 ? nil : atan2(-t.c, t.d)
+            shear = 0
+            scaleY = length
+        }
+    }
+
+    /// The same transform with both axes flipped and half a turn added.
+    mutating func turnHalfWay() {
+        scaleX = -scaleX
+        scaleY = -scaleY
+        shear = -shear
+        angle = angle.map { $0 + .pi }
+    }
+
+    var transform: CGAffineTransform {
+        let cosine = cos(angle ?? 0), sine = sin(angle ?? 0)
+        return CGAffineTransform(
+            a: scaleX * cosine, b: scaleX * sine,
+            c: shear * cosine - scaleY * sine, d: shear * sine + scaleY * cosine,
+            tx: translation.x, ty: translation.y)
+    }
+}
+
 extension UIColor: Interpolatable {}
 
 extension Interpolatable where Self: UIColor {
@@ -90,6 +178,26 @@ extension Interpolatable where Self: UIColor {
         let color = ColorMath.interpolator(from: self, to: target, mode: .lch, traits: nil)?(progress)
         // A pattern has nothing to blend, so it switches; a subclass cannot be made, so it switches too.
         return color as? Self ?? (progress > 0 ? target : self)
+    }
+}
+
+extension CGColor: Interpolatable {}
+
+extension Interpolatable where Self: CGColor {
+    /// The colour `progress` of the way to `target` through LCH, like
+    /// `UIColor`, with progress clamped to 0...1. The colours in between are
+    /// sRGB, or Display P3 when an end is outside sRGB.
+    ///
+    /// A colour animated through
+    /// ``Property/custom(_:to:isMotion:)-(ReferenceWritableKeyPath<UIView,Value>,_,_)``,
+    /// such as `\.layer.shadowColor`, takes `Engine.shared.colorInterpolation` instead.
+    public func interpolated(to target: Self, progress: CGFloat) -> Self {
+        if progress <= 0 { return self }
+        if progress >= 1 { return target }
+        let colors = ColorMath.interpolator(
+            from: UIColor(cgColor: self), to: UIColor(cgColor: target), mode: .lch, traits: nil)
+        // A pattern has nothing to blend, so it switches.
+        return colors?(progress).cgColor as? Self ?? target
     }
 }
 #endif
