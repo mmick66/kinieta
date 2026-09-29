@@ -3,8 +3,8 @@
 // Kinieta runs on UIKit (iOS, tvOS, Mac Catalyst, visionOS) and, experimentally,
 // on AppKit (native macOS). Sources compile under `canImport(UIKit) || os(macOS)`;
 // `os(macOS)` is false under Mac Catalyst, which takes the UIKit path. On AppKit
-// only position, size, rotation, `.alpha` and the background and border colours
-// are supported so far. Elsewhere, such as Linux, the module is empty.
+// everything but `.borderWidth` and `.cornerRadius` is supported so far.
+// Elsewhere, such as Linux, the module is empty.
 
 #if canImport(UIKit)
 import UIKit

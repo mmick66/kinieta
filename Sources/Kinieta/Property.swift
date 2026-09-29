@@ -48,14 +48,14 @@ public enum Property: Sendable {
     /// The layer's `borderColor`; a view without a layer is given one.
     case borderColor(NSColor, interpolation: ColorInterpolation? = nil)
     #endif
-    // On AppKit, the other layer properties and custom properties do not exist yet.
+    // On AppKit, the other layer properties do not exist yet.
     #if canImport(UIKit)
     case borderWidth(CGFloat)
     case cornerRadius(CGFloat)
+    #endif
     /// A key path or constraint constant. Make one with
     /// ``custom(_:to:isMotion:)-(ReferenceWritableKeyPath<UIView,Value>,_,_)`` or ``constant(_:to:)``.
     case extended(CustomProperty)
-    #endif
 
     /// Identifies a property regardless of value. When the same property is
     /// listed twice in one animation the last value wins.
@@ -82,8 +82,8 @@ public enum Property: Sendable {
         #if canImport(UIKit)
         case .borderWidth: return .borderWidth
         case .cornerRadius: return .cornerRadius
-        case .extended(let custom): return custom.key
         #endif
+        case .extended(let custom): return custom.key
         }
     }
 
@@ -99,18 +99,14 @@ public enum Property: Sendable {
     /// constraint of a `.constant`, which any view's timeline can animate.
     @MainActor
     func owner(on view: PlatformView) -> ObjectIdentifier {
-        #if canImport(UIKit)
         if case .extended(let custom) = self, let target = custom.target { return target }
-        #endif
         return ObjectIdentifier(view)
     }
 
     /// The name used in descriptions and log messages.
     var name: String {
         switch self {
-        #if canImport(UIKit)
         case .extended(let custom): return custom.name
-        #endif
         case .rotation: return "rotation"
         default: return String(describing: key)
         }
@@ -124,8 +120,8 @@ public enum Property: Sendable {
         case .alpha, .background, .borderColor: return false
         #if canImport(UIKit)
         case .borderWidth, .cornerRadius: return false
-        case .extended(let custom): return custom.isMotion
         #endif
+        case .extended(let custom): return custom.isMotion
         }
     }
 
@@ -170,9 +166,9 @@ public enum Property: Sendable {
             return lerp(from: view.layer.borderWidth, to: to) { $0.layer.borderWidth = max($1, 0) }
         case .cornerRadius(let to):
             return lerp(from: view.layer.cornerRadius, to: to) { $0.layer.cornerRadius = max($1, 0) }
+        #endif
         case .extended(let custom):
             return custom.transformation(view, defaultColorInterpolation) ?? { _, _ in }
-        #endif
         }
     }
 

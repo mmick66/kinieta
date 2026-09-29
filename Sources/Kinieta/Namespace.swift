@@ -17,9 +17,7 @@ public typealias Block = () -> Void
 // name their targets directly, because inside the class `Property` is the
 // alias itself, so they go through these. Not meant to be used directly.
 @_documentation(visibility: internal) public typealias _KinietaProperty = Property
-#if canImport(UIKit)
 @_documentation(visibility: internal) public typealias _KinietaCustomProperty = CustomProperty
-#endif
 @_documentation(visibility: internal) public typealias _KinietaInterpolatable = Interpolatable
 @_documentation(visibility: internal) public typealias _KinietaEasing = Easing
 @_documentation(visibility: internal) public typealias _KinietaBezier = Bezier
@@ -36,10 +34,8 @@ extension Kinieta {
 
     /// Kinieta's `Property`.
     public typealias Property = _KinietaProperty
-    #if canImport(UIKit)
     /// Kinieta's `CustomProperty`.
     public typealias CustomProperty = _KinietaCustomProperty
-    #endif
     /// Kinieta's `Interpolatable`.
     public typealias Interpolatable = _KinietaInterpolatable
     /// Kinieta's `Easing`.

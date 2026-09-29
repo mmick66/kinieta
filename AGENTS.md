@@ -82,10 +82,11 @@ The tvOS build (`-destination 'generic/platform=tvOS Simulator' build`), the vis
 ## Architecture Overview
 
 A UIKit animation library (iOS, tvOS, Mac Catalyst 17+, visionOS 1+), Swift 6, main-actor
-isolated, with experimental AppKit support (macOS 14+: position, size, `.rotation` and `.alpha`
-only). Sources are behind `canImport(UIKit) || os(macOS)` (`os(macOS)` is false under
-Catalyst); `Platform.swift` aliases `PlatformView` to `UIView` or `NSView`. Colours (`ColorMath`)
-and `CustomProperty` are UIKit only. Linux builds an empty module.
+isolated, with experimental AppKit support (macOS 14+: everything but `.borderWidth` and
+`.cornerRadius`). Sources are behind `canImport(UIKit) || os(macOS)` (`os(macOS)` is false under
+Catalyst); `Platform.swift` aliases `PlatformView` to `UIView` or `NSView` and `PlatformColor` to
+`UIColor` or `NSColor`. Public signatures cannot use these internal aliases, so public API that
+names the view or colour type is declared once per platform. Linux builds an empty module.
 
 - `View.swift`: `UIView.animate(...)` / `wait(_:)` entry points; geometry goes through
   `center` and `bounds`, not `frame`; on `NSView`, through the unrotated frame about its centre.

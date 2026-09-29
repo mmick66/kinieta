@@ -2,6 +2,11 @@
 
 #if canImport(UIKit)
 import UIKit
+#elseif os(macOS)
+import AppKit
+#endif
+
+#if canImport(UIKit) || os(macOS)
 import os
 
 /// A property Kinieta has no case for: a key path or a constraint constant.
@@ -17,10 +22,11 @@ public struct CustomProperty: @unchecked Sendable {
     /// Builds the per-frame transformation from the view's current value, or
     /// `nil` when there is nothing to animate. Takes the engine's default
     /// colour interpolation.
-    typealias Builder = @MainActor (UIView, ColorInterpolation) -> Property.Transformation?
+    typealias Builder = @MainActor (PlatformView, ColorInterpolation) -> Property.Transformation?
 
     /// The key path or the constraint's `ObjectIdentifier`, as a `.custom`
-    /// key, or `.transform` for a key path to the view's `transform`.
+    /// key, or `.transform` for a key path to what `.rotation` writes: the
+    /// view's `transform`, or its `frameRotation` on AppKit.
     let key: Property.Key
     let name: String
     let isMotion: Bool
@@ -46,6 +52,8 @@ public struct CustomProperty: @unchecked Sendable {
 
 public extension Property {
 
+    // The view type differs by platform; a doc comment must sit inside the `#if` to attach.
+    #if canImport(UIKit)
     /// Animates any writable key path of the view to `value`.
     ///
     /// ```swift
@@ -117,6 +125,81 @@ public extension Property {
         custom(keyPath: keyPath, to: value, isMotion: isMotion)
     }
 
+    #else
+    /// Animates any writable key path of the view to `value`.
+    ///
+    /// ```swift
+    /// view.animate(.custom(\.layer!.shadowOpacity, to: 0.4), duration: 0.3)
+    /// ```
+    ///
+    /// The starting value is read when the animation starts. `NSColor` and
+    /// `CGColor` values interpolate like ``background(_:interpolation:)``:
+    /// through `Engine.shared.colorInterpolation`, resolved against the view's
+    /// effective appearance. A key path to `frameRotation` or
+    /// `frameCenterRotation` writes what ``rotation(degrees:)`` writes, so
+    /// each takes the other over.
+    ///
+    /// - Parameters:
+    ///   - keyPath: The property to animate, such as `\.layer!.shadowOpacity`.
+    ///   - value: The value to animate to.
+    ///   - isMotion: Whether the value moves, resizes, rotates or scales
+    ///     something, so it snaps under Reduce Motion like `.x` or `.rotation`
+    ///     do. By default a key path to the view's rotation or to a
+    ///     `CGAffineTransform` does and anything else animates like a fade.
+    @MainActor
+    static func custom<Value: Interpolatable>(
+        _ keyPath: ReferenceWritableKeyPath<NSView, Value>, to value: Value, isMotion: Bool? = nil
+    ) -> Property {
+        custom(keyPath: keyPath, to: value, isMotion: isMotion)
+    }
+
+    /// Animates a writable key path of an `NSView` subclass to `value`.
+    ///
+    /// ```swift
+    /// box.animate(.custom(\NSBox.fillColor, to: .systemPink), duration: 0.5)
+    /// ```
+    ///
+    /// On a view that is not a `Root`, the property does nothing and logs a warning.
+    ///
+    /// - Parameters:
+    ///   - keyPath: The property to animate, rooted in the subclass, such as `\NSBox.fillColor`.
+    ///   - value: The value to animate to.
+    ///   - isMotion: Whether the value moves, resizes, rotates or scales
+    ///     something, so it snaps under Reduce Motion. By default a key path
+    ///     to the view's rotation or to a `CGAffineTransform` does and
+    ///     anything else animates like a fade.
+    @MainActor
+    static func custom<Root: NSView, Value: Interpolatable>(
+        _ keyPath: ReferenceWritableKeyPath<Root, Value>, to value: Value, isMotion: Bool? = nil
+    ) -> Property {
+        custom(keyPath: keyPath, to: value, isMotion: isMotion)
+    }
+
+    /// Animates an optional key path of the view, such as its layer's
+    /// `shadowColor`, to `value`.
+    ///
+    /// When the current value is `nil`, a colour fades in from clear and any
+    /// other value switches to `value` as soon as the animation starts.
+    @MainActor
+    static func custom<Value: Interpolatable>(
+        _ keyPath: ReferenceWritableKeyPath<NSView, Value?>, to value: Value, isMotion: Bool? = nil
+    ) -> Property {
+        custom(keyPath: keyPath, to: value, isMotion: isMotion)
+    }
+
+    /// Animates an optional key path of an `NSView` subclass, such as a text
+    /// field's `textColor`, to `value`.
+    ///
+    /// When the current value is `nil`, a colour fades in from clear and any
+    /// other value switches to `value` as soon as the animation starts.
+    @MainActor
+    static func custom<Root: NSView, Value: Interpolatable>(
+        _ keyPath: ReferenceWritableKeyPath<Root, Value?>, to value: Value, isMotion: Bool? = nil
+    ) -> Property {
+        custom(keyPath: keyPath, to: value, isMotion: isMotion)
+    }
+    #endif
+
     /// Animates an Auto Layout constraint's `constant`, laying out the
     /// constraint's views on every frame.
     ///
@@ -128,11 +211,11 @@ public extension Property {
     /// view positioned by constraints stays where the animation leaves it
     /// through rotation, size class changes and the keyboard.
     ///
-    /// Each frame calls `layoutIfNeeded()` on the nearest common superview of
-    /// the constraint's items: for a constraint between siblings their
-    /// superview, for one between a view and its ancestor that ancestor, and
-    /// for a width or height constraint the view's superview. A deactivated
-    /// constraint still animates its constant.
+    /// Each frame calls `layoutIfNeeded()`, or `layoutSubtreeIfNeeded()` on
+    /// AppKit, on the nearest common superview of the constraint's items: for
+    /// a constraint between siblings their superview, for one between a view
+    /// and its ancestor that ancestor, and for a width or height constraint
+    /// the view's superview. A deactivated constraint still animates its constant.
     ///
     /// The constraint is held weakly, and counts as motion: it snaps under
     /// Reduce Motion.
@@ -149,8 +232,13 @@ public extension Property {
                 return { [weak constraint, weak container] _, factor in
                     constraint?.constant = from.interpolated(to: value, progress: factor)
                     // Outside a window a new constant does not mark the container for layout.
+                    #if canImport(UIKit)
                     container?.setNeedsLayout()
                     container?.layoutIfNeeded()
+                    #else
+                    container?.needsLayout = true
+                    container?.layoutSubtreeIfNeeded()
+                    #endif
                 }
             })
     }
@@ -159,15 +247,14 @@ public extension Property {
 extension Property {
 
     @MainActor
-    fileprivate static func custom<Root: UIView, Value: Interpolatable>(
+    fileprivate static func custom<Root: PlatformView, Value: Interpolatable>(
         keyPath: ReferenceWritableKeyPath<Root, Value>, to value: Value, isMotion: Bool?
     ) -> Property {
         let name = String(describing: keyPath)
-        // `\UIImageView.transform` is a different key path from `\UIView.transform`
-        // but writes the same property, which `.rotation` writes too.
-        let key: Key = keyPath == \Root.transform ? .transform : .custom(keyPath)
+        let key: Key = writesRotation(keyPath) ? .transform : .custom(keyPath)
         return .extended(
-            CustomProperty(key: key, name: name, isMotion: isMotion ?? Value.isMotion) { view, colorMode in
+            CustomProperty(key: key, name: name, isMotion: isMotion ?? (key == .transform || Value.isMotion)) {
+                view, colorMode in
                 guard let root = view.as(Root.self, for: name) else { return nil }
                 let values = interpolator(
                     from: root[keyPath: keyPath], to: value, colorMode: colorMode, view: view, name: name)
@@ -176,7 +263,7 @@ extension Property {
     }
 
     @MainActor
-    fileprivate static func custom<Root: UIView, Value: Interpolatable>(
+    fileprivate static func custom<Root: PlatformView, Value: Interpolatable>(
         keyPath: ReferenceWritableKeyPath<Root, Value?>, to value: Value, isMotion: Bool?
     ) -> Property {
         let name = String(describing: keyPath)
@@ -191,29 +278,53 @@ extension Property {
             })
     }
 
+    /// Whether `keyPath` writes what `.rotation` writes, so each takes the other over.
+    @MainActor
+    private static func writesRotation<Root: PlatformView, Value>(_ keyPath: ReferenceWritableKeyPath<Root, Value>)
+        -> Bool
+    {
+        #if canImport(UIKit)
+        // `\UIImageView.transform` is a different key path from `\UIView.transform`
+        // but writes the same property.
+        return keyPath == \Root.transform
+        #else
+        return keyPath == \Root.frameRotation || keyPath == \Root.frameCenterRotation
+        #endif
+    }
+
     /// Colours take the engine's colour interpolation and the view's traits,
-    /// like `.background`; every other value its own `interpolated(to:progress:)`.
+    /// or appearance on AppKit, like `.background`; every other value its own
+    /// `interpolated(to:progress:)`.
     @MainActor
     private static func interpolator<Value: Interpolatable>(
-        from: Value, to: Value, colorMode: ColorInterpolation, view: UIView, name: String
+        from: Value, to: Value, colorMode: ColorInterpolation, view: PlatformView, name: String
     ) -> (CGFloat) -> Value {
-        if let source = from as? UIColor, let target = to as? UIColor {
+        if let source = from as? PlatformColor, let target = to as? PlatformColor {
             let colors = colorInterpolator(from: source, to: target, mode: colorMode, view: view, name: name)
             return { factor in colors(factor) as? Value ?? from.interpolated(to: to, progress: factor) }
         }
-        if Value.self == CGColor.self {
-            // Checked by type: a CoreFoundation cast from `Value` always succeeds.
-            let source = from as! CGColor, target = to as! CGColor
-            let colors = colorInterpolator(
-                from: UIColor(cgColor: source), to: UIColor(cgColor: target), mode: colorMode, view: view, name: name)
+        // Checked by type: a CoreFoundation cast from `Value` always succeeds.
+        if Value.self == CGColor.self, let source = platformColor(from as! CGColor),
+            let target = platformColor(to as! CGColor)
+        {
+            let colors = colorInterpolator(from: source, to: target, mode: colorMode, view: view, name: name)
             return { factor in
-                // The ends as given, not a copy made through `UIColor`.
+                // The ends as given, not a copy made through `UIColor` or `NSColor`.
                 if factor <= 0 { return from }
                 if factor >= 1 { return to }
                 return colors(factor).cgColor as! Value
             }
         }
         return { factor in from.interpolated(to: to, progress: factor) }
+    }
+
+    /// `color` as a `UIColor`, or an `NSColor` if AppKit can represent it.
+    private static func platformColor(_ color: CGColor) -> PlatformColor? {
+        #if canImport(UIKit)
+        UIColor(cgColor: color)
+        #else
+        NSColor(cgColor: color)
+        #endif
     }
 }
 
@@ -224,15 +335,15 @@ extension Interpolatable {
 
     /// The value an optional colour key path starts from when it is `nil`.
     fileprivate static var clear: Self? {
-        if self == UIColor.self { return UIColor.clear as? Self }
-        if self == CGColor.self { return UIColor.clear.cgColor as? Self }
+        if self == PlatformColor.self { return PlatformColor.clear as? Self }
+        if self == CGColor.self { return PlatformColor.clear.cgColor as? Self }
         return nil
     }
 }
 
-extension UIView {
+extension PlatformView {
     /// This view as a `Root`, or `nil` with a warning naming the property.
-    fileprivate func `as`<Root: UIView>(_ type: Root.Type, for name: String) -> Root? {
+    fileprivate func `as`<Root: PlatformView>(_ type: Root.Type, for name: String) -> Root? {
         if let root = self as? Root { return root }
         CustomProperty.logger.warning(
             "\(name, privacy: .public) needs a \(Root.self, privacy: .public), not a \(Self.self, privacy: .public); ignoring it"
@@ -245,14 +356,19 @@ extension NSLayoutConstraint {
 
     /// The view to lay out after changing the constant: the nearest common
     /// superview of the items, or the superview of a single item.
-    var layoutContainer: UIView? {
-        let views = [firstItem, secondItem].compactMap { item -> UIView? in
+    @MainActor
+    var layoutContainer: PlatformView? {
+        let views = [firstItem, secondItem].compactMap { item -> PlatformView? in
+            #if canImport(UIKit)
             (item as? UIView) ?? (item as? UILayoutGuide)?.owningView
+            #else
+            (item as? NSView) ?? (item as? NSLayoutGuide)?.owningView
+            #endif
         }
         guard let first = views.first else { return nil }
         guard views.count == 2, views[0] !== views[1] else { return first.superview ?? first }
         let second = views[1]
-        var ancestor: UIView? = first
+        var ancestor: PlatformView? = first
         while let candidate = ancestor, !second.isDescendant(of: candidate) { ancestor = candidate.superview }
         return ancestor
     }

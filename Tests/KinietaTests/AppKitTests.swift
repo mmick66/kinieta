@@ -4,9 +4,9 @@ import Testing
 
 @testable import Kinieta
 
-/// AppKit: position, size, rotation, `.alpha` and the layer's colours on a
-/// layer-backed `NSView`, through the public API, on the engine the UIKit
-/// platforms share.
+/// AppKit: position, size, rotation, `.alpha`, the layer's colours, custom
+/// key paths and constraint constants on a layer-backed `NSView`, through
+/// the public API, on the engine the UIKit platforms share.
 ///
 /// Frames are stepped by a `ManualFrameDriver`, except in the smoke test on
 /// the real display link at the bottom.
@@ -390,6 +390,150 @@ struct AppKitTests {
             same(mid, ColorMath.RGB(red: 1, green: 0, blue: 0, alpha: 1).lch.lerp(rgb(0, 0, 1).lch, 0.5).rgb.clamped()))
         let cgMid = red.cgColor.interpolated(to: blue.cgColor, progress: 0.5)
         #expect(same(components(of: cgMid), mid))
+    }
+
+    // MARK: Key paths and constraint constants
+
+    @Test func aKeyPathReachesThroughTheLayer() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        view.layer?.shadowOffset = .zero
+        view.animate(
+            .custom(\.layer!.shadowOpacity, to: 0.8), .custom(\.layer!.shadowOffset, to: CGSize(width: 0, height: 8)),
+            duration: 1)
+        frames.step(0.25)
+        #expect(approx(CGFloat(view.layer!.shadowOpacity), 0.2))
+        #expect(view.layer?.shadowOffset == CGSize(width: 0, height: 2))
+        #expect(!Property.custom(\.layer!.shadowOpacity, to: 1).isMotion)
+    }
+
+    @Test func aSubclassKeyPathAnimatesItsColourLikeTheBackground() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let pink = NSColor(srgbRed: 1.00, green: 0.44, blue: 0.75, alpha: 1)
+        let cyan = NSColor(srgbRed: 0.00, green: 0.80, blue: 0.90, alpha: 1)
+        let box = NSBox(), reference = makeView()
+        box.fillColor = pink
+        reference.layer?.backgroundColor = pink.cgColor
+        box.animate(.custom(\NSBox.fillColor, to: cyan), duration: 1)
+        reference.animate(.background(cyan), duration: 1)
+        frames.step(0.5)
+        #expect(
+            same(ColorMath.extractComponents(of: box.fillColor), components(of: reference.layer?.backgroundColor)))
+        frames.step(0.5)
+        // The target is assigned as given.
+        #expect(box.fillColor === cyan)
+    }
+
+    @Test func aMissingShadowColourFadesInFromClearThroughTheEngineInterpolation() {
+        Engine.shared.colorInterpolation = .rgb
+        defer { Engine.shared.colorInterpolation = .lch }
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        view.layer?.shadowColor = nil
+        let blue = NSColor(srgbRed: 0, green: 0, blue: 1, alpha: 1).cgColor
+        view.animate(.custom(\.layer!.shadowColor, to: blue), duration: 1)
+        frames.step(0.5)
+        #expect(same(components(of: view.layer?.shadowColor), rgb(0, 0, 1, 0.5), tolerance: 1e-3))
+        frames.step(0.5)
+        #expect(view.layer?.shadowColor === blue)
+    }
+
+    @Test func aSubclassKeyPathOnAnotherViewDoesNothing() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        var completed = false
+        let handle = view.animate(.custom(\NSBox.fillColor, to: .red), .alpha(0), duration: 1)
+            .onComplete { completed = true }
+        frames.step(1)
+        #expect(view.alphaValue == 0)
+        #expect(completed && handle.state == .finished)
+    }
+
+    @Test func keyPathsToTheRotationShareItsKeyAndAreMotion() {
+        let rotation = Property.rotation(degrees: 0).key
+        #expect(Property.custom(\.frameRotation, to: 0).key == rotation)
+        #expect(Property.custom(\.frameCenterRotation, to: 0).key == rotation)
+        #expect(Property.custom(\NSBox.frameCenterRotation, to: 0).key == rotation)
+        #expect(Property.custom(\.alphaValue, to: 0).key != rotation)
+        #expect(Property.custom(\.frameCenterRotation, to: 0).isMotion)
+        #expect(!Property.custom(\.frameCenterRotation, to: 0, isMotion: false).isMotion)
+        #expect(!Property.custom(\.alphaValue, to: 0).isMotion)
+        // In one animation the last of them wins.
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeViewInSuperview()
+        view.animate(.rotation(degrees: 90), .custom(\.frameCenterRotation, to: 20), duration: 1)
+        frames.step(0.5)
+        #expect(approx(view.frameRotation, 10))
+        #expect(approx(centre(of: view), CGPoint(x: 120, y: 110)))
+    }
+
+    @Test func aConstraintConstantAnimatesAndSurvivesTheNextLayoutPass() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let (container, child, leading) = constrainedChild()
+        let handle = child.animate(.constant(leading, to: 110), duration: 1)
+        frames.step(0.5)
+        // Laid out on the frame itself, not on the next layout pass.
+        #expect(child.frame.minX == 60)
+        frames.step(0.5)
+        #expect(handle.state == .finished)
+        container.needsLayout = true
+        container.layoutSubtreeIfNeeded()
+        #expect(leading.constant == 110)
+        #expect(child.frame.minX == 110)
+        #expect(Property.constant(leading, to: 0).isMotion)
+    }
+
+    @Test func constraintConstantsLayOutTheNearestCommonSuperview() {
+        let root = NSView(), parent = NSView(), a = NSView(), b = NSView()
+        root.addSubview(parent)
+        parent.addSubview(a)
+        parent.addSubview(b)
+        let guide = NSLayoutGuide()
+        root.addLayoutGuide(guide)
+        #expect(a.leadingAnchor.constraint(equalTo: b.trailingAnchor).layoutContainer === parent)
+        #expect(a.topAnchor.constraint(equalTo: parent.topAnchor).layoutContainer === parent)
+        #expect(a.leadingAnchor.constraint(equalTo: guide.leadingAnchor).layoutContainer === root)
+        #expect(a.widthAnchor.constraint(equalToConstant: 10).layoutContainer === parent)
+        // A view with no superview lays itself out.
+        let lone = NSView()
+        #expect(lone.widthAnchor.constraint(equalToConstant: 10).layoutContainer === lone)
+    }
+
+    @Test func aReleasedConstraintIsSkipped() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        let property: Kinieta.Property = autoreleasepool {
+            .constant(view.widthAnchor.constraint(equalToConstant: 10), to: 20)
+        }
+        #expect(property.name.hasPrefix("constant("))
+        let handle = view.animate(property, .alpha(0), duration: 1)
+        frames.step(1)
+        #expect(handle.state == .finished)
+        #expect(view.alphaValue == 0)
+    }
+
+    /// A 20-point square inside a 200 by 100 container, 10 points from its leading edge.
+    private func constrainedChild() -> (NSView, NSView, NSLayoutConstraint) {
+        let container = NSView(frame: CGRect(x: 0, y: 0, width: 200, height: 100))
+        let child = NSView()
+        child.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(child)
+        let leading = child.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 10)
+        NSLayoutConstraint.activate([
+            leading,
+            child.topAnchor.constraint(equalTo: container.topAnchor, constant: 10),
+            child.widthAnchor.constraint(equalToConstant: 20),
+            child.heightAnchor.constraint(equalToConstant: 20),
+        ])
+        container.layoutSubtreeIfNeeded()
+        return (container, child, leading)
     }
 
     @Test(.timeLimit(.minutes(1)))

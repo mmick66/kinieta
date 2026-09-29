@@ -18,8 +18,14 @@ All notable changes to Kinieta are documented here. The format follows
   `.x`, `.y` and `.frame` stand for the frame it would have unrotated, so
   position, size and rotation animate independently, as on UIKit. Frames come
   from the main screen's display link. `NSColor` and `CGColor` conform to
-  `Interpolatable` on macOS too. `.borderWidth`, `.cornerRadius` and custom
-  key paths are still UIKit only. See "macOS (experimental)" in the README.
+  `Interpolatable` on macOS too. `Property.custom(_:to:isMotion:)` takes key
+  paths rooted in `NSView` or a subclass, such as `\.layer!.shadowOpacity` or
+  `\NSBox.fillColor`, with colours interpolated like `.background`; a key path
+  to `frameRotation` or `frameCenterRotation` shares `.rotation`'s key and
+  counts as motion. `Property.constant(_:to:)` animates a constraint's constant
+  with `layoutSubtreeIfNeeded()` on every frame. `.borderWidth` and
+  `.cornerRadius` are still UIKit only. See "macOS (experimental)" in the
+  README.
 - A newer animation of a property takes it over from an older one still
   running on the same view, like UIKit's `beginFromCurrentState`. It starts
   from the value on screen; the older animation stops writing that property,

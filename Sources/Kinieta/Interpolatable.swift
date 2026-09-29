@@ -191,7 +191,11 @@ extension NSColor: Interpolatable {}
 extension Interpolatable where Self: NSColor {
     /// The colour `progress` of the way to `target` through LCH, as
     /// ``ColorInterpolation/lch`` describes, with progress clamped to 0...1.
-    /// Dynamic colours resolve against the current drawing appearance.
+    ///
+    /// Dynamic colours resolve against the current drawing appearance. A
+    /// colour animated through `Property.custom(_:to:isMotion:)` takes
+    /// `Engine.shared.colorInterpolation` instead and resolves against the
+    /// view's effective appearance, exactly like `.background`.
     public func interpolated(to target: Self, progress: CGFloat) -> Self {
         interpolatedColor(from: self, to: target, progress: progress)
     }
