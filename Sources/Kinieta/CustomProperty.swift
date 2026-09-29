@@ -11,7 +11,7 @@ import os
 
 /// A property Kinieta has no case for: a key path or a constraint constant.
 ///
-/// Make one with ``Property/custom(_:to:isMotion:)-(ReferenceWritableKeyPath<UIView,Value>,_,_)``
+/// Make one with ``Property/custom(_:to:isMotion:)-(ReferenceWritableKeyPath<Root,Value>,_,_)``
 /// or ``Property/constant(_:to:)``; it has no public members.
 ///
 /// Unchecked `Sendable`: every stored value is immutable, and the key path or

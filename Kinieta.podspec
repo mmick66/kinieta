@@ -13,6 +13,7 @@ A timeline animation engine for UIKit with a typed, chainable API.
 - Perceptual colour. Colours interpolate through LCH by default, so pink to cyan never passes through grey.
 - Handles. Every timeline can be cancelled, paused, resumed or awaited.
 - Swift 6, iOS, tvOS and Mac Catalyst 17+. Main-actor isolated, Sendable where it matters, Reduce Motion aware.
+- Experimental: NSView on macOS 14+, with the same API and properties.
                    DESC
 
   s.homepage     = "https://github.com/mmick66/kinieta"
@@ -23,6 +24,7 @@ A timeline animation engine for UIKit with a typed, chainable API.
 
   s.ios.deployment_target  = "17.0"
   s.tvos.deployment_target = "17.0"
+  s.osx.deployment_target  = "14.0"
   s.swift_versions = ["6.0"]
 
   s.source       = { :git => "https://github.com/mmick66/kinieta.git", :tag => s.version }

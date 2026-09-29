@@ -118,10 +118,11 @@ jobs:
           set -o pipefail
           xcodebuild -scheme Kinieta -destination 'platform=visionOS Simulator,name=Apple Vision Pro,OS=26.5' test | xcbeautify --renderer github-actions
 
-  # On the macOS host, `swift test` runs the experimental AppKit tests. On
-  # Linux every source and test file compiles away behind
-  # canImport(UIKit) || os(macOS), so `swift build` and `swift test` succeed
-  # there and run 0 tests.
+  # On the macOS host, `swift test` runs the experimental AppKit tests, the
+  # same ones `xcodebuild test` would for platform=macOS, and the AppKit
+  # example app is built. On Linux every source and test file compiles away
+  # behind canImport(UIKit) || os(macOS), so `swift build` and `swift test`
+  # succeed there and run 0 tests.
   spm-macos:
     name: swift build + test (macOS host)
     runs-on: macos-26
@@ -129,10 +130,16 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_26.6.app
+      - name: Verify xcbeautify
+        run: command -v xcbeautify || brew install xcbeautify && xcbeautify --version
       - name: Build
         run: swift build
       - name: Test
         run: swift test
+      - name: Build example app (macOS)
+        run: |
+          set -o pipefail
+          xcodebuild -project Example/KinietaDemo.xcodeproj -scheme KinietaDemoMac -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO build | xcbeautify --renderer github-actions
 
   spm-linux:
     name: swift build + test (Linux)
@@ -147,8 +154,9 @@ jobs:
 
   # Catches podspec regressions, such as a dropped privacy bundle, until 1.1.0,
   # the final CocoaPods release. Optional: a failure here does not fail the run.
-  # `pod lib lint` builds on a simulator for every platform the podspec declares,
-  # so the tvOS runtime is installed if the runner lacks it.
+  # `pod lib lint` builds for every platform the podspec declares (iOS, tvOS
+  # and macOS), on a simulator where there is one, so the tvOS runtime is
+  # installed if the runner lacks it.
   pod-lint:
     name: pod lib lint (optional)
     runs-on: macos-26
@@ -172,4 +180,4 @@ jobs:
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_26.6.app
       - name: Lint
-        run: xcrun swift-format lint --strict --recursive Sources Tests Example/KinietaDemo
+        run: xcrun swift-format lint --strict --recursive Sources Tests Example

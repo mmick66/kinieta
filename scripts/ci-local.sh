@@ -6,15 +6,15 @@
 #
 # Checks (each mirrors one CI job):
 #   lint        swift-format lint                        (job: lint)
-#   spm-macos   swift build + swift test on the Mac host (job: spm-macos)
-#   ios        iOS Simulator tests + example app build  (job: test)
+#   spm-macos   swift build + swift test on the Mac host + AppKit example app build (job: spm-macos)
+#   ios         iOS Simulator tests + example app build  (job: test)
 #   catalyst    Mac Catalyst tests                       (job: catalyst)
 #   evolution   iOS Simulator build with library evolution (job: evolution)
 #   spm-linux   swift build + swift test in Docker       (job: spm-linux)
 #
 # The tvOS build, the visionOS tests and the optional podspec lint (jobs: tvos, visionos, pod-lint)
-# run in CI only. `pod lib lint Kinieta.podspec --allow-warnings --platforms=ios` lints the podspec
-# here when CocoaPods is installed; tvOS needs a tvOS simulator runtime.
+# run in CI only. `pod lib lint Kinieta.podspec --allow-warnings --platforms=ios,macos` lints the
+# podspec here when CocoaPods is installed; tvOS needs a tvOS simulator runtime.
 #
 # Requires Xcode 26.6 with the iOS 26.5 simulator runtime, and a running Docker for spm-linux.
 # Full output of each check goes to .build/ci-local/<check>.log; on a failure the end of it is
@@ -38,11 +38,13 @@ mkdir -p "$LOG_DIR"
 # ---- Checks ------------------------------------------------------------------------
 
 check_lint() {
-  xcrun swift-format lint --strict --recursive Sources Tests Example/KinietaDemo
+  xcrun swift-format lint --strict --recursive Sources Tests Example
 }
 
 check_spm-macos() {
-  swift build && swift test
+  swift build && swift test \
+    && xcodebuild -project Example/KinietaDemo.xcodeproj -scheme KinietaDemoMac \
+      -destination 'platform=macOS' -derivedDataPath DerivedData CODE_SIGNING_ALLOWED=NO build
 }
 
 check_ios() {

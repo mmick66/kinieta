@@ -69,12 +69,14 @@ scripts/ci-local.sh                  # every CI job except tvOS and visionOS, st
 scripts/ci-local.sh lint ios         # a subset: lint, spm-macos, ios, catalyst, evolution, spm-linux (needs Docker)
 
 # The same checks by hand
-xcrun swift-format lint --strict --recursive Sources Tests Example/KinietaDemo
+xcrun swift-format lint --strict --recursive Sources Tests Example
 xcodebuild -scheme Kinieta -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5' test
 xcodebuild -scheme Kinieta -destination 'platform=macOS,variant=Mac Catalyst' test
 xcodebuild -project Example/KinietaDemo.xcodeproj -scheme KinietaDemo \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5' CODE_SIGNING_ALLOWED=NO build
 swift build && swift test            # macOS: the AppKit tests only; Linux: an empty module, 0 tests
+xcodebuild -project Example/KinietaDemo.xcodeproj -scheme KinietaDemoMac \
+  -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO build
 xcodebuild -scheme Kinieta -destination 'generic/platform=iOS Simulator' build \
   BUILD_LIBRARY_FOR_DISTRIBUTION=YES OTHER_SWIFT_FLAGS=-alias-module-names-in-module-interface
 
@@ -82,14 +84,16 @@ xcodebuild -scheme Kinieta -destination 'generic/platform=iOS Simulator' build \
 TEST_RUNNER_SNAPSHOT_TESTING_RECORD=all xcodebuild -scheme Kinieta \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5' test
 
-# Build the DocC catalog; it should produce no warnings
+# Build the DocC catalog for UIKit and for AppKit; neither should produce warnings
 xcodebuild docbuild -scheme Kinieta -destination 'generic/platform=iOS Simulator'
+xcodebuild docbuild -scheme Kinieta -destination 'platform=macOS'
 ```
 
 The tvOS build (`-destination 'generic/platform=tvOS Simulator' build`), the visionOS tests
 (Apple Vision Pro / visionOS 26.5 simulator) and the optional `pod lib lint` job run in CI only
-(`pod lib lint Kinieta.podspec --allow-warnings --platforms=ios` lints iOS locally). CI is
-`.github/workflows/ci.yml`; keep it, `scripts/ci-local.sh` and README "Development" in sync.
+(`pod lib lint Kinieta.podspec --allow-warnings --platforms=ios,macos` lints iOS and macOS
+locally). CI is `.github/workflows/ci.yml`; keep it, `scripts/ci-local.sh` and README
+"Development" in sync.
 
 ## Architecture Overview
 
@@ -117,7 +121,8 @@ names the view or colour type is declared once per platform. Linux builds an emp
 - Easing: `Bezier` (baked lookup table, CSS `cubic-bezier()` semantics) and `Easing` presets.
 - Colour: `ColorMath.swift` (RGB/HSB/LCH interpolation, sRGB and Display P3).
 - `IgnoredCall.swift`: debug-only warnings for chain calls that do nothing.
-- Docs: `Sources/Kinieta/Kinieta.docc`. Demo: `Example/KinietaDemo.xcodeproj`.
+- Docs: `Sources/Kinieta/Kinieta.docc`. Demo: `Example/KinietaDemo.xcodeproj`, with a UIKit
+  target (`KinietaDemo`) and an AppKit one (`KinietaDemoMac`).
 - Tests (Swift Testing) in `Tests/KinietaTests`, snapshots in `__Snapshots__`.
 
 ## Conventions & Patterns

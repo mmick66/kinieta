@@ -28,6 +28,11 @@ All notable changes to Kinieta are documented here. The format follows
   counts as motion. `Property.constant(_:to:)` animates a constraint's constant
   with `layoutSubtreeIfNeeded()` on every frame. See "macOS (experimental)" in
   the README.
+- The podspec declares macOS 14, and the example project has a
+  `KinietaDemoMac` scheme: the gallery's easing, colour, timeline, Controls,
+  Interrupting and Auto Layout rows on native macOS. CI builds it, and the
+  DocC catalog builds for macOS without warnings and lists the platforms
+  Kinieta supports.
 - A newer animation of a property takes it over from an older one still
   running on the same view, like UIKit's `beginFromCurrentState`. It starts
   from the value on screen; the older animation stops writing that property,

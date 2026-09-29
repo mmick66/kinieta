@@ -12,7 +12,7 @@ import AppKit
 /// and another.
 ///
 /// Conform your own types to animate them through
-/// ``Property/custom(_:to:isMotion:)-(ReferenceWritableKeyPath<UIView,Value>,_,_)``:
+/// ``Property/custom(_:to:isMotion:)-(ReferenceWritableKeyPath<Root,Value>,_,_)``:
 ///
 /// ```swift
 /// extension CGVector: Interpolatable {
@@ -193,9 +193,11 @@ extension Interpolatable where Self: NSColor {
     /// ``ColorInterpolation/lch`` describes, with progress clamped to 0...1.
     ///
     /// Dynamic colours resolve against the current drawing appearance. A
-    /// colour animated through `Property.custom(_:to:isMotion:)` takes
-    /// `Engine.shared.colorInterpolation` instead and resolves against the
-    /// view's effective appearance, exactly like `.background`.
+    /// colour animated through
+    /// ``Property/custom(_:to:isMotion:)-(ReferenceWritableKeyPath<NSView,Value>,_,_)``
+    /// takes `Engine.shared.colorInterpolation` instead and resolves against
+    /// the view's effective appearance, exactly like
+    /// ``Property/background(_:interpolation:)``.
     public func interpolated(to target: Self, progress: CGFloat) -> Self {
         interpolatedColor(from: self, to: target, progress: progress)
     }
@@ -218,7 +220,7 @@ extension Interpolatable where Self: CGColor {
     /// colours in between are sRGB, or Display P3 when an end is outside sRGB.
     ///
     /// A colour animated through
-    /// ``Property/custom(_:to:isMotion:)-(ReferenceWritableKeyPath<UIView,Value>,_,_)``,
+    /// ``Property/custom(_:to:isMotion:)-(ReferenceWritableKeyPath<Root,Value>,_,_)``,
     /// such as `\.layer.shadowColor`, takes `Engine.shared.colorInterpolation` instead.
     public func interpolated(to target: Self, progress: CGFloat) -> Self {
         if progress <= 0 { return self }

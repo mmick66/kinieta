@@ -43,7 +43,7 @@ Or in `Package.swift`:
 
 ### CocoaPods
 
-1.1.0 is the final CocoaPods release: CocoaPods trunk becomes read-only in December 2026. Until 1.1.0 is published there, trunk has 1.0.0, which lacks the privacy manifest. Prefer Swift Package Manager.
+1.1.0 is the final CocoaPods release: CocoaPods trunk becomes read-only in December 2026. Until 1.1.0 is published there, trunk has 1.0.0, which lacks the privacy manifest and the experimental macOS support. Prefer Swift Package Manager.
 
 ```ruby
 pod 'Kinieta', '~> 1.0'
@@ -288,7 +288,7 @@ The display link only runs while something can move. When every timeline is paus
 | Mac Catalyst | 17 | Tests, except the iOS-only snapshot suite |
 | tvOS | 17 | Build for the tvOS Simulator |
 | visionOS | 1 | Tests, except the iOS-only snapshot suite, on the Apple Vision Pro / visionOS 26.5 simulator |
-| macOS (AppKit), experimental | 14 | `swift test` on the Mac host |
+| macOS (AppKit), experimental | 14 | `swift test` on the Mac host, and a build of the AppKit example app |
 
 #### macOS (experimental)
 
@@ -355,6 +355,8 @@ xcodebuild -scheme Kinieta -destination 'generic/platform=iOS Simulator' BUILD_L
 
 `Example/KinietaDemo.xcodeproj` is a gallery: every easing preset on its own track, the three colour spaces side by side, a composed timeline with a grouped completion, a Controls section that pauses, resumes and cancels one handle and reports when `await finished()` returns, an Interrupting row whose Left and Right buttons take a square's position over mid-flight while its colour change carries on, and an Auto Layout row whose square is centred by a constraint and swings by animating its constant. It lays out within the safe area and replays at the new size when the device rotates, since Kinieta sets frames that Auto Layout does not update; the Auto Layout row instead keeps playing through the rotation. Pressing Play while the gallery runs starts it again from where the views are. Launch it with the `-autoplay` argument to start playing on launch.
 
+The `KinietaDemoMac` scheme is the same gallery for native macOS, animating `NSView`s: the easing, colour, timeline, Controls, Interrupting and Auto Layout rows. The window keeps a fixed width, since the targets are computed from the track widths when Play is pressed. It also takes `-autoplay`.
+
 ## Development
 
 Tests run on the pinned simulator runtime: **iPhone 17 Pro, iOS 26.5** (Xcode 26.6). CI uses the same destination, since the snapshot references are only valid for the runtime they were recorded on.
@@ -362,10 +364,10 @@ Tests run on the pinned simulator runtime: **iPhone 17 Pro, iOS 26.5** (Xcode 26
 ```
 xcodebuild -scheme Kinieta -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5' test
 xcodebuild -project Example/KinietaDemo.xcodeproj -scheme KinietaDemo -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5' CODE_SIGNING_ALLOWED=NO build
-xcrun swift-format lint --strict --recursive Sources Tests Example/KinietaDemo
+xcrun swift-format lint --strict --recursive Sources Tests Example
 ```
 
-`scripts/ci-local.sh` runs the CI jobs locally (the three above plus Mac Catalyst, the library-evolution build from "Building an XCFramework", and `swift build`/`swift test` on macOS and in a Linux container via Docker) and stops at the first failure. The tvOS build, the visionOS tests and an optional `pod lib lint` of the podspec run in CI only. Pass check names to run a subset, e.g. `scripts/ci-local.sh lint ios`.
+`scripts/ci-local.sh` runs the CI jobs locally (the three above plus Mac Catalyst, the library-evolution build from "Building an XCFramework", `swift build`/`swift test` on macOS and in a Linux container via Docker, and a build of the macOS example app) and stops at the first failure. The tvOS build, the visionOS tests and an optional `pod lib lint` of the podspec run in CI only. Pass check names to run a subset, e.g. `scripts/ci-local.sh lint ios`.
 
 Visual regression is covered by snapshot tests: each property is rendered at five progress points, the colour paths at their midpoint between sRGB and between Display P3 colours, and dynamic colours in light and dark appearance. Reference images live in `Tests/KinietaTests/__Snapshots__`. After an intentional visual change, re-record them on the pinned iPhone 17 Pro / iOS 26.5 simulator and review the PNGs before committing:
 
@@ -373,7 +375,12 @@ Visual regression is covered by snapshot tests: each property is rendered at fiv
 TEST_RUNNER_SNAPSHOT_TESTING_RECORD=all xcodebuild -scheme Kinieta -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5' test
 ```
 
-`swift test` on a Mac runs only the macOS (AppKit) tests, and on Linux none; use the `xcodebuild` commands above for the rest. Requires Xcode 26. Documentation is a DocC catalog in `Sources/Kinieta/Kinieta.docc`, including a guide for migrating from 0.5.
+`swift test` on a Mac runs only the macOS (AppKit) tests, and on Linux none; use the `xcodebuild` commands above for the rest. Requires Xcode 26. Documentation is a DocC catalog in `Sources/Kinieta/Kinieta.docc`, including a guide for migrating from 0.5; build it for UIKit and for AppKit, and neither should warn:
+
+```
+xcodebuild docbuild -scheme Kinieta -destination 'generic/platform=iOS Simulator'
+xcodebuild docbuild -scheme Kinieta -destination 'platform=macOS'
+```
 
 ## License
 
