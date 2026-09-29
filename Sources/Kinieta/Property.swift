@@ -41,7 +41,10 @@ public enum Property: Sendable {
     /// Identifies a property regardless of value. When the same property is
     /// listed twice in one animation the last value wins.
     enum Key: Hashable {
-        case x, y, width, height, frame, alpha, rotation, background, borderColor, borderWidth, cornerRadius
+        case x, y, width, height, frame, alpha, background, borderColor, borderWidth, cornerRadius
+        /// The view's `transform`, written by `.rotation` and by a key path to
+        /// it, such as `\.transform`, so each takes the other over.
+        case transform
         /// A key path, or a constraint by identity.
         case custom(AnyHashable)
     }
@@ -54,12 +57,12 @@ public enum Property: Sendable {
         case .height: return .height
         case .frame: return .frame
         case .alpha: return .alpha
-        case .rotation: return .rotation
+        case .rotation: return .transform
         case .background: return .background
         case .borderColor: return .borderColor
         case .borderWidth: return .borderWidth
         case .cornerRadius: return .cornerRadius
-        case .extended(let custom): return .custom(custom.key)
+        case .extended(let custom): return custom.key
         }
     }
 
@@ -85,6 +88,7 @@ public enum Property: Sendable {
     var name: String {
         switch self {
         case .extended(let custom): return custom.name
+        case .rotation: return "rotation"
         default: return String(describing: key)
         }
     }

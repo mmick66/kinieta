@@ -19,8 +19,9 @@ public struct CustomProperty: @unchecked Sendable {
     /// colour interpolation.
     typealias Builder = @MainActor (UIView, ColorInterpolation) -> Property.Transformation?
 
-    /// The key path, or the constraint's `ObjectIdentifier`.
-    let key: AnyHashable
+    /// The key path or the constraint's `ObjectIdentifier`, as a `.custom`
+    /// key, or `.transform` for a key path to the view's `transform`.
+    let key: Property.Key
     let name: String
     let isMotion: Bool
     /// The object written when it is not the view: a constraint's identity.
@@ -30,7 +31,7 @@ public struct CustomProperty: @unchecked Sendable {
     let transformation: Builder
 
     init(
-        key: AnyHashable, name: String, isMotion: Bool, target: ObjectIdentifier? = nil,
+        key: Property.Key, name: String, isMotion: Bool, target: ObjectIdentifier? = nil,
         transformation: @escaping Builder
     ) {
         self.key = key
@@ -140,7 +141,8 @@ public extension Property {
         let identifier = ObjectIdentifier(constraint)
         let name = "constant(\(constraint.identifier ?? "\(identifier)"))"
         return .extended(
-            CustomProperty(key: identifier, name: name, isMotion: true, target: identifier) { [weak constraint] _, _ in
+            CustomProperty(key: .custom(identifier), name: name, isMotion: true, target: identifier) {
+                [weak constraint] _, _ in
                 guard let constraint else { return nil }
                 let from = constraint.constant
                 let container = constraint.layoutContainer
@@ -161,8 +163,11 @@ extension Property {
         keyPath: ReferenceWritableKeyPath<Root, Value>, to value: Value, isMotion: Bool?
     ) -> Property {
         let name = String(describing: keyPath)
+        // `\UIImageView.transform` is a different key path from `\UIView.transform`
+        // but writes the same property, which `.rotation` writes too.
+        let key: Key = keyPath == \Root.transform ? .transform : .custom(keyPath)
         return .extended(
-            CustomProperty(key: keyPath, name: name, isMotion: isMotion ?? Value.isMotion) { view, colorMode in
+            CustomProperty(key: key, name: name, isMotion: isMotion ?? Value.isMotion) { view, colorMode in
                 guard let root = view.as(Root.self, for: name) else { return nil }
                 let values = interpolator(
                     from: root[keyPath: keyPath], to: value, colorMode: colorMode, view: view, name: name)
@@ -176,7 +181,7 @@ extension Property {
     ) -> Property {
         let name = String(describing: keyPath)
         return .extended(
-            CustomProperty(key: keyPath, name: name, isMotion: isMotion ?? Value.isMotion) { view, colorMode in
+            CustomProperty(key: .custom(keyPath), name: name, isMotion: isMotion ?? Value.isMotion) { view, colorMode in
                 guard let root = view.as(Root.self, for: name) else { return nil }
                 guard let from = root[keyPath: keyPath] ?? Value.clear else {
                     return { view, factor in if factor > 0 { (view as? Root)?[keyPath: keyPath] = value } }

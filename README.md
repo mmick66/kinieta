@@ -121,7 +121,7 @@ view.animate(.custom(\.transform, to: CGAffineTransform(scaleX: 1.5, y: 1.5).rot
 view.animate(.custom(\.transform, to: .identity), duration: 0.4)
 ```
 
-The rotation takes the shorter way round, since a transform cannot tell a half turn from one and a half; for more, or to spin past 180°, use `.rotation(degrees:)`. A flip such as `CGAffineTransform(scaleX: -1, y: 1)` scales through zero instead of turning. `.custom(\.transform)` and `.rotation` both write the transform but are separate properties, so animate one or the other on a view at a time.
+The rotation takes the shorter way round, since a transform cannot tell a half turn from one and a half; for more, or to spin past 180°, use `.rotation(degrees:)`. A flip such as `CGAffineTransform(scaleX: -1, y: 1)` scales through zero instead of turning. `.custom(\.transform)` and `.rotation` both write the transform, so a newer one of either takes it over from an older one still running (see [Interrupting](#interrupting)).
 
 Custom key paths count as fades for [Reduce Motion](#reduce-motion) and keep animating, except a `CGAffineTransform`, which counts as motion and snaps. Pass `isMotion: true` for any other one that moves, resizes, rotates or scales something, so it snaps too: `.custom(\.bounds, to: target, isMotion: true)`; `isMotion: false` keeps a transform animating.
 
@@ -240,7 +240,7 @@ view.animate(.x(0), duration: 0.5)   // x turns back from about 150; alpha keeps
 
 Nothing has to be cancelled. The older animation keeps its duration, so its completion block runs when the properties it kept finish, or at its scheduled end if all were taken, and the rest of its timeline stays on schedule. A later step of that timeline takes the property back when it starts, so cancel the older handle if you are replacing the whole timeline.
 
-`.frame` counts as `.x`, `.y`, `.width` and `.height`, so a newer `.x` takes only the position from an older `.frame`, and a newer `.frame` takes all four from older animations. A `.custom` key path is matched by the key path itself, and a `.constant` by its constraint, whichever view's timeline animates it.
+`.frame` counts as `.x`, `.y`, `.width` and `.height`, so a newer `.x` takes only the position from an older `.frame`, and a newer `.frame` takes all four from older animations. A `.custom` key path is matched by the key path itself, except that any key path to the view's `transform`, such as `\.transform` or `\UIImageView.transform`, counts as `.rotation`, which writes it too. A `.constant` is matched by its constraint, whichever view's timeline animates it.
 
 ### Colour
 

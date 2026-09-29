@@ -35,9 +35,12 @@ All notable changes to Kinieta are documented here. The format follows
   Core Animation does: each end is decomposed into translation, rotation
   (the shorter way round), scale and shear, so a view keeps its size while it
   turns and a flip scales through zero. A transform key path counts as motion
-  for Reduce Motion unless you pass `isMotion: false`. A `CGColor` key path,
-  such as `\.layer.shadowColor`, animates through the engine's colour
-  interpolation like `.background`.
+  for Reduce Motion unless you pass `isMotion: false`. It writes the same
+  transform as `.rotation`, so a newer one of either takes it over from an
+  older one, including through a subclass key path such as
+  `\UIImageView.transform`. A `CGColor` key path, such as
+  `\.layer.shadowColor`, animates through the engine's colour interpolation
+  like `.background`.
 - `Engine.shared.preferredFrameRateRange` sets the frame rates the engine asks
   the display for; it applies from the next frame, even mid-animation. The
   default, `Engine.defaultFrameRateRange`, is 30–120 Hz preferring 120 (1.0

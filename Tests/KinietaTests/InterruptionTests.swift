@@ -177,6 +177,42 @@ struct InterruptionTests {
         #expect(width.constant == 0)
     }
 
+    @Test func aTransformKeyPathAndARotationTakeEachOtherOver() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        view.animate(.rotation(degrees: 90), duration: 2)
+        frames.step(0.5)
+        #expect(approx(view.rotation, 22.5, 1e-4))
+        view.animate(.custom(\.transform, to: .identity), duration: 1)
+        frames.step(0.5)
+        #expect(approx(view.rotation, 11.25, 1e-4))
+        frames.step(1.5)
+        #expect(view.transform == .identity)
+
+        view.animate(.custom(\.transform, to: CGAffineTransform(rotationAngle: .pi / 2)), duration: 2)
+        frames.step(0.5)
+        #expect(approx(view.rotation, 22.5, 1e-4))
+        view.animate(.rotation(degrees: 0), duration: 1)
+        frames.step(0.5)
+        #expect(approx(view.rotation, 11.25, 1e-4))
+        frames.step(1.5)
+        #expect(approx(view.rotation, 0, 1e-4))
+    }
+
+    @Test func aSubclassTransformKeyPathTakesARotationOver() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = UIImageView(frame: CGRect(x: 0, y: 0, width: 10, height: 10))
+        view.animate(.rotation(degrees: 90), duration: 2)
+        frames.step(0.5)
+        view.animate(.custom(\UIImageView.transform, to: .identity), duration: 1)
+        frames.step(0.5)
+        #expect(approx(view.rotation, 11.25, 1e-4))
+        frames.step(1.5)
+        #expect(view.transform == .identity)
+    }
+
     @Test func aFinishedAnimationGivesItsPropertiesBack() {
         let frames = ManualFrameDriver.install()
         defer { frames.uninstall() }

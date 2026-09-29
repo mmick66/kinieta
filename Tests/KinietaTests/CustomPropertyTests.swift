@@ -136,6 +136,22 @@ struct CustomPropertyTests {
         #expect(!Property.custom(\.transform, to: .identity, isMotion: false).isMotion)
     }
 
+    @Test func everyKeyPathToTheViewTransformSharesTheRotationKey() {
+        let rotation = Property.rotation(degrees: 0).key
+        #expect(Property.custom(\.transform, to: .identity).key == rotation)
+        #expect(Property.custom(\UIView.transform, to: .identity).key == rotation)
+        #expect(Property.custom(\UIImageView.transform, to: .identity).key == rotation)
+        #expect(Property.custom(\TransformView.extra, to: .identity).key != rotation)
+        #expect(Property.custom(\.layer.shadowOpacity, to: 1).key != rotation)
+        // In one animation the last of them wins.
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = UIView()
+        view.animate(.rotation(degrees: 90), .custom(\.transform, to: .identity), duration: 1)
+        frames.step(0.5)
+        #expect(view.transform == .identity)
+    }
+
     // MARK: CGColor
 
     @Test func aCGColorInterpolatesLikeItsUIColor() throws {
@@ -424,6 +440,10 @@ private struct Vector: Interpolatable, Equatable {
             dx: dx.interpolated(to: target.dx, progress: progress),
             dy: dy.interpolated(to: target.dy, progress: progress))
     }
+}
+
+private final class TransformView: UIView {
+    var extra = CGAffineTransform.identity
 }
 
 private final class VectorView: UIView {
