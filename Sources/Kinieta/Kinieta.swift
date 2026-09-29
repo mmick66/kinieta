@@ -486,7 +486,10 @@ public final class Kinieta {
     /// Cancelling, pausing or resuming the returned handle does the same to
     /// every timeline in the group. If the handle is released while paused,
     /// the timelines it was running stay paused and leave the group: resume
-    /// or cancel each on its own handle. A timeline belongs to at most one group:
+    /// or cancel each on its own handle. Released while running, the group
+    /// carries on driving them; if it is waiting forever, as after
+    /// `delay(.infinity)`, they wait with it until each is cancelled on its
+    /// own handle, as a `wait(.infinity)` does. A timeline belongs to at most one group:
     /// one that is already in a group, has finished or was cancelled is left
     /// out with a warning, and a timeline listed twice runs once.
     @discardableResult

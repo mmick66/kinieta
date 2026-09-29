@@ -2350,6 +2350,30 @@ struct EngineTests {
         #expect(member.state == .finished && regrouped.state == .finished)
     }
 
+    @Test(.timeLimit(.minutes(1)))
+    func aMemberBehindAReleasedGroupsInfiniteDelayWaitsUntilCancelled() async {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        let member = view.animate(.x(100), duration: 1)
+        weak var sequence: SequenceAction?
+        do {
+            let group = Kinieta.group(member).delay(.infinity)
+            sequence = group.mainSequence
+        }
+        frames.step(0.5)
+        #expect(!frames.isRunning)
+        // Nothing can end the group's wait, so the engine drops the group...
+        while sequence != nil { await Task.yield() }
+        // ...and the member it never started waits with it, as `wait(.infinity)` does.
+        frames.step(1)
+        #expect(member.isRunning && !frames.isRunning)
+        #expect(approx(view.frame.origin.x, 0))
+        member.cancel()
+        #expect(member.state == .cancelled)
+        await member.finished()
+    }
+
     @Test func aRunningGroupWhoseHandleIsReleasedKeepsDrivingItsMembers() {
         let frames = ManualFrameDriver.install()
         defer { frames.uninstall() }
