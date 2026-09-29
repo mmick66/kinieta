@@ -192,7 +192,10 @@ All notable changes to Kinieta are documented here. The format follows
   includes a timeline that is paused, on its own or by its group, or waiting
   on `wait(.infinity)`, which gets no frames: it used to stay `.paused` or
   `.running`, with its `finished()` callers suspended, until something else
-  animated.
+  animated. A view released from a completion block stops the timeline in
+  that frame, as `cancel()` does, at any depth of `then()`, `delay` or
+  `parallel()`: the rest of that step, including its own `onComplete`, no
+  longer runs. A timeline with nothing left to run still ends `.finished`.
 - The frames between dynamic colours, such as `.label`, were resolved
   against the app's traits rather than the view's, so a view with
   `overrideUserInterfaceStyle` or in a sheet of another appearance animated

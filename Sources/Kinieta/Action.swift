@@ -140,7 +140,7 @@ enum ActionType: CustomStringConvertible {
         case .group(let types, let completion):
             return GroupAction(pending: types, control: control, completion: completion)
         case .sequence(let types, let completion):
-            return SequenceAction(types, control: control, completion: completion)
+            return SequenceAction(types, control: control, isNested: true, completion: completion)
         case .timelines(let action, let completion):
             action.completion = completion
             action.control = control
@@ -149,16 +149,35 @@ enum ActionType: CustomStringConvertible {
     }
 }
 
-/// Whether a timeline has been cancelled or paused, shared by its main
-/// sequence and every sequence and group nested in it. A completion block can
-/// cancel or pause the timeline at any depth, so each of them checks this after
-/// every child it updates and stops there, in that same frame.
+/// Whether a timeline has been cancelled or paused, and the view it runs,
+/// shared by its main sequence and every sequence and group nested in it. A
+/// completion block can cancel or pause the timeline, or release its view, at
+/// any depth, so each of them checks this after every child it updates and
+/// stops there, in that same frame.
 @MainActor
 final class TimelineControl {
     var isCancelled = false
     var isPaused = false
 
+    /// The view of the timeline, if it has one. Once the view is deallocated
+    /// the timeline cancels itself before running anything else and calls
+    /// `onViewLost`, so its handle can end as cancelled.
+    var target: ViewRef?
+    var onViewLost: Kinieta.Completion?
+
     var isHalted: Bool { isCancelled || isPaused }
+
+    var hasLostView: Bool {
+        target.map { $0.view == nil } ?? false
+    }
+
+    /// Cancels the timeline if its view has gone. Returns `true` if it has.
+    func cancelIfViewIsGone() -> Bool {
+        guard hasLostView else { return false }
+        isCancelled = true
+        onViewLost?()
+        return true
+    }
 }
 
 enum ActionResult: Equatable {

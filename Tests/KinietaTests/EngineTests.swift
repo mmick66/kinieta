@@ -1331,6 +1331,82 @@ struct EngineTests {
         #expect(handle.state == .finished)
     }
 
+    @Test func releasingTheViewFromACompletionBlockInsideThenStopsTheTimelineInThatFrame() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        var view: UIView? = makeView()
+        var waitCompleted = false, stepCompleted = false
+        let handle = view!.wait(1)
+            .onComplete { view = nil }
+            .wait(0)
+            .onComplete { waitCompleted = true }
+            .then()
+            .onComplete { stepCompleted = true }
+        frames.step(1.5)
+        #expect(view == nil)
+        #expect(!waitCompleted && !stepCompleted)
+        #expect(handle.state == .cancelled)
+        #expect(!frames.isRunning)
+    }
+
+    @Test func releasingTheViewFromACompletionBlockInsideDelayRunsNoLaterCompletion() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        var view: UIView? = makeView()
+        var delayedCompleted = false
+        let handle = view!.animate(.x(100), duration: 1)
+            .onComplete { view = nil }
+            .delay(0.5)
+            .onComplete { delayedCompleted = true }
+        frames.step(1.5)
+        #expect(view == nil)
+        #expect(!delayedCompleted)
+        #expect(handle.state == .cancelled)
+    }
+
+    @Test func releasingTheViewFromACompletionBlockInsideParallelSkipsTheOtherMembers() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        var view: UIView? = makeView()
+        var otherCompleted = false, groupCompleted = false
+        let handle = view!.animate(.x(100), duration: 1)
+            .onComplete { view = nil }
+            .wait(1)
+            .onComplete { otherCompleted = true }
+            .parallel()
+            .onComplete { groupCompleted = true }
+        frames.step(1)
+        #expect(view == nil)
+        #expect(!otherCompleted && !groupCompleted)
+        #expect(handle.state == .cancelled)
+    }
+
+    @Test func releasingTheViewFromTheLastMemberOfParallelSkipsItsCompletion() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        var view: UIView? = makeView()
+        var groupCompleted = false
+        let handle = view!.wait(0.5)
+            .animate(.x(100), duration: 1)
+            .onComplete { view = nil }
+            .parallel()
+            .onComplete { groupCompleted = true }
+        frames.step(1)
+        #expect(view == nil)
+        #expect(!groupCompleted)
+        #expect(handle.state == .cancelled)
+    }
+
+    @Test func releasingTheViewFromTheLastCompletionBlockInsideThenStillFinishes() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        var view: UIView? = makeView()
+        let handle = view!.animate(.x(100), duration: 1).onComplete { view = nil }.then()
+        frames.step(1)
+        #expect(view == nil)
+        #expect(handle.state == .finished)
+    }
+
     @Test func pausedTimelineIsCancelledOnceItsViewIsReleased() {
         let frames = ManualFrameDriver.install()
         defer { frames.uninstall() }

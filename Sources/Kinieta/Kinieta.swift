@@ -88,8 +88,8 @@ public final class Kinieta {
         mainSequence.handle = self
         mainSequence.completion = { [weak self] in self?.finish(as: .finished) }
         if let view {
-            mainSequence.target = ViewRef(view)
-            mainSequence.onViewLost = { [weak self] in self?.cancel() }
+            mainSequence.control.target = ViewRef(view)
+            mainSequence.control.onViewLost = { [weak self] in self?.cancel() }
             ViewReleaseObserver.observe(view, for: self)
         }
         Engine.shared.add(mainSequence)

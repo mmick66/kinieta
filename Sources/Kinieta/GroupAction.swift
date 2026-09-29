@@ -76,8 +76,8 @@ final class GroupAction: Action {
         var overshoot = frame.duration
         for (index, action) in actions.enumerated() {
             // A member's completion block may have cancelled or paused the
-            // timeline: leave the members after it as they are.
-            if control.isHalted {
+            // timeline, or released its view: leave the members after it as they are.
+            if control.isHalted || control.cancelIfViewIsGone() {
                 stillRunning += actions[index...]
                 break
             }
@@ -100,6 +100,9 @@ final class GroupAction: Action {
 
         if stillRunning.isEmpty {
             hasEnded = true
+            // A member's completion block may have released the view: the
+            // group's own block, from the chain, is one more that must not run.
+            if completion != nil && control.cancelIfViewIsGone() { return .finished(overshoot: 0) }
             completion?()
             // The group ends when its last child ends, so the smallest remainder wins.
             return .finished(overshoot: overshoot)

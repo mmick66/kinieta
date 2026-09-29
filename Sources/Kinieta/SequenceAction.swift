@@ -11,7 +11,13 @@ final class SequenceAction: Action {
     /// the ones still to come. A main sequence's queue is its handle's timeline.
     var queue: ActionQueue
 
+    /// A nested sequence's is a block from the chain, such as `onComplete`
+    /// after `delay`; a main sequence's ends its handle's timeline.
     var completion: Kinieta.Completion?
+
+    /// `true` for a sequence nested in a timeline, such as the one `delay`
+    /// or `then()` makes, rather than a handle's main sequence.
+    let isNested: Bool
 
     /// Shared with the timeline this sequence belongs to: a main sequence
     /// makes its own and hands it to every sequence and group nested in it.
@@ -32,18 +38,12 @@ final class SequenceAction: Action {
 
     var currentAction: Action?
 
-    /// The view of the timeline this sequence runs, if it has one. Once the
-    /// view is deallocated the sequence cancels itself before running anything
-    /// else and calls `onViewLost`, so its handle can end as cancelled.
-    var target: ViewRef?
-    var onViewLost: Kinieta.Completion?
-
     /// The handle whose timeline this is; `nil` for a nested sequence, and
     /// once the handle has been released.
     weak var handle: Kinieta?
 
     var isIdle: Bool {
-        !isCancelled && !hasLostView && (isPaused || currentAction?.isIdle == true)
+        !isCancelled && !control.hasLostView && (isPaused || currentAction?.isIdle == true)
     }
 
     /// Idle with its handle gone: nothing can resume or cancel it any more.
@@ -54,20 +54,18 @@ final class SequenceAction: Action {
         return isPaused || currentAction?.isAbandoned == true
     }
 
-    private var hasLostView: Bool {
-        target.map { $0.view == nil } ?? false
-    }
-
     init(
-        _ types: [ActionType] = [], control: TimelineControl = TimelineControl(), completion: Kinieta.Completion? = nil
+        _ types: [ActionType] = [], control: TimelineControl = TimelineControl(), isNested: Bool = false,
+        completion: Kinieta.Completion? = nil
     ) {
         self.queue = ActionQueue(types)
         self.control = control
+        self.isNested = isNested
         self.completion = completion
     }
 
     func update(_ frame: Engine.Frame) -> ActionResult {
-        if isCancelled || cancelIfViewIsGone() { return .finished(overshoot: 0) }
+        if isCancelled || control.cancelIfViewIsGone() { return .finished(overshoot: 0) }
         if isPaused { return .running }
 
         var frame = frame
@@ -86,25 +84,21 @@ final class SequenceAction: Action {
                 // the timeline; honour that before anything else runs.
                 if isCancelled { return .finished(overshoot: 0) }
                 if isPaused { return .running }
+                // A completion block may have released the view: nothing else
+                // runs, not even a nested sequence's own block. With nothing
+                // left to run, the timeline still ends as finished.
+                let hasMoreToRun = !queue.isEmpty || (isNested && completion != nil)
+                if hasMoreToRun && control.cancelIfViewIsGone() { return .finished(overshoot: 0) }
                 if queue.isEmpty {
                     completion?()
                     return .finished(overshoot: overshoot)
                 }
-                // A completion block may have released the view.
-                if cancelIfViewIsGone() { return .finished(overshoot: 0) }
                 // Hand the unused part of the frame to the next action so a
                 // boundary never costs a frame. Nothing left: wait for the next one.
                 guard overshoot > 0 else { return .running }
                 frame = Engine.Frame(overshoot)
             }
         }
-    }
-
-    private func cancelIfViewIsGone() -> Bool {
-        guard hasLostView else { return false }
-        isCancelled = true
-        onViewLost?()
-        return true
     }
 }
 #endif
