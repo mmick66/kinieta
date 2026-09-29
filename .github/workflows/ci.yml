@@ -48,8 +48,8 @@ jobs:
           set -o pipefail
           xcodebuild -project Example/KinietaDemo.xcodeproj -scheme KinietaDemo -destination "$DESTINATION" -derivedDataPath DerivedData CODE_SIGNING_ALLOWED=NO build | xcbeautify --renderer github-actions
 
-  # The snapshot references are iOS only, so Catalyst runs every test except
-  # the snapshot suite, and tvOS is a build check with no test run.
+  # The snapshot references are iOS only, so Catalyst and visionOS run every
+  # test except the snapshot suite, and tvOS is a build check with no test run.
   catalyst:
     name: Build and test (Mac Catalyst)
     runs-on: macos-26
@@ -77,6 +77,22 @@ jobs:
         run: |
           set -o pipefail
           xcodebuild -scheme Kinieta -destination 'generic/platform=tvOS Simulator' build | xcbeautify --renderer github-actions
+
+  visionos:
+    name: Build and test (visionOS Simulator)
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_26.6.app
+      - name: Verify xcbeautify
+        run: command -v xcbeautify || brew install xcbeautify && xcbeautify --version
+      - name: Install the visionOS simulator runtime
+        run: xcrun simctl list runtimes | grep -q '^visionOS 26\.5 ' || xcodebuild -downloadPlatform visionOS -buildVersion 26.5
+      - name: Test package
+        run: |
+          set -o pipefail
+          xcodebuild -scheme Kinieta -destination 'platform=visionOS Simulator,name=Apple Vision Pro,OS=26.5' test | xcbeautify --renderer github-actions
 
   # Kinieta is UIKit only. On other hosts every source and test file compiles
   # away behind canImport(UIKit); these jobs keep that true, so `swift build`

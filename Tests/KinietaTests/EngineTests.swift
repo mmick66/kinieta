@@ -869,6 +869,16 @@ struct EngineTests {
         a.minimum == b.minimum && a.maximum == b.maximum && a.preferred == b.preferred
     }
 
+    @Test func defaultFrameRateRangeFitsThePlatform() {
+        #if os(visionOS)
+        let expected = CAFrameRateRange(minimum: 30, maximum: 100, preferred: 90)
+        #else
+        let expected = CAFrameRateRange(minimum: 30, maximum: 120, preferred: 120)
+        #endif
+        #expect(sameRange(Engine.defaultFrameRateRange, expected))
+        #expect(sameRange(Engine.shared.preferredFrameRateRange, expected))
+    }
+
     @Test func installedDriverTakesTheEngineFrameRateRange() {
         let frames = ManualFrameDriver.install()
         defer { frames.uninstall() }

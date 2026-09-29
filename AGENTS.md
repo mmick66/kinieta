@@ -53,7 +53,7 @@ Requires Xcode 26.6 with the iOS 26.5 simulator runtime. Tests run on the pinned
 **iPhone 17 Pro, iOS 26.5**: the snapshot references are only valid for that runtime.
 
 ```bash
-scripts/ci-local.sh                  # every CI job except tvOS, stops at the first failure
+scripts/ci-local.sh                  # every CI job except tvOS and visionOS, stops at the first failure
 scripts/ci-local.sh lint ios         # a subset: lint, spm-macos, ios, catalyst, spm-linux (needs Docker)
 
 # The same checks by hand
@@ -72,13 +72,14 @@ TEST_RUNNER_SNAPSHOT_TESTING_RECORD=all xcodebuild -scheme Kinieta \
 xcodebuild docbuild -scheme Kinieta -destination 'generic/platform=iOS Simulator'
 ```
 
-The tvOS build (`-destination 'generic/platform=tvOS Simulator' build`) runs in CI only. CI is
+The tvOS build (`-destination 'generic/platform=tvOS Simulator' build`) and the visionOS tests
+(Apple Vision Pro / visionOS 26.5 simulator) run in CI only. CI is
 `.github/workflows/ci.yml`; keep it, `scripts/ci-local.sh` and README "Development" in sync.
 
 ## Architecture Overview
 
-A UIKit animation library (iOS, tvOS, Mac Catalyst 17+), Swift 6, main-actor isolated. All
-sources are behind `canImport(UIKit)`.
+A UIKit animation library (iOS, tvOS, Mac Catalyst 17+, visionOS 1+), Swift 6, main-actor
+isolated. All sources are behind `canImport(UIKit)`.
 
 - `View.swift`: `UIView.animate(...)` / `wait(_:)` entry points; geometry goes through
   `center` and `bounds`, not `frame`.
