@@ -12,9 +12,10 @@ All notable changes to Kinieta are documented here. The format follows
   `animate(_:duration:)` and `wait(_:)` with the full timeline API, for
   `.x`, `.y`, `.width`, `.height` and `.frame` (the view's frame),
   `.rotation` (`frameRotation`, about the view's centre and unwrapped),
-  `.alpha` (`alphaValue`), and `.background` and `.borderColor` with an
-  `NSColor` (the layer's colours, in sRGB or Display P3, with dynamic colours
-  resolved against the view's effective appearance). Once a view is rotated,
+  `.alpha` (`alphaValue`), `.borderWidth` and `.cornerRadius` (the layer's),
+  and `.background` and `.borderColor` with an `NSColor` (the layer's colours,
+  in sRGB or Display P3, with dynamic colours resolved against the view's
+  effective appearance). The layer properties give a view without a layer one. Once a view is rotated,
   `.x`, `.y` and `.frame` stand for the frame it would have unrotated, so
   position, size and rotation animate independently, as on UIKit. Frames come
   from the main screen's display link. `NSColor` and `CGColor` conform to
@@ -23,9 +24,8 @@ All notable changes to Kinieta are documented here. The format follows
   `\NSBox.fillColor`, with colours interpolated like `.background`; a key path
   to `frameRotation` or `frameCenterRotation` shares `.rotation`'s key and
   counts as motion. `Property.constant(_:to:)` animates a constraint's constant
-  with `layoutSubtreeIfNeeded()` on every frame. `.borderWidth` and
-  `.cornerRadius` are still UIKit only. See "macOS (experimental)" in the
-  README.
+  with `layoutSubtreeIfNeeded()` on every frame. See "macOS (experimental)" in
+  the README.
 - A newer animation of a property takes it over from an older one still
   running on the same view, like UIKit's `beginFromCurrentState`. It starts
   from the value on screen; the older animation stops writing that property,

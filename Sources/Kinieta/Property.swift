@@ -48,11 +48,10 @@ public enum Property: Sendable {
     /// The layer's `borderColor`; a view without a layer is given one.
     case borderColor(NSColor, interpolation: ColorInterpolation? = nil)
     #endif
-    // On AppKit, the other layer properties do not exist yet.
-    #if canImport(UIKit)
+    /// The layer's `borderWidth`. On AppKit a view without a layer is given one.
     case borderWidth(CGFloat)
+    /// The layer's `cornerRadius`. On AppKit a view without a layer is given one.
     case cornerRadius(CGFloat)
-    #endif
     /// A key path or constraint constant. Make one with
     /// ``custom(_:to:isMotion:)-(ReferenceWritableKeyPath<UIView,Value>,_,_)`` or ``constant(_:to:)``.
     case extended(CustomProperty)
@@ -79,10 +78,8 @@ public enum Property: Sendable {
         case .rotation: return .transform
         case .background: return .background
         case .borderColor: return .borderColor
-        #if canImport(UIKit)
         case .borderWidth: return .borderWidth
         case .cornerRadius: return .cornerRadius
-        #endif
         case .extended(let custom): return custom.key
         }
     }
@@ -117,10 +114,7 @@ public enum Property: Sendable {
     var isMotion: Bool {
         switch self {
         case .x, .y, .width, .height, .frame, .rotation: return true
-        case .alpha, .background, .borderColor: return false
-        #if canImport(UIKit)
-        case .borderWidth, .cornerRadius: return false
-        #endif
+        case .alpha, .background, .borderColor, .borderWidth, .cornerRadius: return false
         case .extended(let custom): return custom.isMotion
         }
     }
@@ -161,12 +155,10 @@ public enum Property: Sendable {
                 from: view.animatedBorderColor, to: to, mode: mode ?? defaultColorInterpolation, view: view,
                 name: name)
             return { view, factor in view.animatedBorderColor = colors(factor) }
-        #if canImport(UIKit)
         case .borderWidth(let to):
-            return lerp(from: view.layer.borderWidth, to: to) { $0.layer.borderWidth = max($1, 0) }
+            return lerp(from: view.animatedBorderWidth, to: to) { $0.animatedBorderWidth = max($1, 0) }
         case .cornerRadius(let to):
-            return lerp(from: view.layer.cornerRadius, to: to) { $0.layer.cornerRadius = max($1, 0) }
-        #endif
+            return lerp(from: view.animatedCornerRadius, to: to) { $0.animatedCornerRadius = max($1, 0) }
         case .extended(let custom):
             return custom.transformation(view, defaultColorInterpolation) ?? { _, _ in }
         }

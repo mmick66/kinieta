@@ -4,8 +4,8 @@ import Testing
 
 @testable import Kinieta
 
-/// AppKit: position, size, rotation, `.alpha`, the layer's colours, custom
-/// key paths and constraint constants on a layer-backed `NSView`, through
+/// AppKit: position, size, rotation, `.alpha`, the layer's colours, border
+/// width and corner radius, custom key paths and constraint constants on a layer-backed `NSView`, through
 /// the public API, on the engine the UIKit platforms share.
 ///
 /// Frames are stepped by a `ManualFrameDriver`, except in the smoke test on
@@ -268,6 +268,57 @@ struct AppKitTests {
         frames.step(1)
         #expect(view.wantsLayer)
         #expect(same(components(of: view.layer?.backgroundColor), rgb(1, 0, 0)))
+    }
+
+    @Test func animatesTheLayersBorderWidthAndCornerRadius() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        view.layer?.borderWidth = 2
+        view.animate(.borderWidth(6), .cornerRadius(8), duration: 1)
+        frames.step(0.5)
+        #expect(approx(view.layer?.borderWidth ?? -1, 4))
+        #expect(approx(view.layer?.cornerRadius ?? -1, 4))
+        frames.step(0.5)
+        #expect(approx(view.layer?.borderWidth ?? -1, 6))
+        #expect(approx(view.layer?.cornerRadius ?? -1, 8))
+    }
+
+    @Test func borderWidthAndCornerRadiusGiveAViewWithoutALayerOne() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = NSView(frame: CGRect(x: 0, y: 0, width: 10, height: 10))
+        #expect(view.layer == nil)
+        view.animate(.borderWidth(2), .cornerRadius(4), duration: 1)
+        frames.step(0.5)
+        #expect(view.wantsLayer)
+        #expect(approx(view.layer?.borderWidth ?? -1, 1))
+        #expect(approx(view.layer?.cornerRadius ?? -1, 2))
+    }
+
+    @Test func borderWidthAndCornerRadiusStayAtLeastZeroWhenTheEasingOvershoots() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        view.layer?.borderWidth = 2
+        view.layer?.cornerRadius = 3
+        view.animate(.borderWidth(0), .cornerRadius(0), duration: 1).easing(.inOut(.back))
+        for _ in 0..<10 {
+            frames.step(0.1)
+            #expect((view.layer?.borderWidth ?? -1) >= 0 && (view.layer?.cornerRadius ?? -1) >= 0)
+        }
+    }
+
+    @Test func borderWidthAndCornerRadiusStillAnimateUnderReduceMotion() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        Engine.shared.isReduceMotionEnabled = { true }
+        let view = makeView()
+        view.animate(.x(100), .borderWidth(4), .cornerRadius(6), duration: 1)
+        frames.step(0.5)
+        #expect(approx(view.frame.origin.x, 100))
+        #expect(approx(view.layer?.borderWidth ?? -1, 2))
+        #expect(approx(view.layer?.cornerRadius ?? -1, 3))
     }
 
     @Test func coloursStillAnimateUnderReduceMotion() {

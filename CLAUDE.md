@@ -93,9 +93,9 @@ The tvOS build (`-destination 'generic/platform=tvOS Simulator' build`), the vis
 
 ## Architecture Overview
 
-A UIKit animation library (iOS, tvOS, Mac Catalyst 17+, visionOS 1+), Swift 6, main-actor
-isolated, with experimental AppKit support (macOS 14+: everything but `.borderWidth` and
-`.cornerRadius`). Sources are behind `canImport(UIKit) || os(macOS)` (`os(macOS)` is false under
+A UIKit animation library (iOS, tvOS, Mac Catalyst 17+, visionOS 1+), Swift 6, main-actor isolated,
+with experimental AppKit support (macOS 14+, every property; layer properties give a view without a
+layer one). Sources are behind `canImport(UIKit) || os(macOS)` (`os(macOS)` is false under
 Catalyst); `Platform.swift` aliases `PlatformView` to `UIView` or `NSView` and `PlatformColor` to
 `UIColor` or `NSColor`. Public signatures cannot use these internal aliases, so public API that
 names the view or colour type is declared once per platform. Linux builds an empty module.

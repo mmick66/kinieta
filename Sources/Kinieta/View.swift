@@ -131,6 +131,18 @@ extension UIView {
         set { layer.borderColor = newValue.cgColor }
     }
 
+    /// The layer's `borderWidth`.
+    var animatedBorderWidth: CGFloat {
+        get { layer.borderWidth }
+        set { layer.borderWidth = newValue }
+    }
+
+    /// The layer's `cornerRadius`.
+    var animatedCornerRadius: CGFloat {
+        get { layer.cornerRadius }
+        set { layer.cornerRadius = newValue }
+    }
+
     /// What dynamic colours resolve against: the view's traits with any
     /// pending change applied, such as an `overrideUserInterfaceStyle` set
     /// since the last layout pass.
@@ -280,6 +292,20 @@ extension NSView {
     var animatedBorderColor: NSColor {
         get { layer?.borderColor.flatMap(NSColor.init(cgColor:)) ?? .clear }
         set { backingLayer.borderColor = layerColor(newValue) }
+    }
+
+    /// The layer's `borderWidth`, 0 when there is none. Setting it gives a
+    /// view without a layer one.
+    var animatedBorderWidth: CGFloat {
+        get { layer?.borderWidth ?? 0 }
+        set { backingLayer.borderWidth = newValue }
+    }
+
+    /// The layer's `cornerRadius`, 0 when there is none. Setting it gives a
+    /// view without a layer one.
+    var animatedCornerRadius: CGFloat {
+        get { layer?.cornerRadius ?? 0 }
+        set { backingLayer.cornerRadius = newValue }
     }
 
     /// What dynamic colours resolve against.
