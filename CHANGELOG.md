@@ -110,7 +110,9 @@ All notable changes to Kinieta are documented here. The format follows
   per call, and timelines are built and run in linear time: a 10,000-step
   timeline builds and runs about 45 times faster (3.3 s to 0.07 s in a debug
   build on the iOS Simulator). Many timelines finishing on the same frame
-  leave the engine in one pass.
+  leave the engine in one pass, and so do the timelines `Kinieta.group` takes
+  over and those a cancelled group cancels: grouping 10,000 timelines while
+  10,000 others run, then cancelling the group, went from 43 s to 0.23 s.
 - A handle can be extended at any time, not only while chaining. Adding to a
   finished handle starts it again on the next frame, its `state` goes back to
   `.running` and `finished()` waits for the new actions; a member of a

@@ -264,11 +264,15 @@ public final class Engine {
         refreshDriver()
     }
 
-    func remove(_ action: Action) {
-        guard let index = actions.firstIndex(where: { $0 === action }) else {
-            return
+    /// Takes `removed` off the engine in one pass, so grouping or cancelling
+    /// many timelines costs no more than one. Only the first entry of each
+    /// goes, as in `update(with:)`. Refreshes the driver even if none was
+    /// registered: a cancelled member of a group finishes it the next frame.
+    func remove(_ removed: [Action]) {
+        var pending = Set(removed.map { ObjectIdentifier($0) })
+        if !pending.isEmpty {
+            actions.removeAll { pending.remove(ObjectIdentifier($0)) != nil }
         }
-        actions.remove(at: index)
         refreshDriver()
     }
 

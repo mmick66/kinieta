@@ -391,12 +391,19 @@ public final class Kinieta {
     ///
     /// Cancelling a group handle also cancels every timeline in the group.
     public func cancel() {
+        var cancelled: [Action] = []
+        cancel(collecting: &cancelled)
+        Engine.shared.remove(cancelled)  // one pass for a whole group
+    }
+
+    /// Cancels this timeline and those in it, adding their sequences to
+    /// `cancelled` for the caller to take off the engine.
+    private func cancel(collecting cancelled: inout [Action]) {
         guard state == .running || state == .paused else { return }
         mainSequence.isCancelled = true  // also stops it when a group is driving it
-        Engine.shared.remove(mainSequence)
+        cancelled.append(mainSequence)
         finish(as: .cancelled)
-        for child in children { child.cancel() }
-        Engine.shared.refreshDriver()  // a cancelled child finishes its group's next frame
+        for child in children { child.cancel(collecting: &cancelled) }
     }
 
     /// Holds the timeline where it is. Pausing a group handle also pauses every
@@ -485,7 +492,8 @@ public final class Kinieta {
     @discardableResult
     public static func group(_ handles: [Kinieta], completion: Completion? = nil) -> Kinieta {
         var members: [Kinieta] = []
-        for child in handles where !members.contains(where: { $0 === child }) {
+        var seen = Set<ObjectIdentifier>()
+        for child in handles where seen.insert(ObjectIdentifier(child)).inserted {
             if child.owner != nil {
                 logger.warning("group(_:) was given a timeline that is already in a group; leaving it out")
             } else if child.state == .finished || child.state == .cancelled {
@@ -498,10 +506,8 @@ public final class Kinieta {
         // engine never empties and restarts its clock in between.
         let handle = Kinieta(view: nil)
         handle.isGroup = true
-        for child in members {
-            child.owner = handle
-            Engine.shared.remove(child.mainSequence)
-        }
+        for child in members { child.owner = handle }
+        Engine.shared.remove(members.map { $0.mainSequence })
         let action = GroupAction(running: members.map { $0.mainSequence })
         handle.children = members
         handle.members = action

@@ -36,6 +36,12 @@ extension EngineTests {
         #expect(scalesLinearly(small: 2_500, large: 10_000) { count in runTimelines(count, frames) })
     }
 
+    @Test func groupingAndCancellingManyTimelinesRunInLinearTime() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        #expect(scalesLinearly(small: 2_500, large: 10_000) { count in groupAndCancel(count, frames) })
+    }
+
     private func tableAddress(_ points: [Bezier.Point]) -> UnsafeRawPointer? {
         points.withUnsafeBufferPointer { UnsafeRawPointer($0.baseAddress) }
     }
@@ -58,6 +64,18 @@ extension EngineTests {
         let handles = (0..<count).map { _ in view.animate(.x(1), duration: 0.01) }
         while frames.isRunning { frames.step() }
         #expect(handles.allSatisfy { $0.state == .finished })
+    }
+
+    /// `count` timelines grouped while `count` others run, then the group
+    /// cancelled, which cancels its timelines too.
+    private func groupAndCancel(_ count: Int, _ frames: ManualFrameDriver) {
+        let view = UIView()
+        let others = (0..<count).map { _ in view.animate(.y(1), duration: 0.01) }
+        let handles = (0..<count).map { _ in view.animate(.x(1), duration: 1) }
+        Kinieta.group(handles).cancel()
+        #expect(handles.allSatisfy { $0.state == .cancelled })
+        while frames.isRunning { frames.step() }
+        #expect(others.allSatisfy { $0.state == .finished })
     }
 
     /// Whether `work` at the `large` size (four times `small`) takes less than
