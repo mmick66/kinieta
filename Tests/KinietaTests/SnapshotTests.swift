@@ -17,7 +17,7 @@ import UIKit
 /// References are recorded on the iPhone 17 Pro simulator running iOS 26.5, the
 /// runtime pinned in `.github/workflows/ci.yml` and the README. Other runtimes can
 /// render differently enough to fail the 0.98 perceptual precision.
-@Suite(.serialized)
+@Suite(.serialized, .usesSharedEngine)
 @MainActor
 struct SnapshotTests {
 

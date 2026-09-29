@@ -124,3 +124,5 @@ isolated. All sources are behind `canImport(UIKit)`.
 - Commits are per Beads ticket, with the ticket ID as the message prefix
   (`kinieta-xyz: summary`).
 - Tests drive the engine frame by frame with `ManualFrameDriver` rather than waiting on real time.
+  Every suite that touches `Engine.shared` takes `@Suite(.serialized, .usesSharedEngine)`, which
+  runs its tests alone among all such suites.

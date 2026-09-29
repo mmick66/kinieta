@@ -18,8 +18,9 @@ import UIKit
 ///
 /// One smoke test still runs on the real `CADisplayLink`.
 ///
-/// Serialized because every test shares `Engine.shared` and its frame driver.
-@Suite(.serialized)
+/// Serialized, and alone among the other suites that use `Engine.shared`, because
+/// every test shares it and its frame driver.
+@Suite(.serialized, .usesSharedEngine)
 @MainActor
 struct EngineTests {
 

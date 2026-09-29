@@ -6,7 +6,7 @@ import UIKit
 
 /// `Interpolatable`, `.custom` key paths and `.constant` constraint constants,
 /// driven through the public API with a `ManualFrameDriver`.
-@Suite(.serialized)
+@Suite(.serialized, .usesSharedEngine)
 @MainActor
 struct CustomPropertyTests {
 

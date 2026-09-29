@@ -13,7 +13,7 @@ private struct Bezier {}
 
 /// A module with its own `Property`, `Easing` or `Engine` spells Kinieta's as
 /// `Kinieta.Property`, `Kinieta.Easing` and `Kinieta.Engine`.
-@Suite(.serialized)
+@Suite(.serialized, .usesSharedEngine)
 @MainActor
 struct NamespaceTests {
 

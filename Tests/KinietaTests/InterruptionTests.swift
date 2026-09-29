@@ -6,7 +6,7 @@ import UIKit
 
 /// A newer animation of a property takes it over from an older one still
 /// running on the same view, driven through the public API with a `ManualFrameDriver`.
-@Suite(.serialized)
+@Suite(.serialized, .usesSharedEngine)
 @MainActor
 struct InterruptionTests {
 
