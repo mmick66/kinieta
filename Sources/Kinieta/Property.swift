@@ -133,13 +133,13 @@ public enum Property: Sendable {
             return lerp(from: view.layer.cornerRadius, to: to) { $0.layer.cornerRadius = max($1, 0) }
         case .background(let to, let mode):
             let colors = Self.colorInterpolator(
-                from: view.backgroundColorOrClear, to: to, mode: mode ?? defaultColorInterpolation,
-                traits: view.currentTraits, name: name)
+                from: view.backgroundColorOrClear, to: to, mode: mode ?? defaultColorInterpolation, view: view,
+                name: name)
             return { view, factor in view.backgroundColor = colors(factor) }
         case .borderColor(let to, let mode):
             let colors = Self.colorInterpolator(
-                from: view.borderColorOrClear, to: to, mode: mode ?? defaultColorInterpolation,
-                traits: view.currentTraits, name: name)
+                from: view.borderColorOrClear, to: to, mode: mode ?? defaultColorInterpolation, view: view,
+                name: name)
             return { view, factor in view.layer.borderColor = colors(factor).cgColor }
         case .extended(let custom):
             return custom.transformation(view, defaultColorInterpolation) ?? { _, _ in }
@@ -171,12 +171,30 @@ public enum Property: Sendable {
 
     /// See ``ColorMath/interpolator(from:to:mode:traits:)``. A colour with
     /// nothing to blend, such as a pattern, switches as soon as the animation starts.
+    ///
+    /// Dynamic colours resolve against `view`'s traits, and again whenever
+    /// their colour appearance changes, such as dark mode toggled or a sheet
+    /// raised mid-animation: the colours in between follow the new variants
+    /// instead of snapping to them at the end.
+    @MainActor
     static func colorInterpolator(
-        from source: UIColor, to target: UIColor, mode: ColorInterpolation, traits: UITraitCollection, name: String
+        from source: UIColor, to target: UIColor, mode: ColorInterpolation, view: UIView, name: String
     ) -> (CGFloat) -> UIColor {
-        if let colors = ColorMath.interpolator(from: source, to: target, mode: mode, traits: traits) { return colors }
-        logger.warning("\(name, privacy: .public) cannot blend a colour with no RGB value; snapping")
-        return { factor in factor > 0 ? target : source }
+        func colors(for traits: UITraitCollection) -> ((CGFloat) -> UIColor)? {
+            ColorMath.interpolator(from: source, to: target, mode: mode, traits: traits)
+        }
+        var traits = view.currentTraits
+        guard var current = colors(for: traits) else {
+            logger.warning("\(name, privacy: .public) cannot blend a colour with no RGB value; snapping")
+            return { factor in factor > 0 ? target : source }
+        }
+        return { [weak view] factor in
+            if let now = view?.currentTraits, now.hasDifferentColorAppearance(comparedTo: traits) {
+                traits = now
+                current = colors(for: now) ?? current
+            }
+            return current(factor)
+        }
     }
 }
 #endif

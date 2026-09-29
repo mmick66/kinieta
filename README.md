@@ -232,7 +232,7 @@ Nothing has to be cancelled. The older animation keeps its duration, so its comp
 
 ### Colour
 
-Colours interpolate through the perceptual CIE LCH space by default, with hue taking the shorter arc. Choose per property or change the engine default. The endpoints are assigned exactly as given, so a dynamic colour such as `.systemBackground` keeps adapting to Dark Mode after the animation, and a Display P3 colour keeps its gamut. The frames in between are clipped to sRGB only when both endpoints are in sRGB; between Display P3 colours they stay in Display P3, so a wide-gamut animation keeps its saturation on the way instead of jumping to it on the last frame. Fading to or from `.clear` fades alpha instead of passing through black.
+Colours interpolate through the perceptual CIE LCH space by default, with hue taking the shorter arc. Choose per property or change the engine default. The endpoints are assigned exactly as given, so a dynamic colour such as `.systemBackground` keeps adapting to Dark Mode after the animation, and a Display P3 colour keeps its gamut. The frames in between resolve dynamic colours against the view's own traits, and follow them if the appearance changes mid-animation. The frames in between are clipped to sRGB only when both endpoints are in sRGB; between Display P3 colours they stay in Display P3, so a wide-gamut animation keeps its saturation on the way instead of jumping to it on the last frame. Fading to or from `.clear` fades alpha instead of passing through black.
 
 ```swift
 view.animate(.background(.systemBlue, interpolation: .rgb), duration: 1.0)

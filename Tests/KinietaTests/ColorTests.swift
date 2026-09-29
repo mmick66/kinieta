@@ -109,6 +109,27 @@ struct ColorTests {
         }
     }
 
+    @Test func dynamicColoursFollowAnAppearanceChangeMidAnimation() {
+        // .label is black in light and white in dark; from a grey the midpoint shows which one is in use.
+        let view = UIView()
+        view.overrideUserInterfaceStyle = .light
+        view.backgroundColor = .gray
+        let step = Property.background(.label, interpolation: .rgb).transformation(
+            for: view, defaultColorInterpolation: .lch)
+        step(view, 0.5)
+        let light = ColorMath.extractComponents(of: view.backgroundColor!)!
+        #expect(light.red < 0.3, "\(light)")
+
+        view.overrideUserInterfaceStyle = .dark
+        step(view, 0.5)
+        let dark = ColorMath.extractComponents(of: view.backgroundColor!)!
+        #expect(dark.red > 0.7, "\(dark)")
+
+        view.overrideUserInterfaceStyle = .light
+        step(view, 0.5)
+        #expect(ColorMath.extractComponents(of: view.backgroundColor!)! == light)
+    }
+
     @Test func displayP3RoundTripIsCloseEnough() {
         for rgb in grid { #expect(same(rgb.displayP3.fromDisplayP3, rgb, tolerance: 1e-6), "\(rgb)") }
     }

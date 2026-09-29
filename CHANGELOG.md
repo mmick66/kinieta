@@ -185,6 +185,12 @@ All notable changes to Kinieta are documented here. The format follows
   cancel it, so the engine now lets go of it once nothing else is animating.
   A completion block that captures the handle still keeps it, and its
   timeline, alive.
+- The frames between dynamic colours, such as `.label`, were resolved
+  against the app's traits rather than the view's, so a view with
+  `overrideUserInterfaceStyle` or in a sheet of another appearance animated
+  through the wrong variants and snapped to the right one at the end. They now
+  resolve against the view's own traits, and again when its appearance
+  changes mid-animation, such as Dark Mode being toggled.
 - A colour with no RGB value, such as `UIColor(patternImage:)`, was read as
   transparent, so animating to or from it faded instead. It now switches as
   the animation starts, with a logged warning.

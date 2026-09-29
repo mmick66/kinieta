@@ -188,8 +188,7 @@ extension Property {
         from: Value, to: Value, colorMode: ColorInterpolation, view: UIView, name: String
     ) -> (CGFloat) -> Value {
         if let source = from as? UIColor, let target = to as? UIColor {
-            let colors = colorInterpolator(
-                from: source, to: target, mode: colorMode, traits: view.currentTraits, name: name)
+            let colors = colorInterpolator(from: source, to: target, mode: colorMode, view: view, name: name)
             return { factor in colors(factor) as? Value ?? from.interpolated(to: to, progress: factor) }
         }
         return { factor in from.interpolated(to: to, progress: factor) }
