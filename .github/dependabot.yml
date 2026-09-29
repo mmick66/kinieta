@@ -1,0 +1,12 @@
+# The actions in .github/workflows are pinned to commit SHAs, which do not follow
+# their moving major tags. Dependabot bumps each SHA and its version comment.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns:
+          - "*"
