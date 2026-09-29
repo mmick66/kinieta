@@ -32,7 +32,7 @@ final class PropertyAnimation: Action {
 
         // Under Reduce Motion, an animation with nothing left to interpolate finishes on its first frame.
         let engine = Engine.shared
-        let snaps = order.map { engine.snapsUnderReduceMotion($0) }
+        let snaps = order.map { engine.snapsUnderReduceMotion(latest[$0]!) }
         self.duration = engine.shouldSkipMotion && !snaps.contains(false) ? 0 : spec.duration
 
         guard let view = target.view else { return }

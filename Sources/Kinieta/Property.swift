@@ -15,6 +15,10 @@ public enum ColorInterpolation: Sendable, Equatable {
 }
 
 /// A view property and the value it should animate to.
+///
+/// Beyond the built-in cases, ``custom(_:to:isMotion:)-(ReferenceWritableKeyPath<UIView,Value>,_,_)``
+/// animates any writable key path to an ``Interpolatable`` value, and
+/// ``constant(_:to:)`` animates an Auto Layout constraint's constant.
 public enum Property: Sendable {
     case x(CGFloat)
     case y(CGFloat)
@@ -30,20 +34,16 @@ public enum Property: Sendable {
     case borderColor(UIColor, interpolation: ColorInterpolation? = nil)
     case borderWidth(CGFloat)
     case cornerRadius(CGFloat)
+    /// A key path or constraint constant. Make one with
+    /// ``custom(_:to:isMotion:)-(ReferenceWritableKeyPath<UIView,Value>,_,_)`` or ``constant(_:to:)``.
+    case extended(CustomProperty)
 
     /// Identifies a property regardless of value. When the same property is
     /// listed twice in one animation the last value wins.
-    enum Key: String {
+    enum Key: Hashable {
         case x, y, width, height, frame, alpha, rotation, background, borderColor, borderWidth, cornerRadius
-
-        /// Whether the property moves, resizes or rotates the view. Under
-        /// Reduce Motion these snap; fades and colour changes still animate.
-        var isMotion: Bool {
-            switch self {
-            case .x, .y, .width, .height, .frame, .rotation: return true
-            case .alpha, .background, .borderColor, .borderWidth, .cornerRadius: return false
-            }
-        }
+        /// A key path, or a constraint by identity.
+        case custom(AnyHashable)
     }
 
     var key: Key {
@@ -59,6 +59,25 @@ public enum Property: Sendable {
         case .borderColor: return .borderColor
         case .borderWidth: return .borderWidth
         case .cornerRadius: return .cornerRadius
+        case .extended(let custom): return .custom(custom.key)
+        }
+    }
+
+    /// The name used in descriptions and log messages.
+    var name: String {
+        switch self {
+        case .extended(let custom): return custom.name
+        default: return String(describing: key)
+        }
+    }
+
+    /// Whether the property moves, resizes or rotates something. Under
+    /// Reduce Motion these snap; fades and colour changes still animate.
+    var isMotion: Bool {
+        switch self {
+        case .x, .y, .width, .height, .frame, .rotation: return true
+        case .alpha, .background, .borderColor, .borderWidth, .cornerRadius: return false
+        case .extended(let custom): return custom.isMotion
         }
     }
 
@@ -96,78 +115,34 @@ public enum Property: Sendable {
         case .cornerRadius(let to):
             return lerp(from: view.layer.cornerRadius, to: to) { $0.layer.cornerRadius = max($1, 0) }
         case .background(let to, let mode):
-            return colorLerp(
+            let colors = Self.colorInterpolator(
                 from: view.backgroundColorOrClear, to: to, mode: mode ?? defaultColorInterpolation,
-                traits: view.currentTraits
-            ) { $0.backgroundColor = $1 }
+                traits: view.currentTraits, name: name)
+            return { view, factor in view.backgroundColor = colors(factor) }
         case .borderColor(let to, let mode):
-            return colorLerp(
+            let colors = Self.colorInterpolator(
                 from: view.borderColorOrClear, to: to, mode: mode ?? defaultColorInterpolation,
-                traits: view.currentTraits
-            ) { $0.layer.borderColor = $1.cgColor }
+                traits: view.currentTraits, name: name)
+            return { view, factor in view.layer.borderColor = colors(factor).cgColor }
+        case .extended(let custom):
+            return custom.transformation(view, defaultColorInterpolation) ?? { _, _ in }
         }
     }
 
-    private func lerp<T: CGFractionable>(from: T, to: T, apply: @escaping (UIView, T) -> Void) -> Transformation {
+    private func lerp<T: Interpolatable>(from: T, to: T, apply: @escaping (UIView, T) -> Void) -> Transformation {
         return { view, factor in
-            apply(view, (1.0 - factor) * from + factor * to)
+            apply(view, from.interpolated(to: to, progress: factor))
         }
     }
 
-    /// Colour progress is clamped to 0...1: an overshooting easing has no
-    /// meaning outside the gamut. The endpoints are assigned as given, so a
-    /// dynamic (light/dark) or wide-gamut target survives the animation.
-    ///
-    /// The frames in between are clipped to the smallest of sRGB and Display P3
-    /// that holds both endpoints, so a wide-gamut move does not pop at the end.
-    /// They are resolved against the view's own `traits`:
-    /// inside a display-link callback `UITraitCollection.current` is the
-    /// app-wide fallback, which ignores `overrideUserInterfaceStyle` and
-    /// presentation-level appearance.
-    private func colorLerp(
-        from source: UIColor, to target: UIColor, mode: ColorInterpolation, traits: UITraitCollection,
-        apply: @escaping (UIView, UIColor) -> Void
-    ) -> Transformation {
-        guard var from = ColorMath.extractComponents(of: source.resolvedColor(with: traits)),
-            var to = ColorMath.extractComponents(of: target.resolvedColor(with: traits))
-        else {
-            // A pattern has nothing to blend. Switch as soon as the animation starts.
-            Self.logger.warning("\(key.rawValue, privacy: .public) cannot blend a colour with no RGB value; snapping")
-            return { view, factor in apply(view, factor > 0 ? target : source) }
-        }
-
-        // A fully transparent endpoint has no colour of its own. Fade the other
-        // colour's alpha instead of passing through black.
-        if from.alpha == 0 { from = to.withAlpha(0) }
-        if to.alpha == 0 { to = from.withAlpha(0) }
-
-        let path: (CGFloat) -> ColorMath.RGB
-        switch mode {
-        case .rgb:
-            path = { c in from.lerp(to, c) }
-        case .hsb:
-            // A grey endpoint has no hue; borrow the other one's so the
-            // interpolation does not sweep through the colour wheel. Hue then
-            // takes the shorter way round.
-            let achromatic: CGFloat = 1e-3
-            var f = from.hsb, t = to.hsb
-            if f.saturation < achromatic { f.hue = t.hue }
-            if t.saturation < achromatic { t.hue = f.hue }
-            path = { c in f.lerp(t, c).rgb }
-        case .lch:
-            // LCH.lerp weights hue by chroma, which covers greys and near-greys.
-            let f = from.lch, t = to.lch
-            path = { c in f.lerp(t, c).rgb }
-        }
-        // Clip to sRGB only when both ends are in it; Display P3 ends keep
-        // their saturation on the way.
-        let gamut = ColorMath.Gamut.smallest(containing: from, to)
-        let between = { (c: CGFloat) in gamut.clip(path(c)).color() }
-
-        return { view, factor in
-            let c = min(max(factor, 0), 1)
-            if c >= 1 { apply(view, target) } else if c <= 0 { apply(view, source) } else { apply(view, between(c)) }
-        }
+    /// See ``ColorMath/interpolator(from:to:mode:traits:)``. A colour with
+    /// nothing to blend, such as a pattern, switches as soon as the animation starts.
+    static func colorInterpolator(
+        from source: UIColor, to target: UIColor, mode: ColorInterpolation, traits: UITraitCollection, name: String
+    ) -> (CGFloat) -> UIColor {
+        if let colors = ColorMath.interpolator(from: source, to: target, mode: mode, traits: traits) { return colors }
+        logger.warning("\(name, privacy: .public) cannot blend a colour with no RGB value; snapping")
+        return { factor in factor > 0 ? target : source }
     }
 }
 #endif

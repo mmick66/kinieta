@@ -314,4 +314,64 @@ enum ColorMath {
         }
     }
 }
+
+// MARK: - Interpolating UIColor
+
+extension ColorMath {
+
+    /// The colours between `source` and `target` along `mode`, by progress.
+    /// `nil` when either colour has no RGB value, such as a pattern image.
+    ///
+    /// Progress is clamped to 0...1: an overshooting easing has no meaning
+    /// outside the gamut. The endpoints are returned as given, so a dynamic
+    /// (light/dark) or wide-gamut target survives the animation.
+    ///
+    /// The colours in between are clipped to the smallest of sRGB and Display
+    /// P3 that holds both endpoints, so a wide-gamut move does not pop at the
+    /// end. Dynamic colours are resolved against `traits` when given: inside a
+    /// display-link callback `UITraitCollection.current` is the app-wide
+    /// fallback, which ignores `overrideUserInterfaceStyle` and
+    /// presentation-level appearance.
+    static func interpolator(
+        from source: UIColor, to target: UIColor, mode: ColorInterpolation, traits: UITraitCollection?
+    ) -> ((CGFloat) -> UIColor)? {
+        func resolved(_ color: UIColor) -> UIColor { traits.map { color.resolvedColor(with: $0) } ?? color }
+        guard var from = extractComponents(of: resolved(source)), var to = extractComponents(of: resolved(target))
+        else { return nil }
+
+        // A fully transparent endpoint has no colour of its own. Fade the other
+        // colour's alpha instead of passing through black.
+        if from.alpha == 0 { from = to.withAlpha(0) }
+        if to.alpha == 0 { to = from.withAlpha(0) }
+
+        let path: (CGFloat) -> RGB
+        switch mode {
+        case .rgb:
+            path = { c in from.lerp(to, c) }
+        case .hsb:
+            // A grey endpoint has no hue; borrow the other one's so the
+            // interpolation does not sweep through the colour wheel. Hue then
+            // takes the shorter way round.
+            let achromatic: CGFloat = 1e-3
+            var f = from.hsb, t = to.hsb
+            if f.saturation < achromatic { f.hue = t.hue }
+            if t.saturation < achromatic { t.hue = f.hue }
+            path = { c in f.lerp(t, c).rgb }
+        case .lch:
+            // LCH.lerp weights hue by chroma, which covers greys and near-greys.
+            let f = from.lch, t = to.lch
+            path = { c in f.lerp(t, c).rgb }
+        }
+        // Clip to sRGB only when both ends are in it; Display P3 ends keep
+        // their saturation on the way.
+        let gamut = Gamut.smallest(containing: from, to)
+
+        return { progress in
+            let c = min(max(progress, 0), 1)
+            if c >= 1 { return target }
+            if c <= 0 { return source }
+            return gamut.clip(path(c)).color()
+        }
+    }
+}
 #endif

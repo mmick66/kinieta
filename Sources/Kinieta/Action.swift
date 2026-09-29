@@ -70,7 +70,7 @@ enum ActionType: CustomStringConvertible {
     var description: String {
         switch self {
         case .animation(let spec):
-            return "Animation (\(spec.properties.map(\.key.rawValue).joined(separator: " ")))"
+            return "Animation (\(spec.properties.map(\.name).joined(separator: " ")))"
         case .pause(let duration, _):
             return "Pause (\(duration))"
         case .group(let types, _):

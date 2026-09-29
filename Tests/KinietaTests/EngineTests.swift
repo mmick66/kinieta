@@ -488,8 +488,8 @@ struct EngineTests {
     @Test func onlyPositionSizeAndRotationCountAsMotion() {
         let motion: [Property] = [.x(1), .y(1), .width(1), .height(1), .frame(.zero), .rotation(degrees: 1)]
         let still: [Property] = [.alpha(1), .background(.red), .borderColor(.red), .borderWidth(1), .cornerRadius(1)]
-        let motionKeys = motion.map(\.key.isMotion)
-        let stillKeys = still.map(\.key.isMotion)
+        let motionKeys = motion.map(\.isMotion)
+        let stillKeys = still.map(\.isMotion)
         #expect(motionKeys == Array(repeating: true, count: motion.count))
         #expect(stillKeys == Array(repeating: false, count: still.count))
     }

@@ -2,8 +2,9 @@ import Kinieta
 import UIKit
 
 /// A gallery of what Kinieta does: every easing preset on its own track, the
-/// three colour interpolation modes side by side, a composed timeline, and one
-/// handle driven by Pause, Resume and Cancel buttons.
+/// three colour interpolation modes side by side, a composed timeline, one
+/// handle driven by Pause, Resume and Cancel buttons, and a view placed by
+/// Auto Layout that animates its constraint.
 final class DemoViewController: UIViewController {
 
     private let stack = UIStackView()
@@ -21,6 +22,10 @@ final class DemoViewController: UIViewController {
     private let controlsSquare = UIView()
     private let controlsStatus = UILabel()
     private var controlsHandle: Kinieta?
+    private let autoLayoutTrack = UIView()
+    private let autoLayoutSquare = UIView()
+    private var autoLayoutCentre: NSLayoutConstraint!
+    private var autoLayoutHandle: Kinieta?
     private lazy var controlButtons: [(title: String, action: Selector)] = [
         ("Play", #selector(playControls)), ("Pause", #selector(pauseControls)),
         ("Resume", #selector(resumeControls)), ("Cancel", #selector(cancelControls)),
@@ -180,6 +185,29 @@ final class DemoViewController: UIViewController {
         updateControlButtons()
 
         addHeader(
+            "Auto Layout",
+            detail: "The square is centred by a constraint, and .constant animates its constant. "
+                + "Rotate while it plays: the track resizes and the square keeps its place and keeps going.")
+        autoLayoutTrack.backgroundColor = .secondarySystemFill
+        autoLayoutTrack.layer.cornerRadius = 8
+        autoLayoutTrack.heightAnchor.constraint(equalToConstant: 44).isActive = true
+        autoLayoutSquare.backgroundColor = cyan
+        autoLayoutSquare.layer.cornerRadius = 6
+        autoLayoutSquare.layer.shadowColor = UIColor.black.cgColor
+        autoLayoutSquare.layer.shadowOffset = CGSize(width: 0, height: 4)
+        autoLayoutSquare.layer.shadowRadius = 4
+        autoLayoutSquare.translatesAutoresizingMaskIntoConstraints = false
+        autoLayoutTrack.addSubview(autoLayoutSquare)
+        autoLayoutCentre = autoLayoutSquare.centerXAnchor.constraint(equalTo: autoLayoutTrack.centerXAnchor)
+        NSLayoutConstraint.activate([
+            autoLayoutCentre,
+            autoLayoutSquare.centerYAnchor.constraint(equalTo: autoLayoutTrack.centerYAnchor),
+            autoLayoutSquare.widthAnchor.constraint(equalToConstant: 32),
+            autoLayoutSquare.heightAnchor.constraint(equalToConstant: 32),
+        ])
+        stack.addArrangedSubview(labelled(".constant(centreX, to: ±120)", autoLayoutTrack))
+
+        addHeader(
             "Reduce Motion",
             detail: "Turn it on in Settings › Accessibility › Motion, then play: the squares jump, "
                 + "while fades and colours still animate unless you pick Snap all.")
@@ -240,7 +268,13 @@ final class DemoViewController: UIViewController {
     // MARK: Actions
 
     @objc private func playAll() {
-        reset()
+        playGallery()
+        playAutoLayout()
+    }
+
+    /// Everything but the Auto Layout row, which rotation leaves running.
+    private func playGallery() {
+        resetGallery()
         view.layoutIfNeeded()
         for entry in easingTracks {
             let end = entry.track.bounds.width - 38
@@ -281,6 +315,29 @@ final class DemoViewController: UIViewController {
         }
         running.append(group)
         playControls()
+    }
+
+    // MARK: Auto Layout
+
+    /// Swings the square right, left and back to the centre by animating the
+    /// constant of the constraint that centres it. The offsets do not depend
+    /// on the track's width, so the timeline stays valid through rotation.
+    private func playAutoLayout() {
+        resetAutoLayout()
+        autoLayoutHandle =
+            autoLayoutSquare
+            .animate(.constant(autoLayoutCentre, to: 120), .custom(\.layer.shadowOpacity, to: 0.35), duration: 1.2)
+            .easeInOut(.cubic)
+            .animate(.constant(autoLayoutCentre, to: -120), duration: 1.6).easeInOut(.cubic)
+            .animate(.constant(autoLayoutCentre, to: 0), .custom(\.layer.shadowOpacity, to: 0), duration: 1.2)
+            .easeOut(.back)
+    }
+
+    private func resetAutoLayout() {
+        autoLayoutHandle?.cancel()
+        autoLayoutHandle = nil
+        autoLayoutCentre.constant = 0
+        autoLayoutSquare.layer.shadowOpacity = 0
     }
 
     // MARK: Controls
@@ -345,15 +402,16 @@ final class DemoViewController: UIViewController {
     /// size change would leave squares short of or past the new track end.
     /// Kinieta sets frames directly and Auto Layout does not correct them:
     /// cancel, put everything back, and replay at the new size what was playing.
+    /// The Auto Layout row is left alone: its constraint keeps it in place.
     override func viewWillTransition(to size: CGSize, with coordinator: any UIViewControllerTransitionCoordinator) {
         super.viewWillTransition(to: size, with: coordinator)
         let galleryWasPlaying = running.contains { $0.state == .running || $0.state == .paused }
         let controlsState = controlsHandle?.state
-        reset()
+        resetGallery()
         coordinator.animate(alongsideTransition: nil) { [weak self] _ in
             guard let self else { return }
             if galleryWasPlaying {
-                self.playAll()
+                self.playGallery()
                 if controlsState != .running && controlsState != .paused { self.resetControls() }
             } else if controlsState == .running || controlsState == .paused {
                 self.playControls()
@@ -396,6 +454,11 @@ final class DemoViewController: UIViewController {
     }
 
     @objc private func reset() {
+        resetGallery()
+        resetAutoLayout()
+    }
+
+    private func resetGallery() {
         for handle in running { handle.cancel() }
         running.removeAll()
         for entry in easingTracks {

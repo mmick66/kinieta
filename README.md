@@ -7,7 +7,7 @@
 A timeline animation engine for UIKit with a typed, chainable API.
 
 - **Timelines.** Animations run one after another, side by side, or grouped across views with a single completion.
-- **Typed properties.** `.x(250)`, `.background(.systemPink)`, `.rotation(degrees: 30)`. Wrong types are compile errors.
+- **Typed properties.** `.x(250)`, `.background(.systemPink)`, `.rotation(degrees: 30)`. Wrong types are compile errors. Anything else through a key path, `.custom(\.layer.shadowOpacity, to: 0.4)`, or an Auto Layout constraint, `.constant(leading, to: 120)`.
 - **Real easing.** Cubic Bézier curves with the same semantics as CSS and cubic-bezier.com, plus presets from sine to back.
 - **Perceptual colour.** Colours interpolate through LCH by default, so pink to cyan never passes through grey.
 - **Handles.** Every timeline can be cancelled, paused, resumed or awaited.
@@ -72,10 +72,46 @@ view.animate(.frame(target), .alpha(0), duration: 0.3)
 | `.borderColor` | `UIColor` | `layer.borderColor` |
 | `.borderWidth` | `CGFloat` in points | `layer.borderWidth` |
 | `.cornerRadius` | `CGFloat` in points | `layer.cornerRadius` |
+| `.custom(keyPath, to:)` | any `Interpolatable` | the view's key path; see [Custom properties](#custom-properties) |
+| `.constant(constraint, to:)` | `CGFloat` in points | an `NSLayoutConstraint`'s `constant`, laying out its views each frame |
 
 Position and size, `.frame` included, are interpolated through `center` and `bounds`, so they stay correct while a rotation is applied: on a rotated view `.frame` sets the rect it would occupy unrotated, not UIKit's bounding-box `frame`. Rotation is not wrapped: after `.rotation(degrees: 720)`, animating to `810` turns a quarter, and going from `270` to `360` turns 90°, not 450°. Sizes, border width and corner radius never go below zero, even with an overshooting curve.
 
-**Auto Layout.** Kinieta sets geometry directly. A view positioned by constraints snaps back on the next layout pass, which device rotation, size class changes and the keyboard all trigger. Animate unconstrained views, or animate constraint constants yourself.
+**Auto Layout.** `.x`, `.y`, `.width`, `.height` and `.frame` set geometry directly, so a view positioned by constraints snaps back on the next layout pass, which device rotation, size class changes and the keyboard all trigger. For a constrained view, animate the constraint instead:
+
+```swift
+badge.animate(.constant(badgeLeading, to: 120), duration: 0.5).easeOut(.back)
+```
+
+Each frame sets the constant and calls `layoutIfNeeded()` on the nearest common superview of the constraint's views (the view's superview for a width or height constraint), so the view moves with its constraints and stays where the animation leaves it. The constraint is held weakly; if it is gone when the animation starts, the property is skipped.
+
+### Custom properties
+
+`.custom` animates any writable key path of the view to a value of the same type:
+
+```swift
+view.animate(.custom(\.layer.shadowOpacity, to: 0.4), .custom(\.layer.shadowOffset, to: CGSize(width: 0, height: 8)), duration: 0.3)
+label.animate(.custom(\UILabel.textColor, to: .systemPink), duration: 0.5)   // a subclass: name the root type
+button.animate(.custom(\.tintColor, to: .systemGreen), duration: 0.5)
+```
+
+The starting value is read when the animation starts, like every property. Colours animate exactly like `.background`: through `Engine.shared.colorInterpolation`, resolved against the view's own traits, with the target assigned as given. An optional key path whose current value is `nil` fades a colour in from clear and switches any other value on the first frame. A key path rooted in a subclass, such as `\UILabel.textColor`, does nothing on a view of another class and logs a warning. Listing the same key path twice in one animation keeps the last value, like the built-in properties. `.custom` and `.constant` are main-actor functions, like `animate`.
+
+The value must conform to `Interpolatable`. `CGFloat`, `Double`, `Float`, `CGPoint`, `CGSize`, `CGRect` and `UIColor` do; conform your own types with one method:
+
+```swift
+extension CGVector: Interpolatable {
+    public func interpolated(to target: CGVector, progress: CGFloat) -> CGVector {
+        CGVector(
+            dx: dx.interpolated(to: target.dx, progress: progress),
+            dy: dy.interpolated(to: target.dy, progress: progress))
+    }
+}
+```
+
+Progress runs from 0 to 1, and past either end under an overshooting easing such as `back`.
+
+Custom key paths count as fades for [Reduce Motion](#reduce-motion) and keep animating. Pass `isMotion: true` for one that moves, resizes, rotates or scales something, so it snaps: `.custom(\.bounds, to: target, isMotion: true)`.
 
 ### Easing
 
@@ -191,7 +227,7 @@ Engine.shared.colorInterpolation = .hsb   // .rgb, .hsb or .lch
 
 ### Reduce Motion
 
-When the user has Reduce Motion on, movement snaps and fades stay, as Apple's Human Interface Guidelines recommend: position, size and rotation (`.x`, `.y`, `.width`, `.height`, `.frame`, `.rotation`) jump to their end state, while `.alpha`, `.background`, `.borderColor`, `.borderWidth` and `.cornerRadius` still animate over the full duration. An animation with only movement in it finishes on its first frame. Completion blocks still run, and pauses keep their duration so sequence timing is preserved.
+When the user has Reduce Motion on, movement snaps and fades stay, as Apple's Human Interface Guidelines recommend: position, size and rotation (`.x`, `.y`, `.width`, `.height`, `.frame`, `.rotation`), constraint constants (`.constant`) and key paths marked `isMotion: true` jump to their end state, while `.alpha`, `.background`, `.borderColor`, `.borderWidth`, `.cornerRadius` and other `.custom` key paths still animate over the full duration. An animation with only movement in it finishes on its first frame. Completion blocks still run, and pauses keep their duration so sequence timing is preserved.
 
 ```swift
 Engine.shared.reduceMotionBehavior = .snapAll        // snap every property, as 1.0 did
@@ -255,7 +291,7 @@ Invalid durations and frame rate ranges, and timelines left out of a `Kinieta.gr
 
 ## Example app
 
-`Example/KinietaDemo.xcodeproj` is a gallery: every easing preset on its own track, the three colour spaces side by side, a composed timeline with a grouped completion, and a Controls section that pauses, resumes and cancels one handle and reports when `await finished()` returns. It lays out within the safe area and replays at the new size when the device rotates, since Kinieta sets frames that Auto Layout does not update. Launch it with the `-autoplay` argument to start playing on launch.
+`Example/KinietaDemo.xcodeproj` is a gallery: every easing preset on its own track, the three colour spaces side by side, a composed timeline with a grouped completion, a Controls section that pauses, resumes and cancels one handle and reports when `await finished()` returns, and an Auto Layout row whose square is centred by a constraint and swings by animating its constant. It lays out within the safe area and replays at the new size when the device rotates, since Kinieta sets frames that Auto Layout does not update; the Auto Layout row instead keeps playing through the rotation. Launch it with the `-autoplay` argument to start playing on launch.
 
 ## Development
 

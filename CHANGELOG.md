@@ -8,6 +8,19 @@ All notable changes to Kinieta are documented here. The format follows
 
 ### Added
 
+- `Property.custom(_:to:isMotion:)` animates any writable key path of a
+  view, such as `\.layer.shadowOpacity`, `\.tintColor` or
+  `\UILabel.textColor`, to an `Interpolatable` value. Colours go through the
+  engine's colour interpolation like `.background`. Pass `isMotion: true` to
+  snap it under Reduce Motion.
+- `Property.constant(_:to:)` animates an `NSLayoutConstraint`'s constant and
+  lays out the constraint's views every frame, so a view placed by Auto Layout
+  can animate without snapping back on the next layout pass. It snaps under
+  Reduce Motion. The example app has an Auto Layout row that keeps playing
+  through rotation.
+- The public `Interpolatable` protocol, adopted by `CGFloat`, `Double`,
+  `Float`, `CGPoint`, `CGSize`, `CGRect` and `UIColor` (through LCH). Conform
+  your own types to animate them with `.custom`.
 - `Engine.shared.preferredFrameRateRange` sets the frame rates the engine asks
   the display for; it applies from the next frame, even mid-animation. The
   default, `Engine.defaultFrameRateRange`, is 30–120 Hz preferring 120 (1.0
@@ -38,6 +51,9 @@ All notable changes to Kinieta are documented here. The format follows
 
 ### Changed
 
+- `Property` has a new case, `extended(CustomProperty)`, which holds the
+  properties made by `.custom` and `.constant`. A `switch` over `Property`
+  that lists every case needs a `default` or the new case.
 - Reduce Motion now snaps only movement: `.x`, `.y`, `.width`, `.height`,
   `.frame` and `.rotation` jump to their end state, while `.alpha`, colours,
   `.borderWidth` and `.cornerRadius` still animate over the full duration, as

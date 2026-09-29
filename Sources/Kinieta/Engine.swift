@@ -226,13 +226,13 @@ public final class Engine {
         respectsReduceMotion && isReduceMotionEnabled()
     }
 
-    /// Whether an animation starting now should snap `key` to its end state
-    /// instead of interpolating it.
-    func snapsUnderReduceMotion(_ key: Property.Key) -> Bool {
+    /// Whether an animation starting now should snap `property` to its end
+    /// state instead of interpolating it.
+    func snapsUnderReduceMotion(_ property: Property) -> Bool {
         guard shouldSkipMotion else { return false }
         switch reduceMotionBehavior {
         case .snapAll: return true
-        case .snapMotion: return key.isMotion
+        case .snapMotion: return property.isMotion
         }
     }
 

@@ -38,6 +38,16 @@ as zero.
 
 - ``Property``
 
+### Animating anything else
+
+``Property/custom(_:to:isMotion:)-(ReferenceWritableKeyPath<UIView,Value>,_,_)`` animates any
+writable key path of a view to an ``Interpolatable`` value, and
+``Property/constant(_:to:)`` animates an Auto Layout constraint's constant,
+laying out its views every frame so a constrained view does not snap back.
+
+- ``Interpolatable``
+- ``CustomProperty``
+
 ### Shaping it
 
 - ``Kinieta``
@@ -60,8 +70,9 @@ as zero.
 
 ### Reduce Motion
 
-When the user has Reduce Motion on, position, size and rotation snap to their
-end state, while opacity, colours, border width and corner radius still animate
+When the user has Reduce Motion on, position, size, rotation, constraint
+constants and key paths marked `isMotion` snap to their end state, while
+opacity, colours, border width, corner radius and other key paths still animate
 over the full duration, so fades and colour changes keep giving feedback.
 Completion blocks run and pauses keep their duration, so a timeline's timing is
 unchanged.
