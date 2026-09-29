@@ -214,7 +214,7 @@ await handle.finished()  // suspends until the timeline finishes or is cancelled
 
 A handle can be extended at any time, not only while chaining. Actions added to a running timeline play after the ones already there; actions added to a finished timeline start it again on the next frame, and `finished()` waits for them. `Kinieta(for: view)` gives an empty handle to build later. Easing, `delay`, `onComplete`, `then()` and `parallel()` only reach actions that have not started yet (debug builds warn when one finds nothing to act on; see [Troubleshooting](#troubleshooting)), and a cancelled timeline ignores further calls. A finished timeline forgets its actions, so a later `repeat` copies only what was added since.
 
-Handles hold their view weakly and never keep it alive. When the view is deallocated the timeline is cancelled on the next frame: the rest of it does not run, no further completion blocks are called, and the handle ends `.cancelled`.
+Handles hold their view weakly and never keep it alive. When the view is deallocated the timeline is cancelled before anything else in it runs, even while it is paused or waiting on `wait(.infinity)`: no further completion blocks are called, the handle ends `.cancelled` and `finished()` returns.
 
 ### Interrupting
 

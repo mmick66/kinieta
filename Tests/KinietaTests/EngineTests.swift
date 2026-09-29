@@ -1018,14 +1018,15 @@ struct EngineTests {
     func anAlreadyCancelledTaskDoesNotWaitForTheTimeline() async {
         let frames = ManualFrameDriver.install()
         defer { frames.uninstall() }
-        let handle = makeView().wait(.infinity)
+        let view = makeView()
+        let handle = view.wait(.infinity)
         // Cancelled before it runs, so it reaches finished() already cancelled.
         let task = Task { await handle.finished() }
         task.cancel()
         await task.value
         #expect(handle.isRunning)
         #expect(handle.waiters.isEmpty)
-        handle.cancel()
+        withExtendedLifetime(view) { handle.cancel() }
     }
 
     @Test func pauseAndResumeHoldTheTimeline() {
@@ -1362,6 +1363,91 @@ struct EngineTests {
         #expect(second.state == .finished)
         #expect(groupCompleted && group.state == .finished)
         #expect(!frames.isRunning)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func aPausedTimelineIsCancelledWithoutAFrameWhenItsViewIsReleased() async {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        var view: UIView? = makeView()
+        var completed = false
+        let handle = view!.animate(.x(100), duration: 1).onComplete { completed = true }
+        frames.step(0.25)
+        handle.pause()
+        #expect(!frames.isRunning)
+        view = nil
+        await handle.finished()  // returns although no frame runs
+        #expect(handle.state == .cancelled)
+        #expect(!frames.isRunning && frames.starts == 1)
+        #expect(!completed)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func anInfiniteWaitIsCancelledWithoutAFrameWhenItsViewIsReleased() async {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        var view: UIView? = makeView()
+        var waitCompleted = false
+        let handle = view!.animate(.x(100), duration: 0.5).wait(.infinity).onComplete { waitCompleted = true }
+        frames.step(0.5, count: 2)
+        #expect(handle.isRunning && !frames.isRunning)
+        view = nil
+        await handle.finished()
+        #expect(handle.state == .cancelled)
+        #expect(!frames.isRunning && frames.starts == 1)
+        #expect(!waitCompleted)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func aTimelineInAPausedGroupIsCancelledWhenItsViewIsReleased() async {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        var a: UIView? = makeView()
+        let b = makeView()
+        var groupCompleted = false
+        let first = a!.animate(.x(100), duration: 1)
+        let second = b.animate(.x(100), duration: 1)
+        let group = Kinieta.group(first, second) { groupCompleted = true }
+        frames.step(0.5)
+        group.pause()
+        a = nil
+        await first.finished()
+        #expect(first.state == .cancelled)
+        #expect(group.isPaused && second.isPaused)
+        group.resume()
+        frames.step(0.5)
+        #expect(second.state == .finished)
+        #expect(groupCompleted && group.state == .finished)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func everyTimelineOfAReleasedViewIsCancelled() async {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        var view: UIView? = makeView()
+        let paused = view!.animate(.x(100), duration: 1)
+        let waiting = view!.wait(.infinity)
+        let finished = view!.animate(.alpha(0))
+        frames.step()
+        paused.pause()
+        #expect(finished.state == .finished && !frames.isRunning)
+        view = nil
+        await paused.finished()
+        await waiting.finished()
+        #expect(paused.state == .cancelled && waiting.state == .cancelled)
+        #expect(finished.state == .finished)
+    }
+
+    @Test func aViewKeepsNoHandleAlive() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        weak var handle: Kinieta?
+        do {
+            let made = view.wait(.infinity)
+            handle = made
+        }
+        #expect(handle == nil)
     }
 
     @Test(.timeLimit(.minutes(1)))

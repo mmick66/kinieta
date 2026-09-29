@@ -34,7 +34,7 @@ Guidelines, and returns a handle you can control.
   the curve parameter, which distorted every preset.
 - Time advances by the real elapsed interval, so dropped frames catch up.
 - Views are held weakly and never kept alive. When a view is deallocated
-  its timeline is cancelled on the next frame, without running any further
+  its timeline is cancelled, even while paused, without running any further
   completion blocks.
 - Zero-duration animations and pauses run their completion blocks.
 - Movement snaps to its end state when Reduce Motion is on, while fades and

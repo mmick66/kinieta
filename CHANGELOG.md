@@ -185,6 +185,14 @@ All notable changes to Kinieta are documented here. The format follows
   cancel it, so the engine now lets go of it once nothing else is animating.
   A completion block that captures the handle still keeps it, and its
   timeline, alive.
+- When a view was deallocated only its running animation stopped: a
+  following `wait` still held the display link, later completion blocks ran
+  and the handle ended `.finished`. The whole timeline is now cancelled
+  before anything else in it runs, and the handle ends `.cancelled`. This
+  includes a timeline that is paused, on its own or by its group, or waiting
+  on `wait(.infinity)`, which gets no frames: it used to stay `.paused` or
+  `.running`, with its `finished()` callers suspended, until something else
+  animated.
 - The frames between dynamic colours, such as `.label`, were resolved
   against the app's traits rather than the view's, so a view with
   `overrideUserInterfaceStyle` or in a sheet of another appearance animated

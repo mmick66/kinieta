@@ -42,9 +42,10 @@ public final class Kinieta {
     }
 
     /// The view this timeline animates. Held weakly: a timeline never keeps a
-    /// view alive. When the view is deallocated the timeline is cancelled on
-    /// the next frame: nothing else in it runs, no further completion blocks
-    /// are called and `state` becomes `.cancelled`.
+    /// view alive. When the view is deallocated the timeline is cancelled
+    /// before anything else in it runs, even while it is paused or waiting
+    /// forever: no further completion blocks are called, `state` becomes
+    /// `.cancelled` and ``finished()`` returns.
     public private(set) weak var view: UIView?
 
     /// The timeline's current state.
@@ -89,6 +90,7 @@ public final class Kinieta {
         if let view {
             mainSequence.target = ViewRef(view)
             mainSequence.onViewLost = { [weak self] in self?.cancel() }
+            ViewReleaseObserver.observe(view, for: self)
         }
         Engine.shared.add(mainSequence)
     }
@@ -464,6 +466,53 @@ public final class Kinieta {
     @discardableResult
     public static func group(_ handles: Kinieta..., completion: Completion? = nil) -> Kinieta {
         group(handles, completion: completion)
+    }
+}
+
+/// Cancels the timelines of a view when the view is deallocated. A sequence
+/// also checks its view every frame, but a paused timeline, or one waiting
+/// forever, gets no frames: without this it would stay `.paused` or
+/// `.running`, with its `finished()` callers suspended, until something else
+/// started the engine.
+///
+/// The view holds it as an associated object, so it goes when the view does.
+/// It holds the handles weakly and never keeps a timeline alive.
+private final class ViewReleaseObserver {
+    private struct Entry: Sendable {
+        weak var handle: Kinieta?
+    }
+
+    nonisolated(unsafe) private static var key: UInt8 = 0
+
+    /// Written on the main actor; read once more by `deinit`, when nothing else can.
+    private var entries: [Entry] = []
+    /// The count at which released handles are next swept out. Doubling it
+    /// keeps adding a handle constant time, however many the view has had.
+    private var sweepAt = 16
+
+    @MainActor
+    static func observe(_ view: UIView, for handle: Kinieta) {
+        let observer: ViewReleaseObserver
+        if let existing = objc_getAssociatedObject(view, &key) as? ViewReleaseObserver {
+            observer = existing
+        } else {
+            observer = ViewReleaseObserver()
+            objc_setAssociatedObject(view, &key, observer, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        }
+        observer.entries.append(Entry(handle: handle))
+        if observer.entries.count >= observer.sweepAt {
+            observer.entries.removeAll { $0.handle == nil }
+            observer.sweepAt = max(16, observer.entries.count * 2)
+        }
+    }
+
+    /// Deferred, as a handle's deinit is: the view may go mid-frame, released
+    /// by a completion block. A timeline that has already ended ignores it.
+    deinit {
+        let entries = entries
+        Task { @MainActor in
+            for entry in entries { entry.handle?.cancel() }
+        }
     }
 }
 #endif
