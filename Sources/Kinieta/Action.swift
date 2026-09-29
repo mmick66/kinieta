@@ -180,9 +180,13 @@ protocol Action: AnyObject {
     /// `true` while no frame can change anything: the action is paused or
     /// waiting forever. The engine stops its driver when every action is idle.
     var isIdle: Bool { get }
+    /// `true` while idle with nothing left that could wake it: every handle
+    /// that could resume or cancel it is gone. The engine lets go of it.
+    var isAbandoned: Bool { get }
 }
 
 extension Action {
     var isIdle: Bool { false }
+    var isAbandoned: Bool { false }
 }
 #endif

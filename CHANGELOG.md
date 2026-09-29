@@ -179,6 +179,12 @@ All notable changes to Kinieta are documented here. The format follows
   moment, which reset its frame clock.
 - `await finished()` now returns as soon as the awaiting task is cancelled.
   The timeline carries on, and other tasks awaiting it keep waiting.
+- A timeline that was paused, or waiting on `wait(.infinity)`, when its
+  handle was released stayed registered with the engine for the life of the
+  process, holding its actions and completion blocks. Nothing could resume or
+  cancel it, so the engine now lets go of it once nothing else is animating.
+  A completion block that captures the handle still keeps it, and its
+  timeline, alive.
 - A colour with no RGB value, such as `UIColor(patternImage:)`, was read as
   transparent, so animating to or from it faded instead. It now switches as
   the animation starts, with a logged warning.

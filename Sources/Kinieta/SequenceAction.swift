@@ -38,8 +38,20 @@ final class SequenceAction: Action {
     var target: ViewRef?
     var onViewLost: Kinieta.Completion?
 
+    /// The handle whose timeline this is; `nil` for a nested sequence, and
+    /// once the handle has been released.
+    weak var handle: Kinieta?
+
     var isIdle: Bool {
         !isCancelled && !hasLostView && (isPaused || currentAction?.isIdle == true)
+    }
+
+    /// Idle with its handle gone: nothing can resume or cancel it any more.
+    /// A nested sequence answers for what it is running; its main sequence
+    /// has already checked the handle.
+    var isAbandoned: Bool {
+        guard isIdle, handle == nil else { return false }
+        return isPaused || currentAction?.isAbandoned == true
     }
 
     private var hasLostView: Bool {

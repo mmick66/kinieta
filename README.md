@@ -266,7 +266,7 @@ Engine.shared.preferredFrameRateRange = Engine.defaultFrameRateRange            
 
 The example app has a 60 Hz / 120 Hz toggle in its navigation bar to compare the two while the gallery plays.
 
-The display link only runs while something can move. When every timeline is paused, or waiting on `wait(.infinity)`, the engine stops it, so a paused handle you let go of costs no frames; `resume()`, `cancel()` or a new animation starts it again.
+The display link only runs while something can move. When every timeline is paused, or waiting on `wait(.infinity)`, the engine stops it; `resume()`, `cancel()` or a new animation starts it again. A paused or waiting timeline whose handle you let go of can never move again, so the engine releases it, with its completion blocks, once nothing is animating. A completion block that captures its own handle keeps both alive: capture it `weak`, or cancel the handle when you are done with it.
 
 ### Platforms
 

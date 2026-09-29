@@ -254,10 +254,14 @@ public final class Engine {
     /// Runs the driver while any action can make progress and stops it when
     /// every action is idle (paused, or waiting forever), so a held timeline
     /// costs no frames. Call it whenever an action is paused, resumed or
-    /// cancelled outside a frame.
+    /// cancelled outside a frame, or a handle is released.
+    ///
+    /// Once every action is idle it also lets go of the abandoned ones, whose
+    /// handles are gone, so they no longer hold their completion blocks.
     func refreshDriver() {
         guard actions.contains(where: { !$0.isIdle }) else {
             driver.stop()
+            actions.removeAll { $0.isAbandoned }
             return
         }
         driver.start { [weak self] frame in

@@ -47,6 +47,14 @@ final class GroupAction: Action {
         return !members.isEmpty && members.allSatisfy(\.isIdle)
     }
 
+    /// Abandoned once every member is: a member whose handle is still around
+    /// can be resumed or cancelled, and the group moves on with it.
+    var isAbandoned: Bool {
+        guard case .running(let live) = phase else { return false }
+        let members = live + joining
+        return !members.isEmpty && members.allSatisfy(\.isAbandoned)
+    }
+
     /// Adds an action that is already live, such as a grouped timeline that
     /// was extended after it finished. Returns `false` once the group has ended.
     func adopt(_ action: Action) -> Bool {

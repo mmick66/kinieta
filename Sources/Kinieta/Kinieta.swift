@@ -84,12 +84,20 @@ public final class Kinieta {
     init(view: UIView?) {
         self.view = view
         mainSequence = SequenceAction()
+        mainSequence.handle = self
         mainSequence.completion = { [weak self] in self?.finish(as: .finished) }
         if let view {
             mainSequence.target = ViewRef(view)
             mainSequence.onViewLost = { [weak self] in self?.cancel() }
         }
         Engine.shared.add(mainSequence)
+    }
+
+    /// A paused timeline, or one waiting forever, that loses its handle can
+    /// never move again. The engine lets go of it once nothing is running.
+    /// Deferred, since the engine may be mid-frame or releasing this handle itself.
+    deinit {
+        Task { @MainActor in Engine.shared.refreshDriver() }
     }
 
     // MARK: - Building the timeline
@@ -126,7 +134,8 @@ public final class Kinieta {
     /// Waits for `time` seconds before the next action.
     ///
     /// A negative or NaN time is treated as zero and logs a warning.
-    /// `.infinity` waits until the timeline is cancelled, without costing frames.
+    /// `.infinity` waits until the timeline is cancelled, without costing
+    /// frames. If the handle is released first, the engine releases the timeline.
     @discardableResult
     public func wait(_ time: TimeInterval) -> Kinieta {
         let time = Kinieta.sanitized(time, in: "wait(_:)", allowsInfinity: true)
@@ -350,6 +359,8 @@ public final class Kinieta {
     /// timeline in the group.
     ///
     /// While every timeline is paused the engine stops requesting frames.
+    /// Releasing the handle of a paused timeline lets the engine release the
+    /// timeline too, since nothing can resume it.
     public func pause() {
         guard state == .running else { return }
         mainSequence.isPaused = true

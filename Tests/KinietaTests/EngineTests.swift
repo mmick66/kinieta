@@ -2041,6 +2041,78 @@ struct EngineTests {
         #expect(group.state == .finished && !frames.isRunning)
     }
 
+    @Test(.timeLimit(.minutes(1)))
+    func aPausedTimelineIsReleasedWithItsHandle() async {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        weak var sequence: SequenceAction?
+        weak var captured: NSObject?
+        do {
+            let token = NSObject()
+            captured = token
+            let handle = view.animate(.x(100), duration: 1).onComplete { _ = token }
+            sequence = handle.mainSequence
+            frames.step(0.25)
+            handle.pause()
+        }
+        // Released by the refresh the handle's deinit schedules.
+        while sequence != nil || captured != nil { await Task.yield() }
+        #expect(!frames.isRunning)
+        #expect(approx(view.frame.origin.x, 25, 0.5))
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func anInfiniteWaitIsReleasedWithItsHandle() async {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        weak var sequence: SequenceAction?
+        do {
+            let handle = view.animate(.x(100), duration: 0.5).wait(.infinity).animate(.x(0), duration: 1)
+            sequence = handle.mainSequence
+        }
+        frames.step(0.5, count: 2)
+        #expect(!frames.isRunning)
+        while sequence != nil { await Task.yield() }
+        #expect(approx(view.frame.origin.x, 100))
+    }
+
+    @Test func anIdleTimelineWhoseHandleIsKeptStays() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        let handle = view.animate(.x(100), duration: 1)
+        frames.step(0.25)
+        handle.pause()
+        Engine.shared.refreshDriver()
+        handle.resume()
+        frames.step(0.75)
+        #expect(handle.state == .finished)
+        #expect(approx(view.frame.origin.x, 100))
+    }
+
+    @Test func aGroupWhoseHandleIsGoneStaysWhileAMemberCanMoveIt() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        let waiting = view.wait(.infinity)
+        weak var sequence: SequenceAction?
+        var completed = false
+        do {
+            let group = Kinieta.group(waiting, view.animate(.x(100), duration: 1)) { completed = true }
+            sequence = group.mainSequence
+        }
+        frames.step(1)
+        #expect(!frames.isRunning)
+        Engine.shared.refreshDriver()
+        #expect(sequence != nil)  // `waiting` can still be cancelled, which ends the group
+        waiting.cancel()
+        frames.step()
+        #expect(completed)
+        #expect(sequence == nil)
+    }
+
     // MARK: Smoke test on the real display link
 
     @Test(.timeLimit(.minutes(1)))
