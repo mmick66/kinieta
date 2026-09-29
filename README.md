@@ -303,6 +303,28 @@ Release builds neither check nor log these calls. A cancelled timeline ignores e
 
 Invalid durations and frame rate ranges, and timelines left out of a `Kinieta.group`, are logged in every build, under the categories `Timeline` and `Engine`.
 
+### Name clashes
+
+The module and its main class are both named `Kinieta`, so `Kinieta.Property` names a member of the class, not of the module. If your module has its own `Property`, `Easing` or `Engine`, which shadow Kinieta's, reach Kinieta's through the class, which nests each of them under the same name:
+
+```swift
+struct Property { /* yours */ }
+
+let fadeOut: Kinieta.Property = .alpha(0)
+let done: Kinieta.Completion = { print("faded") }
+view.animate(fadeOut, duration: 0.3).easing(Kinieta.Easing.inOut(.cubic)).onComplete(done)
+```
+
+`Kinieta.Completion` is the type of completion blocks, `@MainActor () -> Void`. It replaces the top-level `Block`, which is deprecated.
+
+### Building an XCFramework
+
+With `BUILD_LIBRARY_FOR_DISTRIBUTION=YES` the emitted `Kinieta.swiftinterface` fails to verify: it qualifies types as `Kinieta.Property`, and there `Kinieta` resolves to the class. Pass `-alias-module-names-in-module-interface` so the interface names the module by an alias. CI builds this way:
+
+```
+xcodebuild -scheme Kinieta -destination 'generic/platform=iOS Simulator' BUILD_LIBRARY_FOR_DISTRIBUTION=YES OTHER_SWIFT_FLAGS=-alias-module-names-in-module-interface build
+```
+
 ## Example app
 
 `Example/KinietaDemo.xcodeproj` is a gallery: every easing preset on its own track, the three colour spaces side by side, a composed timeline with a grouped completion, a Controls section that pauses, resumes and cancels one handle and reports when `await finished()` returns, an Interrupting row whose Left and Right buttons take a square's position over mid-flight while its colour change carries on, and an Auto Layout row whose square is centred by a constraint and swings by animating its constant. It lays out within the safe area and replays at the new size when the device rotates, since Kinieta sets frames that Auto Layout does not update; the Auto Layout row instead keeps playing through the rotation. Pressing Play while the gallery runs starts it again from where the views are. Launch it with the `-autoplay` argument to start playing on launch.
@@ -317,7 +339,7 @@ xcodebuild -project Example/KinietaDemo.xcodeproj -scheme KinietaDemo -destinati
 xcrun swift-format lint --strict --recursive Sources Tests Example/KinietaDemo
 ```
 
-`scripts/ci-local.sh` runs the CI jobs locally (the three above plus Mac Catalyst, and `swift build`/`swift test` on macOS and in a Linux container via Docker) and stops at the first failure. The tvOS build and the visionOS tests run in CI only. Pass check names to run a subset, e.g. `scripts/ci-local.sh lint ios`.
+`scripts/ci-local.sh` runs the CI jobs locally (the three above plus Mac Catalyst, the library-evolution build from "Building an XCFramework", and `swift build`/`swift test` on macOS and in a Linux container via Docker) and stops at the first failure. The tvOS build and the visionOS tests run in CI only. Pass check names to run a subset, e.g. `scripts/ci-local.sh lint ios`.
 
 Visual regression is covered by snapshot tests: each property is rendered at five progress points, the colour paths at their midpoint between sRGB and between Display P3 colours, and dynamic colours in light and dark appearance. Reference images live in `Tests/KinietaTests/__Snapshots__`. After an intentional visual change, re-record them on the pinned iPhone 17 Pro / iOS 26.5 simulator and review the PNGs before committing:
 

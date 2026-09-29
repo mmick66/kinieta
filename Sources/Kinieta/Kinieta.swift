@@ -318,7 +318,7 @@ public final class Kinieta {
     /// Calls `block` when the previous action finishes. Does nothing once
     /// that action has started.
     @discardableResult
-    public func onComplete(_ block: @escaping Block, file: StaticString = #fileID, line: UInt = #line) -> Kinieta {
+    public func onComplete(_ block: @escaping Completion, file: StaticString = #fileID, line: UInt = #line) -> Kinieta {
         editUnstarted { queue in
             guard let last = queue.popLast() else {
                 Kinieta.ignored(
@@ -424,7 +424,7 @@ public final class Kinieta {
     /// one that is already in a group, has finished or was cancelled is left
     /// out with a warning, and a timeline listed twice runs once.
     @discardableResult
-    public static func group(_ handles: [Kinieta], completion: Block? = nil) -> Kinieta {
+    public static func group(_ handles: [Kinieta], completion: Completion? = nil) -> Kinieta {
         var members: [Kinieta] = []
         for child in handles where !members.contains(where: { $0 === child }) {
             if child.owner != nil {
@@ -451,7 +451,7 @@ public final class Kinieta {
     }
 
     @discardableResult
-    public static func group(_ handles: Kinieta..., completion: Block? = nil) -> Kinieta {
+    public static func group(_ handles: Kinieta..., completion: Completion? = nil) -> Kinieta {
         group(handles, completion: completion)
     }
 }

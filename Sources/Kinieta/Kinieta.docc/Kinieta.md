@@ -86,6 +86,16 @@ unchanged.
 - ``ReduceMotionBehavior``
 - ``Engine/respectsReduceMotion``
 
+### Name clashes
+
+The module and its main class share the name `Kinieta`, so `Kinieta.Property`
+names a member of the class. The class nests each of the library's types under
+the same name, so a module with its own `Property`, `Easing` or `Engine` can
+still write `Kinieta.Property`, `Kinieta.Easing` and `Kinieta.Engine`.
+
+- ``Kinieta/Completion``
+- ``Block``
+
 ### Migrating
 
 - <doc:MigratingFrom0.5>

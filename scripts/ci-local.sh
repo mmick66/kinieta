@@ -9,6 +9,7 @@
 #   spm-macos   swift build + swift test on the Mac host (job: spm-macos)
 #   ios        iOS Simulator tests + example app build  (job: test)
 #   catalyst    Mac Catalyst tests                       (job: catalyst)
+#   evolution   iOS Simulator build with library evolution (job: evolution)
 #   spm-linux   swift build + swift test in Docker       (job: spm-linux)
 #
 # The tvOS build and the visionOS tests (jobs: tvos, visionos) run in CI only.
@@ -21,7 +22,7 @@
 
 set -euo pipefail
 
-ALL_CHECKS=(lint spm-macos ios catalyst spm-linux)
+ALL_CHECKS=(lint spm-macos ios catalyst evolution spm-linux)
 
 # Snapshot references in Tests/KinietaTests/__Snapshots__ were recorded on this simulator and
 # runtime. Keep in sync with DESTINATION in .github/workflows/ci.yml and README "Development".
@@ -51,6 +52,12 @@ check_ios() {
 check_catalyst() {
   xcodebuild -scheme Kinieta -destination 'platform=macOS,variant=Mac Catalyst' \
     -derivedDataPath DerivedData test
+}
+
+# Its own derived data, since the changed build settings would rebuild everything in the shared one.
+check_evolution() {
+  xcodebuild -scheme Kinieta -destination 'generic/platform=iOS Simulator' -derivedDataPath .build/evolution \
+    BUILD_LIBRARY_FOR_DISTRIBUTION=YES OTHER_SWIFT_FLAGS=-alias-module-names-in-module-interface build
 }
 
 # A separate scratch path keeps the Linux build products apart from the host's .build.

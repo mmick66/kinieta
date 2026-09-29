@@ -66,7 +66,7 @@ Requires Xcode 26.6 with the iOS 26.5 simulator runtime. Tests run on the pinned
 
 ```bash
 scripts/ci-local.sh                  # every CI job except tvOS and visionOS, stops at the first failure
-scripts/ci-local.sh lint ios         # a subset: lint, spm-macos, ios, catalyst, spm-linux (needs Docker)
+scripts/ci-local.sh lint ios         # a subset: lint, spm-macos, ios, catalyst, evolution, spm-linux (needs Docker)
 
 # The same checks by hand
 xcrun swift-format lint --strict --recursive Sources Tests Example/KinietaDemo
@@ -75,6 +75,8 @@ xcodebuild -scheme Kinieta -destination 'platform=macOS,variant=Mac Catalyst' te
 xcodebuild -project Example/KinietaDemo.xcodeproj -scheme KinietaDemo \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5' CODE_SIGNING_ALLOWED=NO build
 swift build && swift test            # builds an empty module and runs 0 tests off UIKit
+xcodebuild -scheme Kinieta -destination 'generic/platform=iOS Simulator' build \
+  BUILD_LIBRARY_FOR_DISTRIBUTION=YES OTHER_SWIFT_FLAGS=-alias-module-names-in-module-interface
 
 # Re-record snapshots after an intentional visual change, then review the PNGs
 TEST_RUNNER_SNAPSHOT_TESTING_RECORD=all xcodebuild -scheme Kinieta \

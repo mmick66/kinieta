@@ -78,6 +78,23 @@ jobs:
           set -o pipefail
           xcodebuild -scheme Kinieta -destination 'generic/platform=tvOS Simulator' build | xcbeautify --renderer github-actions
 
+  # An XCFramework is built with library evolution. The module and its main
+  # class share the name Kinieta, so the .swiftinterface verifies only when it
+  # names the module by an alias.
+  evolution:
+    name: Build with library evolution (iOS Simulator)
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_26.6.app
+      - name: Verify xcbeautify
+        run: command -v xcbeautify || brew install xcbeautify && xcbeautify --version
+      - name: Build package
+        run: |
+          set -o pipefail
+          xcodebuild -scheme Kinieta -destination 'generic/platform=iOS Simulator' BUILD_LIBRARY_FOR_DISTRIBUTION=YES OTHER_SWIFT_FLAGS=-alias-module-names-in-module-interface build | xcbeautify --renderer github-actions
+
   visionos:
     name: Build and test (visionOS Simulator)
     runs-on: macos-26

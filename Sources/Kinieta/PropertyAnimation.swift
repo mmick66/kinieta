@@ -32,7 +32,7 @@ final class PropertyAnimation: Action {
     private var previousFactor: CGFloat?
     private var appliedFrame: Int?
 
-    let completion: Block?
+    let completion: Kinieta.Completion?
 
     init(_ spec: AnimationSpec) {
         self.target = spec.target

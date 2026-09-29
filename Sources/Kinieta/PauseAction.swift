@@ -8,13 +8,13 @@ import Foundation
 final class PauseAction: Action {
 
     let duration: TimeInterval
-    let completion: Block?
+    let completion: Kinieta.Completion?
     private var elapsed: TimeInterval = 0
 
     /// A wait of `.infinity` never ends, so no frame can advance it.
     var isIdle: Bool { duration == .infinity }
 
-    init(_ duration: TimeInterval, completion: Block?) {
+    init(_ duration: TimeInterval, completion: Kinieta.Completion?) {
         self.duration = duration
         self.completion = completion
     }
