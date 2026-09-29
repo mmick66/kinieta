@@ -95,6 +95,25 @@ All notable changes to Kinieta are documented here. The format follows
   timeline builds and runs about 45 times faster (3.3 s to 0.07 s in a debug
   build on the iOS Simulator). Many timelines finishing on the same frame
   leave the engine in one pass.
+- A handle can be extended at any time, not only while chaining. Adding to a
+  finished handle starts it again on the next frame, its `state` goes back to
+  `.running` and `finished()` waits for the new actions; a member of a
+  `Kinieta.group` rejoins its group if the group is still running and
+  otherwise runs on its own. A cancelled handle ignores further calls. See
+  "Controlling a timeline" in the README.
+- `repeat(times:)` copies the whole chain, including the actions already
+  running or done. A finished timeline forgets its actions, so a `repeat`
+  added after it finished copies only what was added since.
+- Easing, `delay`, `onComplete`, `then()` and `parallel()` only reach actions
+  that have not started yet; debug builds warn when one finds nothing to act
+  on.
+- Negative and NaN durations passed to `animate`, `wait` or `delay` are
+  treated as zero and log a warning. `wait(.infinity)` and `delay(.infinity)`
+  hold the timeline until it is cancelled; an infinite `animate` duration is
+  treated as zero.
+- A timeline belongs to at most one `Kinieta.group`. The group leaves out,
+  with a logged warning, any timeline that is already in a group or has
+  already finished or been cancelled, and runs a timeline listed twice once.
 
 ### Deprecated
 
@@ -135,6 +154,31 @@ All notable changes to Kinieta are documented here. The format follows
   were silently dropped; the group is now an ordinary step of the handle's
   timeline. `animate` on a group handle, which has no view, is ignored with a
   warning in debug builds instead of finishing instantly.
+- Actions added to a handle whose timeline had finished never ran and nothing
+  reported it, so a `Kinieta(for:)` handle built in a later run-loop turn did
+  nothing. `repeat(times:)` called after the first frame dropped the action
+  running at the time, and easing or `onComplete` added after the start could
+  reach the wrong action. A finished timeline now also releases its
+  completion blocks, so a block that captures its own handle no longer keeps
+  it alive.
+- A negative `wait` or `delay` fast-forwarded the next action to its end, and
+  a NaN one never finished, so `finished()` never returned and the display
+  link ran forever. A pause now never hands on more than the current frame.
+- `cancel()` or `pause()` called from an `onComplete` block did not stop the
+  timeline in that frame: the next action started with the frame's leftover
+  time, and a cancelled timeline could end up `.finished`. They now take
+  effect immediately at any depth of `then()`, `delay`, `parallel()` or
+  `Kinieta.group`; the other members of a group are not advanced, and a
+  cancelled timeline stays `.cancelled` and runs no further completion blocks.
+- Cancelling a `Kinieta.group` handle left its members `.running` forever,
+  with their `finished()` calls never returning; pausing it left them
+  reporting `isRunning`. The group handle's `cancel()`, `pause()` and
+  `resume()` now reach every member. A timeline grouped twice, or listed twice
+  in one group, animated at double speed, and grouping a finished timeline
+  ran its completion block again. Grouping no longer empties the engine for a
+  moment, which reset its frame clock.
+- `await finished()` now returns as soon as the awaiting task is cancelled.
+  The timeline carries on, and other tasks awaiting it keep waiting.
 - A colour with no RGB value, such as `UIColor(patternImage:)`, was read as
   transparent, so animating to or from it faded instead. It now switches as
   the animation starts, with a logged warning.
