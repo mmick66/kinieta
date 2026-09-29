@@ -25,12 +25,17 @@
 
 #if canImport(UIKit)
 import UIKit
+#elseif os(macOS)
+import AppKit
+#endif
+
+#if canImport(UIKit) || os(macOS)
 
 /// A weak reference to the view an action targets, so a pending timeline never
 /// keeps a view alive. An animation whose view has gone finishes immediately.
 struct ViewRef {
-    weak var view: UIView?
-    init(_ view: UIView?) { self.view = view }
+    weak var view: PlatformView?
+    init(_ view: PlatformView?) { self.view = view }
 }
 
 /// An animation waiting to run: which view, what to change, and how.
@@ -43,7 +48,7 @@ struct AnimationSpec {
     var completion: Kinieta.Completion?
 
     init(
-        _ view: UIView?, _ properties: [Property], duration: TimeInterval,
+        _ view: PlatformView?, _ properties: [Property], duration: TimeInterval,
         easing: Bezier? = nil, completion: Kinieta.Completion? = nil
     ) {
         self.target = ViewRef(view)

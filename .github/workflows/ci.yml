@@ -118,9 +118,10 @@ jobs:
           set -o pipefail
           xcodebuild -scheme Kinieta -destination 'platform=visionOS Simulator,name=Apple Vision Pro,OS=26.5' test | xcbeautify --renderer github-actions
 
-  # Kinieta is UIKit only. On other hosts every source and test file compiles
-  # away behind canImport(UIKit); these jobs keep that true, so `swift build`
-  # and `swift test` succeed there and run 0 tests.
+  # On the macOS host, `swift test` runs the experimental AppKit tests. On
+  # Linux every source and test file compiles away behind
+  # canImport(UIKit) || os(macOS), so `swift build` and `swift test` succeed
+  # there and run 0 tests.
   spm-macos:
     name: swift build + test (macOS host)
     runs-on: macos-26

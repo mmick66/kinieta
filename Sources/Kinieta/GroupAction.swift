@@ -1,6 +1,6 @@
 // Kinieta — MIT License. See LICENSE.
 
-#if canImport(UIKit)
+#if canImport(UIKit) || os(macOS)
 import Foundation
 
 /// Runs its actions at the same time and finishes when the last one does.

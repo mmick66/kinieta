@@ -8,6 +8,11 @@ All notable changes to Kinieta are documented here. The format follows
 
 ### Added
 
+- Experimental macOS support: on native macOS 14 and later, `NSView` gets
+  `animate(_:duration:)` and `wait(_:)` with the full timeline API, for
+  `.x`, `.y` (the frame origin) and `.alpha` (`alphaValue`). Frames come from
+  the main screen's display link. The other properties, colours and custom
+  key paths are still UIKit only. See "macOS (experimental)" in the README.
 - A newer animation of a property takes it over from an older one still
   running on the same view, like UIKit's `beginFromCurrentState`. It starts
   from the value on screen; the older animation stops writing that property,

@@ -2,6 +2,11 @@
 
 #if canImport(UIKit)
 import UIKit
+#elseif os(macOS)
+import AppKit
+#endif
+
+#if canImport(UIKit) || os(macOS)
 
 /// Interpolates a set of properties on one view over a duration.
 ///
@@ -103,7 +108,7 @@ final class PropertyAnimation: Action {
         return .running
     }
 
-    private func apply(_ factor: CGFloat, to view: UIView) {
+    private func apply(_ factor: CGFloat, to view: PlatformView) {
         let frameNumber = Engine.shared.frameNumber
         if appliedFrame != frameNumber {
             previousFactor = self.factor

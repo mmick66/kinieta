@@ -2,6 +2,11 @@
 
 #if canImport(UIKit)
 import UIKit
+#elseif os(macOS)
+import AppKit
+#endif
+
+#if canImport(UIKit) || os(macOS)
 import os
 
 /// How two colours are interpolated.
@@ -22,10 +27,14 @@ public enum ColorInterpolation: Sendable, Equatable {
 public enum Property: Sendable {
     case x(CGFloat)
     case y(CGFloat)
+    // On AppKit only `.x`, `.y` and `.alpha` exist so far.
+    #if canImport(UIKit)
     case width(CGFloat)
     case height(CGFloat)
     case frame(CGRect)
+    #endif
     case alpha(CGFloat)
+    #if canImport(UIKit)
     /// Rotation about the view's centre, in degrees. Starts from the angle the
     /// view was last rotated to, unwrapped, and keeps any scale in the transform.
     case rotation(degrees: CGFloat)
@@ -37,6 +46,7 @@ public enum Property: Sendable {
     /// A key path or constraint constant. Make one with
     /// ``custom(_:to:isMotion:)-(ReferenceWritableKeyPath<UIView,Value>,_,_)`` or ``constant(_:to:)``.
     case extended(CustomProperty)
+    #endif
 
     /// Identifies a property regardless of value. When the same property is
     /// listed twice in one animation the last value wins.
@@ -53,16 +63,18 @@ public enum Property: Sendable {
         switch self {
         case .x: return .x
         case .y: return .y
+        case .alpha: return .alpha
+        #if canImport(UIKit)
         case .width: return .width
         case .height: return .height
         case .frame: return .frame
-        case .alpha: return .alpha
         case .rotation: return .transform
         case .background: return .background
         case .borderColor: return .borderColor
         case .borderWidth: return .borderWidth
         case .cornerRadius: return .cornerRadius
         case .extended(let custom): return custom.key
+        #endif
         }
     }
 
@@ -70,54 +82,64 @@ public enum Property: Sendable {
     /// over on its own. `.frame` writes position and size as `.x`, `.y`,
     /// `.width` and `.height`, so a later `.x` takes only the position.
     var keys: [Key] {
-        switch self {
-        case .frame: return [.x, .y, .width, .height]
-        default: return [key]
-        }
+        #if canImport(UIKit)
+        if case .frame = self { return [.x, .y, .width, .height] }
+        #endif
+        return [key]
     }
 
     /// The object whose `keys` the property writes: the view, or the
     /// constraint of a `.constant`, which any view's timeline can animate.
     @MainActor
-    func owner(on view: UIView) -> ObjectIdentifier {
+    func owner(on view: PlatformView) -> ObjectIdentifier {
+        #if canImport(UIKit)
         if case .extended(let custom) = self, let target = custom.target { return target }
+        #endif
         return ObjectIdentifier(view)
     }
 
     /// The name used in descriptions and log messages.
     var name: String {
+        #if canImport(UIKit)
         switch self {
         case .extended(let custom): return custom.name
         case .rotation: return "rotation"
-        default: return String(describing: key)
+        default: break
         }
+        #endif
+        return String(describing: key)
     }
 
     /// Whether the property moves, resizes or rotates something. Under
     /// Reduce Motion these snap; fades and colour changes still animate.
     var isMotion: Bool {
         switch self {
-        case .x, .y, .width, .height, .frame, .rotation: return true
-        case .alpha, .background, .borderColor, .borderWidth, .cornerRadius: return false
+        case .x, .y: return true
+        case .alpha: return false
+        #if canImport(UIKit)
+        case .width, .height, .frame, .rotation: return true
+        case .background, .borderColor, .borderWidth, .cornerRadius: return false
         case .extended(let custom): return custom.isMotion
+        #endif
         }
     }
 
-    private static let logger = Logger(subsystem: "Kinieta", category: "Colour")
-
     /// Applies an eased progress factor to a view.
-    typealias Transformation = (UIView, CGFloat) -> Void
+    typealias Transformation = (PlatformView, CGFloat) -> Void
 
     /// Builds the per-frame transformation, capturing the view's current value
     /// as the starting point. Call it when the animation starts, not when the
     /// timeline is built.
     @MainActor
-    func transformation(for view: UIView, defaultColorInterpolation: ColorInterpolation) -> Transformation {
+    func transformation(for view: PlatformView, defaultColorInterpolation: ColorInterpolation) -> Transformation {
         switch self {
         case .x(let to):
             return lerp(from: view.x, to: to) { $0.x = $1 }
         case .y(let to):
             return lerp(from: view.y, to: to) { $0.y = $1 }
+        case .alpha(let to):
+            return lerp(from: view.alpha, to: to) { $0.alpha = $1 }
+        #if canImport(UIKit)
         case .width(let to):
             return lerp(from: view.width, to: to) { $0.width = max($1, 0) }
         case .height(let to):
@@ -127,8 +149,6 @@ public enum Property: Sendable {
             return { view, factor in
                 for part in parts { part(view, factor) }
             }
-        case .alpha(let to):
-            return lerp(from: view.alpha, to: to) { $0.alpha = $1 }
         case .rotation(let to):
             return lerp(from: view.rotation, to: to) { $0.rotation = $1 }
         case .borderWidth(let to):
@@ -147,12 +167,14 @@ public enum Property: Sendable {
             return { view, factor in view.layer.borderColor = colors(factor).cgColor }
         case .extended(let custom):
             return custom.transformation(view, defaultColorInterpolation) ?? { _, _ in }
+        #endif
         }
     }
 
     /// One transformation per key in `keys`, in the same order.
     @MainActor
-    func transformations(for view: UIView, defaultColorInterpolation: ColorInterpolation) -> [Transformation] {
+    func transformations(for view: PlatformView, defaultColorInterpolation: ColorInterpolation) -> [Transformation] {
+        #if canImport(UIKit)
         guard case .frame(let target) = self else {
             return [transformation(for: view, defaultColorInterpolation: defaultColorInterpolation)]
         }
@@ -165,13 +187,19 @@ public enum Property: Sendable {
             lerp(from: view.width, to: to.size.width) { $0.width = max($1, 0) },
             lerp(from: view.height, to: to.size.height) { $0.height = max($1, 0) },
         ]
+        #else
+        return [transformation(for: view, defaultColorInterpolation: defaultColorInterpolation)]
+        #endif
     }
 
-    private func lerp<T: Interpolatable>(from: T, to: T, apply: @escaping (UIView, T) -> Void) -> Transformation {
+    private func lerp<T: Interpolatable>(from: T, to: T, apply: @escaping (PlatformView, T) -> Void) -> Transformation {
         return { view, factor in
             apply(view, from.interpolated(to: to, progress: factor))
         }
     }
+
+    #if canImport(UIKit)
+    private static let logger = Logger(subsystem: "Kinieta", category: "Colour")
 
     /// See ``ColorMath/interpolator(from:to:mode:traits:)``. A colour with
     /// nothing to blend, such as a pattern, switches as soon as the animation starts.
@@ -200,5 +228,6 @@ public enum Property: Sendable {
             return current(factor)
         }
     }
+    #endif
 }
 #endif

@@ -2,6 +2,11 @@
 
 #if canImport(UIKit)
 import UIKit
+#elseif os(macOS)
+import AppKit
+#endif
+
+#if canImport(UIKit) || os(macOS)
 import os
 
 /// A handle to one view's timeline.
@@ -41,12 +46,22 @@ public final class Kinieta {
         case cancelled
     }
 
+    // The view type differs by platform; a doc comment must sit inside the `#if` to attach.
+    #if canImport(UIKit)
     /// The view this timeline animates. Held weakly: a timeline never keeps a
     /// view alive. When the view is deallocated the timeline is cancelled
     /// before anything else in it runs, even while it is paused or waiting
     /// forever: no further completion blocks are called, `state` becomes
     /// `.cancelled` and ``finished()`` returns.
     public private(set) weak var view: UIView?
+    #else
+    /// The view this timeline animates. Held weakly: a timeline never keeps a
+    /// view alive. When the view is deallocated the timeline is cancelled
+    /// before anything else in it runs, even while it is paused or waiting
+    /// forever: no further completion blocks are called, `state` becomes
+    /// `.cancelled` and ``finished()`` returns.
+    public private(set) weak var view: NSView?
+    #endif
 
     /// The timeline's current state.
     public private(set) var state: State = .running
@@ -74,6 +89,7 @@ public final class Kinieta {
     /// `true` for a handle made by `group`, which has no view of its own.
     private var isGroup = false
 
+    #if canImport(UIKit)
     /// Creates an empty timeline for `view` and registers it with the engine.
     ///
     /// An empty timeline finishes on the next frame. Adding to it afterwards
@@ -81,8 +97,17 @@ public final class Kinieta {
     public convenience init(for view: UIView) {
         self.init(view: view)
     }
+    #else
+    /// Creates an empty timeline for `view` and registers it with the engine.
+    ///
+    /// An empty timeline finishes on the next frame. Adding to it afterwards
+    /// starts it again, so the handle can be built later.
+    public convenience init(for view: NSView) {
+        self.init(view: view)
+    }
+    #endif
 
-    init(view: UIView?) {
+    init(view: PlatformView?) {
         self.view = view
         mainSequence = SequenceAction()
         mainSequence.handle = self
@@ -512,7 +537,7 @@ private final class ViewReleaseObserver {
     private var sweepAt = 16
 
     @MainActor
-    static func observe(_ view: UIView, for handle: Kinieta) {
+    static func observe(_ view: PlatformView, for handle: Kinieta) {
         let observer: ViewReleaseObserver
         if let existing = objc_getAssociatedObject(view, &key) as? ViewReleaseObserver {
             observer = existing

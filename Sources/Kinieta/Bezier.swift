@@ -1,6 +1,6 @@
 // Kinieta — MIT License. See LICENSE.
 
-#if canImport(UIKit)
+#if canImport(UIKit) || os(macOS)
 import Foundation
 
 /// A cubic Bézier easing curve from (0, 0) to (1, 1), defined by its two inner

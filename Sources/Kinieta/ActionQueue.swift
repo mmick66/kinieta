@@ -1,6 +1,6 @@
 // Kinieta — MIT License. See LICENSE.
 
-#if canImport(UIKit)
+#if canImport(UIKit) || os(macOS)
 import Foundation
 
 /// The action descriptions of a `SequenceAction`, in order. Descriptions

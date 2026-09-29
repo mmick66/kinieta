@@ -3,7 +3,7 @@
 // (https://matthewlein.com/tools/ceaser). The current easings.net
 // (https://github.com/ai/easings.net/) lists different values for some of them.
 
-#if canImport(UIKit)
+#if canImport(UIKit) || os(macOS)
 import Foundation
 
 /// An easing curve: a cubic Bézier that maps a time fraction to progress.

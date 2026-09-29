@@ -74,7 +74,7 @@ xcodebuild -scheme Kinieta -destination 'platform=iOS Simulator,name=iPhone 17 P
 xcodebuild -scheme Kinieta -destination 'platform=macOS,variant=Mac Catalyst' test
 xcodebuild -project Example/KinietaDemo.xcodeproj -scheme KinietaDemo \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5' CODE_SIGNING_ALLOWED=NO build
-swift build && swift test            # builds an empty module and runs 0 tests off UIKit
+swift build && swift test            # macOS: the AppKit tests only; Linux: an empty module, 0 tests
 xcodebuild -scheme Kinieta -destination 'generic/platform=iOS Simulator' build \
   BUILD_LIBRARY_FOR_DISTRIBUTION=YES OTHER_SWIFT_FLAGS=-alias-module-names-in-module-interface
 
@@ -94,7 +94,10 @@ The tvOS build (`-destination 'generic/platform=tvOS Simulator' build`), the vis
 ## Architecture Overview
 
 A UIKit animation library (iOS, tvOS, Mac Catalyst 17+, visionOS 1+), Swift 6, main-actor
-isolated. All sources are behind `canImport(UIKit)`.
+isolated, with experimental AppKit support (macOS 14+: `.x`, `.y`, `.alpha` only). Sources are
+behind `canImport(UIKit) || os(macOS)` (`os(macOS)` is false under Catalyst); `Platform.swift`
+aliases `PlatformView` to `UIView` or `NSView`. Colours (`ColorMath`) and `CustomProperty` are
+UIKit only. Linux builds an empty module.
 
 - `View.swift`: `UIView.animate(...)` / `wait(_:)` entry points; geometry goes through
   `center` and `bounds`, not `frame`.

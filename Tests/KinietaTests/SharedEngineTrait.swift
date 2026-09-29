@@ -1,4 +1,4 @@
-#if canImport(UIKit)
+#if canImport(UIKit) || os(macOS)
 import Testing
 
 @testable import Kinieta

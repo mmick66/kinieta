@@ -288,10 +288,24 @@ The display link only runs while something can move. When every timeline is paus
 | Mac Catalyst | 17 | Tests, except the iOS-only snapshot suite |
 | tvOS | 17 | Build for the tvOS Simulator |
 | visionOS | 1 | Tests, except the iOS-only snapshot suite, on the Apple Vision Pro / visionOS 26.5 simulator |
+| macOS (AppKit), experimental | 14 | `swift test` on the Mac host |
 
-Kinieta is UIKit only. The sources are guarded with `canImport(UIKit)`, so the package resolves and builds as an empty module on other platforms, such as native macOS, which keeps tooling happy but is not a supported target.
+#### macOS (experimental)
 
-CI checks this on macOS and Linux (Swift 6.3): `swift build` succeeds and `swift test` runs 0 tests, because the tests are guarded the same way. Depending on Kinieta does not pull in swift-snapshot-testing or its swift-syntax dependency; SwiftPM resolves only dependencies of the products you use, and snapshot testing is used by the test target alone.
+On native macOS, Kinieta animates `NSView` with the same timeline API, but only `.x`, `.y` and `.alpha` so far. The other properties, colours and custom key paths are UIKit only for now and do not compile on AppKit.
+
+```swift
+let square = NSView(frame: NSRect(x: 20, y: 20, width: 80, height: 80))
+square.wantsLayer = true
+square.animate(.x(300), .alpha(0.5), duration: 0.6)
+    .easeInOut()
+    .then()
+    .animate(.y(200), duration: 0.4)
+```
+
+`.x` and `.y` set the view's frame origin, in its superview's coordinates: from the bottom left unless the superview is flipped. `.alpha` sets `alphaValue`. Frames come from the main screen's display link, and Reduce Motion follows the Mac's accessibility setting.
+
+On other platforms, such as Linux, the sources compile away and the package builds as an empty module, which keeps tooling happy but is not a supported target. CI checks this on Linux (Swift 6.3): `swift build` succeeds and `swift test` runs 0 tests. Depending on Kinieta does not pull in swift-snapshot-testing or its swift-syntax dependency; SwiftPM resolves only dependencies of the products you use, and snapshot testing is used by the test target alone.
 
 ## Troubleshooting
 
@@ -359,7 +373,7 @@ Visual regression is covered by snapshot tests: each property is rendered at fiv
 TEST_RUNNER_SNAPSHOT_TESTING_RECORD=all xcodebuild -scheme Kinieta -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5' test
 ```
 
-`swift test` on a Mac or Linux host builds the tests but runs none of them; use the `xcodebuild` commands above. Requires Xcode 26. Documentation is a DocC catalog in `Sources/Kinieta/Kinieta.docc`, including a guide for migrating from 0.5.
+`swift test` on a Mac runs only the macOS (AppKit) tests, and on Linux none; use the `xcodebuild` commands above for the rest. Requires Xcode 26. Documentation is a DocC catalog in `Sources/Kinieta/Kinieta.docc`, including a guide for migrating from 0.5.
 
 ## License
 

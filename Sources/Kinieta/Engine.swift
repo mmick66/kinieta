@@ -25,6 +25,11 @@
 
 #if canImport(UIKit)
 import UIKit
+#elseif os(macOS)
+import AppKit
+#endif
+
+#if canImport(UIKit) || os(macOS)
 import os
 
 /// Delivers frames to the engine while it has actions that can make progress.
@@ -98,8 +103,12 @@ public final class Engine {
 
     /// Drives the engine from a `CADisplayLink` on the main run loop.
     ///
-    /// The link is created directly rather than from `UIScreen`, which
-    /// visionOS does not have.
+    /// On UIKit the link is created directly rather than from `UIScreen`,
+    /// which visionOS does not have. AppKit only hands out links for a view,
+    /// window or screen; the engine is shared by every view, so it takes the
+    /// main screen's, which keeps firing wherever the views are. Animations
+    /// advance by elapsed time, so a view on a screen with another refresh
+    /// rate still runs on schedule.
     @MainActor
     final class DisplayLinkDriver: FrameDriver {
         private(set) var displayLink: CADisplayLink?
@@ -114,9 +123,17 @@ public final class Engine {
 
         func start(onFrame: @escaping (Frame) -> Void) {
             guard displayLink == nil else { return }
+            #if canImport(UIKit)
+            let link = CADisplayLink(target: self, selector: #selector(update(_:)))
+            #else
+            guard let screen = NSScreen.main ?? NSScreen.screens.first else {
+                Engine.logger.warning("No screen to take a display link from; animations wait for one")
+                return
+            }
+            let link = screen.displayLink(target: self, selector: #selector(update(_:)))
+            #endif
             self.onFrame = onFrame
             clock.reset()
-            let link = CADisplayLink(target: self, selector: #selector(update(_:)))
             link.preferredFrameRateRange = preferredFrameRateRange
             link.add(to: .main, forMode: .common)
             displayLink = link
@@ -220,7 +237,11 @@ public final class Engine {
     }
 
     /// Injectable for tests; production reads the accessibility setting.
+    #if canImport(UIKit)
     var isReduceMotionEnabled: () -> Bool = { UIAccessibility.isReduceMotionEnabled }
+    #else
+    var isReduceMotionEnabled: () -> Bool = { NSWorkspace.shared.accessibilityDisplayShouldReduceMotion }
+    #endif
 
     var shouldSkipMotion: Bool {
         respectsReduceMotion && isReduceMotionEnabled()

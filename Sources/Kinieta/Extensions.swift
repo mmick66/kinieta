@@ -26,6 +26,11 @@
 
 #if canImport(UIKit)
 import UIKit
+#elseif os(macOS)
+import AppKit
+#endif
+
+#if canImport(UIKit) || os(macOS)
 
 extension FloatingPoint {
     var degreesToRadians: Self { return self * .pi / 180 }

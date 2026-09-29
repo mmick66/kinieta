@@ -2,8 +2,14 @@
 
 #if canImport(UIKit)
 import UIKit
+#elseif os(macOS)
+import AppKit
+#endif
 
-public extension UIView {
+#if canImport(UIKit) || os(macOS)
+
+// `UIView`, or `NSView` on native macOS.
+public extension PlatformView {
 
     /// Starts a timeline that animates `properties` over `duration` seconds.
     /// Chain further calls on the returned handle to extend it.
@@ -25,6 +31,8 @@ public extension UIView {
 }
 
 // MARK: - Geometry helpers used by the interpolators
+
+#if canImport(UIKit)
 //
 // Position and size go through `center` and `bounds`, not `frame`, so they
 // stay meaningful while a rotation is applied. With an identity transform
@@ -144,4 +152,31 @@ private final class RotationState {
 }
 
 nonisolated(unsafe) private var rotationStateKey: UInt8 = 0
+
+#else
+
+// AppKit has no `center`, and a view is positioned by its frame in its
+// superview's coordinates: from the bottom left unless the superview is
+// flipped. `.x` and `.y` write the frame's origin, which is what an AppKit
+// developer expects them to mean.
+
+extension NSView {
+
+    var x: CGFloat {
+        get { frame.origin.x }
+        set { setFrameOrigin(NSPoint(x: newValue, y: frame.origin.y)) }
+    }
+
+    var y: CGFloat {
+        get { frame.origin.y }
+        set { setFrameOrigin(NSPoint(x: frame.origin.x, y: newValue)) }
+    }
+
+    /// `alphaValue`, under UIKit's name, so both platforms share `.alpha`.
+    var alpha: CGFloat {
+        get { alphaValue }
+        set { alphaValue = newValue }
+    }
+}
+#endif
 #endif

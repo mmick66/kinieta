@@ -2,6 +2,11 @@
 
 #if canImport(UIKit)
 import UIKit
+#elseif os(macOS)
+import AppKit
+#endif
+
+#if canImport(UIKit) || os(macOS)
 
 /// A value Kinieta can animate: one that can produce the values between itself
 /// and another.
@@ -164,6 +169,8 @@ private struct AffineParts {
     }
 }
 
+// Colours are UIKit only for now: `ColorMath` has no AppKit path yet.
+#if canImport(UIKit)
 extension UIColor: Interpolatable {}
 
 extension Interpolatable where Self: UIColor {
@@ -200,4 +207,5 @@ extension Interpolatable where Self: CGColor {
         return colors?(progress).cgColor as? Self ?? target
     }
 }
+#endif
 #endif
