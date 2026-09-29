@@ -11,7 +11,7 @@ final class SequenceAction: Action {
     /// the ones still to come. A main sequence's queue is its handle's timeline.
     var queue: ActionQueue
 
-    var completion: Block?
+    var completion: Kinieta.Completion?
 
     /// Shared with the timeline this sequence belongs to: a main sequence
     /// makes its own and hands it to every sequence and group nested in it.
@@ -36,7 +36,7 @@ final class SequenceAction: Action {
     /// view is deallocated the sequence cancels itself before running anything
     /// else and calls `onViewLost`, so its handle can end as cancelled.
     var target: ViewRef?
-    var onViewLost: Block?
+    var onViewLost: Kinieta.Completion?
 
     var isIdle: Bool {
         !isCancelled && !hasLostView && (isPaused || currentAction?.isIdle == true)
@@ -46,7 +46,9 @@ final class SequenceAction: Action {
         target.map { $0.view == nil } ?? false
     }
 
-    init(_ types: [ActionType] = [], control: TimelineControl = TimelineControl(), completion: Block? = nil) {
+    init(
+        _ types: [ActionType] = [], control: TimelineControl = TimelineControl(), completion: Kinieta.Completion? = nil
+    ) {
         self.queue = ActionQueue(types)
         self.control = control
         self.completion = completion

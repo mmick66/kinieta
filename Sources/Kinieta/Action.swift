@@ -26,8 +26,6 @@
 #if canImport(UIKit)
 import UIKit
 
-public typealias Block = () -> Void
-
 /// A weak reference to the view an action targets, so a pending timeline never
 /// keeps a view alive. An animation whose view has gone finishes immediately.
 struct ViewRef {
@@ -42,11 +40,11 @@ struct AnimationSpec {
     var duration: TimeInterval
     /// `nil` means linear.
     var easing: Bezier?
-    var completion: Block?
+    var completion: Kinieta.Completion?
 
     init(
         _ view: UIView?, _ properties: [Property], duration: TimeInterval,
-        easing: Bezier? = nil, completion: Block? = nil
+        easing: Bezier? = nil, completion: Kinieta.Completion? = nil
     ) {
         self.target = ViewRef(view)
         self.properties = properties
@@ -60,12 +58,12 @@ struct AnimationSpec {
 /// they are turned into live `Action` objects when their turn comes.
 enum ActionType: CustomStringConvertible {
     case animation(AnimationSpec)
-    case pause(TimeInterval, completion: Block? = nil)
-    case group([ActionType], completion: Block? = nil)
-    case sequence([ActionType], completion: Block? = nil)
+    case pause(TimeInterval, completion: Kinieta.Completion? = nil)
+    case group([ActionType], completion: Kinieta.Completion? = nil)
+    case sequence([ActionType], completion: Kinieta.Completion? = nil)
     /// The live group behind a `Kinieta.group` handle. Its members are other
     /// handles' sequences, already running, so it cannot be copied.
-    case timelines(GroupAction, completion: Block? = nil)
+    case timelines(GroupAction, completion: Kinieta.Completion? = nil)
 
     var description: String {
         switch self {
@@ -83,7 +81,7 @@ enum ActionType: CustomStringConvertible {
     }
 
     /// The same action, calling `completion` when it finishes instead of any previous block.
-    func withCompletion(_ completion: @escaping Block) -> ActionType {
+    func withCompletion(_ completion: @escaping Kinieta.Completion) -> ActionType {
         switch self {
         case .animation(var spec):
             spec.completion = completion

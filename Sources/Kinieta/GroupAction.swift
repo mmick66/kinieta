@@ -14,7 +14,7 @@ final class GroupAction: Action {
         case running([Action])
     }
 
-    var completion: Block?
+    var completion: Kinieta.Completion?
     /// The timeline this group runs in. A group of timelines is handed the
     /// group handle's when it is made live; see `ActionType.makeAction(control:)`.
     var control: TimelineControl
@@ -23,14 +23,17 @@ final class GroupAction: Action {
     private var joining: [Action] = []
     private var hasEnded = false
 
-    init(pending types: [ActionType], control: TimelineControl = TimelineControl(), completion: Block? = nil) {
+    init(
+        pending types: [ActionType], control: TimelineControl = TimelineControl(), completion: Kinieta.Completion? = nil
+    ) {
         self.phase = .pending(types)
         self.control = control
         self.completion = completion
     }
 
     /// Groups actions that are already live, such as the sequences of other handles.
-    init(running actions: [Action], control: TimelineControl = TimelineControl(), completion: Block? = nil) {
+    init(running actions: [Action], control: TimelineControl = TimelineControl(), completion: Kinieta.Completion? = nil)
+    {
         self.phase = .running(actions)
         self.control = control
         self.completion = completion

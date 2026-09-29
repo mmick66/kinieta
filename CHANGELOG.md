@@ -58,6 +58,23 @@ All notable changes to Kinieta are documented here. The format follows
   `parallel()`, `delay` and `repeat`, Play, Pause, Resume and Cancel buttons
   driving it, and a label set when `await finished()` returns.
 
+- The library's types are also reachable through the `Kinieta` class:
+  `Kinieta.Property`, `Kinieta.CustomProperty`, `Kinieta.Interpolatable`,
+  `Kinieta.Easing`, `Kinieta.Bezier`, `Kinieta.ColorInterpolation`,
+  `Kinieta.Engine` and `Kinieta.ReduceMotionBehavior`. A module with a type
+  of its own named `Property`, `Easing` or `Engine` can name Kinieta's this
+  way; module qualification cannot, because `Kinieta` names the class. See
+  "Name clashes" in the README.
+- `Kinieta.Completion`, `@MainActor () -> Void`: the type of the blocks passed
+  to `onComplete(_:)` and `Kinieta.group(_:completion:)`. A stored
+  `() -> Void` is still accepted.
+- CI builds the library with `BUILD_LIBRARY_FOR_DISTRIBUTION=YES`, as an
+  XCFramework is built. Its `.swiftinterface` only verifies with
+  `OTHER_SWIFT_FLAGS=-alias-module-names-in-module-interface`, because the
+  module and its main class share a name; without the flag the interface
+  refers to `Kinieta.Property` and the like, which resolve to the class. See
+  "Building an XCFramework" in the README.
+
 ### Changed
 
 - `Property` has a new case, `extended(CustomProperty)`, which holds the
@@ -94,6 +111,15 @@ All notable changes to Kinieta are documented here. The format follows
 - `Easing.Curve.custom(Bezier)`. Use `Easing.custom(_:)`: the curve is used as
   given, so `.in(.custom(b))`, `.out(.custom(b))` and `.inOut(.custom(b))`
   silently ignored the placement.
+- The top-level `Block` typealias. It put a generic name in every client's
+  namespace and did not say its blocks run on the main actor. Use
+  `Kinieta.Completion`. It is removed in 2.0.
+- Planned for 2.0: the module is renamed so that it no longer shares its name
+  with the `Kinieta` class, which makes module qualification work and the
+  alias flag above unnecessary, and `Block` is removed. `onComplete(_:)` and
+  `Kinieta.group(_:completion:)` then take only a `Kinieta.Completion`.
+  Whether the generic top-level names (`Property`, `Easing`, `Engine`,
+  `Bezier`) also move under the class is decided with the rename.
 
 ### Fixed
 

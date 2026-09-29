@@ -39,7 +39,7 @@ struct EngineTests {
 
     private func animation(
         _ view: UIView, _ properties: [Property], duration: TimeInterval,
-        easing: Easing? = nil, completion: Block? = nil
+        easing: Easing? = nil, completion: Kinieta.Completion? = nil
     ) -> PropertyAnimation {
         let spec = AnimationSpec(view, properties, duration: duration, easing: easing?.bezier, completion: completion)
         return PropertyAnimation(spec)
