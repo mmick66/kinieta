@@ -19,7 +19,7 @@ jobs:
     name: Build and test (iOS Simulator)
     runs-on: macos-26
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_26.6.app
       - name: Xcode version
@@ -34,7 +34,7 @@ jobs:
       # it exactly and saves nothing new. Package.resolved is not committed, so a
       # restored cache still resolves `from:` ranges to their latest versions.
       - name: Cache Swift packages
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: DerivedData/SourcePackages
           key: spm-${{ runner.os }}-xcode-${{ steps.xcode.outputs.build }}-${{ hashFiles('Package.swift') }}
@@ -45,7 +45,7 @@ jobs:
           xcodebuild -scheme Kinieta -destination "$DESTINATION" -derivedDataPath DerivedData -resultBundlePath TestResults.xcresult test | xcbeautify --renderer github-actions
       - name: Upload test results
         if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: TestResults.xcresult
           path: TestResults.xcresult
@@ -61,7 +61,7 @@ jobs:
     name: Build and test (Mac Catalyst)
     runs-on: macos-26
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_26.6.app
       - name: Verify xcbeautify
@@ -75,7 +75,7 @@ jobs:
     name: Build (tvOS Simulator)
     runs-on: macos-26
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_26.6.app
       - name: Verify xcbeautify
@@ -92,7 +92,7 @@ jobs:
     name: Build with library evolution (iOS Simulator)
     runs-on: macos-26
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_26.6.app
       - name: Verify xcbeautify
@@ -106,7 +106,7 @@ jobs:
     name: Build and test (visionOS Simulator)
     runs-on: macos-26
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_26.6.app
       - name: Verify xcbeautify
@@ -127,7 +127,7 @@ jobs:
     name: swift build + test (macOS host)
     runs-on: macos-26
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_26.6.app
       - name: Verify xcbeautify
@@ -146,7 +146,7 @@ jobs:
     runs-on: ubuntu-latest
     container: swift:6.3
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Build
         run: swift build
       - name: Test
@@ -162,7 +162,7 @@ jobs:
     runs-on: macos-26
     continue-on-error: true
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_26.6.app
       - name: Verify CocoaPods
@@ -176,7 +176,7 @@ jobs:
     name: swift-format lint
     runs-on: macos-26
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_26.6.app
       - name: Lint
