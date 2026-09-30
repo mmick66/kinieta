@@ -23,6 +23,8 @@ final class DemoViewController: UIViewController {
     private let controlsSquare = UIView()
     private let controlsStatus = UILabel()
     private var controlsHandle: Kinieta?
+    /// Whether the latest run of the Controls row was started by Loop.
+    private var controlsLooping = false
     private let interruptTrack = UIView()
     private let interruptSquare = UIView()
     private let interruptStatus = UILabel()
@@ -31,9 +33,14 @@ final class DemoViewController: UIViewController {
     private let autoLayoutSquare = UIView()
     private var autoLayoutCentre: NSLayoutConstraint!
     private var autoLayoutHandle: Kinieta?
-    private lazy var controlButtons: [(title: String, action: Selector)] = [
-        ("Play", #selector(playControls)), ("Pause", #selector(pauseControls)),
-        ("Resume", #selector(resumeControls)), ("Cancel", #selector(cancelControls)),
+    /// One row of buttons that start the Controls row, and one that controls it:
+    /// five do not fit across a phone.
+    private lazy var controlButtons: [[(title: String, action: Selector)]] = [
+        [("Play", #selector(playControls)), ("Loop", #selector(loopControls))],
+        [
+            ("Pause", #selector(pauseControls)), ("Resume", #selector(resumeControls)),
+            ("Cancel", #selector(cancelControls)),
+        ],
     ]
     private var controlButtonViews: [String: UIButton] = [:]
     private lazy var frameRateButton = UIBarButtonItem(
@@ -162,7 +169,8 @@ final class DemoViewController: UIViewController {
         addHeader(
             "Controls",
             detail: "One handle: round the corners, then() move out while a delayed spin and colour change run in "
-                + "parallel(), come back after a delay, repeat twice. The label is set when await finished() returns.")
+                + "parallel(), come back after a delay, repeat twice, or with Loop repeatForever() until Cancel. "
+                + "The label is set when await finished() returns.")
         controlsTrack.backgroundColor = .secondarySystemFill
         controlsTrack.layer.cornerRadius = 8
         controlsTrack.heightAnchor.constraint(equalToConstant: 44).isActive = true
@@ -171,17 +179,19 @@ final class DemoViewController: UIViewController {
         controlsSquare.frame = CGRect(x: 6, y: 6, width: 32, height: 32)
         controlsTrack.addSubview(controlsSquare)
         stack.addArrangedSubview(controlsTrack)
-        let buttons = UIStackView()
-        buttons.distribution = .fillEqually
-        buttons.spacing = 8
-        for (title, action) in controlButtons {
-            let button = UIButton(configuration: .gray())
-            button.configuration?.title = title
-            button.addTarget(self, action: action, for: .touchUpInside)
-            buttons.addArrangedSubview(button)
-            controlButtonViews[title] = button
+        for row in controlButtons {
+            let buttons = UIStackView()
+            buttons.distribution = .fillEqually
+            buttons.spacing = 8
+            for (title, action) in row {
+                let button = UIButton(configuration: .gray())
+                button.configuration?.title = title
+                button.addTarget(self, action: action, for: .touchUpInside)
+                buttons.addArrangedSubview(button)
+                controlButtonViews[title] = button
+            }
+            stack.addArrangedSubview(buttons)
         }
-        stack.addArrangedSubview(buttons)
         controlsStatus.font = .preferredFont(forTextStyle: .footnote)
         controlsStatus.textColor = .secondaryLabel
         controlsStatus.numberOfLines = 0
@@ -427,10 +437,18 @@ final class DemoViewController: UIViewController {
     // MARK: Controls
 
     @objc private func playControls() {
+        startControls(looping: false)
+    }
+
+    @objc private func loopControls() {
+        startControls(looping: true)
+    }
+
+    private func startControls(looping: Bool) {
         resetControls()
         view.layoutIfNeeded()
         let end = controlsTrack.bounds.width - 38
-        let handle =
+        let trip =
             controlsSquare
             .animate(.cornerRadius(16), duration: 0.3)
             .then()
@@ -439,9 +457,10 @@ final class DemoViewController: UIViewController {
             .parallel()
             .animate(.x(6), .rotation(degrees: 0), .background(pink), .cornerRadius(6), duration: 1.2)
             .easeInOut(.cubic).delay(0.4)
-            .repeat(times: 2)
+        let handle = looping ? trip.repeatForever() : trip.repeat(times: 2)
         controlsHandle = handle
-        controlsStatus.text = "Running…"
+        controlsLooping = looping
+        controlsStatus.text = runningStatus
         updateControlButtons()
         Task { [weak self] in
             await handle.finished()
@@ -463,7 +482,7 @@ final class DemoViewController: UIViewController {
 
     @objc private func resumeControls() {
         controlsHandle?.resume()
-        controlsStatus.text = "Running…"
+        controlsStatus.text = runningStatus
         updateControlButtons()
     }
 
@@ -471,6 +490,10 @@ final class DemoViewController: UIViewController {
     /// by Play updates the label.
     @objc private func cancelControls() {
         controlsHandle?.cancel()
+    }
+
+    private var runningStatus: String {
+        controlsLooping ? "Looping until Cancel…" : "Running…"
     }
 
     private func updateControlButtons() {
@@ -498,7 +521,7 @@ final class DemoViewController: UIViewController {
                 self.playGallery()
                 if controlsState != .running && controlsState != .paused { self.resetControls() }
             } else if controlsState == .running || controlsState == .paused {
-                self.playControls()
+                self.startControls(looping: self.controlsLooping)
             }
             if controlsState == .paused { self.pauseControls() }
         }

@@ -60,6 +60,8 @@ extension ActionType {
             return "delayed " + (types.last?.callName ?? "step")
         case .timelines:
             return "Kinieta.group"
+        case .loop:
+            return "repeatForever()"
         }
     }
 }
