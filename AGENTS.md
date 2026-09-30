@@ -120,6 +120,10 @@ names the view or colour type is declared once per platform. Linux builds an emp
   README; public API changes also update the DocC catalog.
 - Commits are per Beads ticket, with the ticket ID as the message prefix
   (`kinieta-xyz: summary`).
+- Beads ticket titles are at most 60 characters: a plain summary of the change. Context, options
+  and details go in the description.
+- Tickets are worked through with `orchestra` (github.com/noesis-sol/orchestra); each worker
+  follows `.orchestra/worker-prompt.md`.
 - Tests drive the engine frame by frame with `ManualFrameDriver` rather than waiting on real time.
   Every suite that touches `Engine.shared` takes `@Suite(.serialized, .usesSharedEngine)`, which
   runs its tests alone among all such suites.
