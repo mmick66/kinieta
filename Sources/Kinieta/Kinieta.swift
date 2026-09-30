@@ -72,7 +72,7 @@ public final class Kinieta {
     /// The running instance. Its queue is the timeline.
     let mainSequence: SequenceAction
     /// Every step added since the handle was made or last finished, including the ones
-    /// already running or done, so `repeat` can copy the whole chain. Emptied
+    /// already running or done, so `repeat` and `repeatForever` can copy the whole chain. Emptied
     /// when the timeline ends, which releases the completion blocks it holds.
     var timeline: [ActionType] { mainSequence.queue.steps }
     /// The tasks suspended in `finished()`, keyed so a cancelled one can leave.
@@ -167,7 +167,9 @@ public final class Kinieta {
             return self
         }
         let duration = Kinieta.sanitized(duration, in: "animate(duration:)", allowsInfinity: false)
-        editUnstarted { $0.add(.animation(AnimationSpec(view, properties, duration: duration))) }
+        editUnstarted("animate(_:duration:)", file: file, line: line) {
+            $0.add(.animation(AnimationSpec(view, properties, duration: duration)))
+        }
         return self
     }
 
@@ -177,20 +179,20 @@ public final class Kinieta {
     /// `.infinity` waits until the timeline is cancelled, without costing
     /// frames. If the handle is released first, the engine releases the timeline.
     @discardableResult
-    public func wait(_ time: TimeInterval) -> Kinieta {
+    public func wait(_ time: TimeInterval, file: StaticString = #fileID, line: UInt = #line) -> Kinieta {
         let time = Kinieta.sanitized(time, in: "wait(_:)", allowsInfinity: true)
-        editUnstarted { $0.add(.pause(time)) }
+        editUnstarted("wait(_:)", file: file, line: line) { $0.add(.pause(time)) }
         return self
     }
 
     /// Delays the start of the previous action by `time` seconds. Does nothing
     /// once that action has started.
     ///
-    /// Accepts the same times as ``wait(_:)``.
+    /// Accepts the same times as ``wait(_:file:line:)``.
     @discardableResult
     public func delay(_ time: TimeInterval, file: StaticString = #fileID, line: UInt = #line) -> Kinieta {
         let time = Kinieta.sanitized(time, in: "delay(_:)", allowsInfinity: true)
-        editUnstarted { queue in
+        editUnstarted("delay(_:)", file: file, line: line) { queue in
             guard let last = queue.popLast() else {
                 Kinieta.ignored(
                     "delay(_:) has no action to postpone: \(nothingPending(in: queue)); ignoring it",
@@ -228,7 +230,7 @@ public final class Kinieta {
     }
 
     private func seal(file: StaticString?, line: UInt) -> Kinieta {
-        editUnstarted { queue in
+        editUnstarted("then()", file: file, line: line) { queue in
             let actions = queue.popAllUngrouped()
             guard !actions.isEmpty else {
                 Kinieta.ignored(
@@ -244,7 +246,7 @@ public final class Kinieta {
     /// Actions that have already started are left out.
     @discardableResult
     public func parallel(file: StaticString = #fileID, line: UInt = #line) -> Kinieta {
-        editUnstarted { queue in
+        editUnstarted("parallel()", file: file, line: line) { queue in
             let actions = queue.popAllUngrouped()
             guard !actions.isEmpty else {
                 Kinieta.ignored(
@@ -266,21 +268,78 @@ public final class Kinieta {
     /// On a group handle each copy replays what the grouped timelines hold at
     /// the time of the call. The copies run on the group handle, so they
     /// answer to it rather than to the grouped handles.
+    ///
+    /// The copies are made at once, so `times` is capped at 10,000 with a
+    /// warning. To loop until the timeline is cancelled, use ``repeatForever(file:line:)``.
     @discardableResult
     public func `repeat`(times: Int = 1, file: StaticString = #fileID, line: UInt = #line) -> Kinieta {
-        let replay = children.map { ActionType.sequence($0.timeline) }
-        let copy = timeline.map { $0.replacingTimelines(with: replay) }
-        editUnstarted { queue in
+        let copy = replayableTimeline()
+        editUnstarted("repeat(times:)", file: file, line: line) { queue in
             if times <= 0 {
                 Kinieta.ignored("repeat(times:) was given \(times) times; ignoring it", file: file, line: line)
             } else if copy.isEmpty {
                 Kinieta.ignored("repeat(times:) has nothing to repeat: the timeline is empty", file: file, line: line)
             }
-            for _ in 0..<max(times, 0) {
+            if times > Kinieta.maximumRepeatCount {
+                Kinieta.logger.warning(
+                    "repeat(times:) was given \(times, privacy: .public) times; repeating \(Kinieta.maximumRepeatCount, privacy: .public) times. Use repeatForever() to loop until cancel()"
+                )
+            }
+            for _ in 0..<min(max(times, 0), Kinieta.maximumRepeatCount) {
                 for type in copy { queue.add(type) }
             }
         }
         return self
+    }
+
+    /// The most copies `repeat(times:)` appends in one call.
+    static let maximumRepeatCount = 10_000
+
+    /// Replays everything in the timeline so far, including actions that are
+    /// already running or done, over and over until ``cancel()``.
+    ///
+    /// The loop is one step holding one copy of the chain, so it costs the same
+    /// however long it runs. It never finishes: ``finished()`` returns only once
+    /// the timeline is cancelled or its view is deallocated, and a group that
+    /// runs it never completes. Completion blocks inside the chain run on every
+    /// cycle. A cycle that takes no time, such as one whose durations are all
+    /// zero or whose properties all snap under Reduce Motion, plays once per frame.
+    ///
+    /// Nothing can follow the loop: a chain call made on the handle after it
+    /// does nothing and, in debug builds, logs a warning.
+    ///
+    /// On a group handle each cycle replays what the grouped timelines hold at
+    /// the time of the call, as ``repeat(times:file:line:)`` does.
+    ///
+    /// ```swift
+    /// spinner.animate(.rotation(degrees: 360), duration: 1)
+    ///     .animate(.rotation(degrees: 0))
+    ///     .repeatForever()
+    /// ```
+    @discardableResult
+    public func repeatForever(file: StaticString = #fileID, line: UInt = #line) -> Kinieta {
+        let copy = replayableTimeline()
+        editUnstarted("repeatForever()", file: file, line: line) { queue in
+            guard !copy.isEmpty else {
+                Kinieta.ignored("repeatForever() has nothing to repeat: the timeline is empty", file: file, line: line)
+                return
+            }
+            queue.add(.loop(copy))
+        }
+        return self
+    }
+
+    /// The timeline so far as steps that can run again: a group handle's live
+    /// group is replaced by what its timelines hold now.
+    private func replayableTimeline() -> [ActionType] {
+        let replay = children.map { ActionType.sequence($0.timeline) }
+        return timeline.map { $0.replacingTimelines(with: replay) }
+    }
+
+    /// `true` once `repeatForever()` has closed the timeline: its last step never ends.
+    private var isRepeatingForever: Bool {
+        if case .loop? = timeline.last { return true }
+        return false
     }
 
     /// Edits the steps that have not started yet and hands them back to the
@@ -289,11 +348,21 @@ public final class Kinieta {
     ///
     /// If the edit adds steps to a finished timeline, the timeline starts again.
     ///
+    /// A timeline closed by `repeatForever()` could never reach anything added
+    /// after it, so `call` is ignored with a warning carrying `file` and `line`.
+    ///
     /// The queue is edited in place, so an edit costs only what it changes
     /// however long the timeline is. While it runs, `edit` must reach the
     /// timeline only through the queue it is given.
-    private func editUnstarted(_ edit: (inout ActionQueue) -> Void) {
+    private func editUnstarted(
+        _ call: String, file: StaticString?, line: UInt, _ edit: (inout ActionQueue) -> Void
+    ) {
         guard state != .cancelled else { return }
+        guard !isRepeatingForever else {
+            Kinieta.ignored(
+                "\(call) was called after repeatForever(), which never ends; ignoring it", file: file, line: line)
+            return
+        }
         edit(&mainSequence.queue)
         if state == .finished && !mainSequence.queue.isEmpty { restart() }
     }
@@ -336,7 +405,7 @@ public final class Kinieta {
     /// Does nothing if the previous step is not an animation or has started.
     @discardableResult
     public func easing(_ easing: Easing, file: StaticString = #fileID, line: UInt = #line) -> Kinieta {
-        editUnstarted { queue in
+        editUnstarted("easing(_:)", file: file, line: line) { queue in
             guard let last = queue.popLast() else {
                 Kinieta.ignored(
                     "easing(_:) has no animation to ease: \(nothingPending(in: queue)); ignoring it",
@@ -375,7 +444,7 @@ public final class Kinieta {
     /// that action has started.
     @discardableResult
     public func onComplete(_ block: @escaping Completion, file: StaticString = #fileID, line: UInt = #line) -> Kinieta {
-        editUnstarted { queue in
+        editUnstarted("onComplete(_:)", file: file, line: line) { queue in
             guard let last = queue.popLast() else {
                 Kinieta.ignored(
                     "onComplete(_:) has no action to follow: \(nothingPending(in: queue)); ignoring it",
@@ -517,7 +586,9 @@ public final class Kinieta {
         let action = GroupAction(running: members.map { $0.mainSequence })
         handle.children = members
         handle.members = action
-        handle.editUnstarted { $0.add(.timelines(action, completion: completion)) }
+        handle.editUnstarted("group(_:completion:)", file: nil, line: 0) {
+            $0.add(.timelines(action, completion: completion))
+        }
         return handle
     }
 

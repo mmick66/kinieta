@@ -69,6 +69,9 @@ enum ActionType: CustomStringConvertible {
     /// The live group behind a `Kinieta.group` handle. Its members are other
     /// handles' sequences, already running, so it cannot be copied.
     case timelines(GroupAction, completion: Kinieta.Completion? = nil)
+    /// Replays its steps until the timeline is cancelled. It never finishes,
+    /// so it takes no completion block.
+    case loop([ActionType])
 
     var description: String {
         switch self {
@@ -82,6 +85,8 @@ enum ActionType: CustomStringConvertible {
             return "Sequence (\(types.count))"
         case .timelines:
             return "Timelines"
+        case .loop(let types):
+            return "Loop (\(types.count))"
         }
     }
 
@@ -99,6 +104,8 @@ enum ActionType: CustomStringConvertible {
             return .sequence(types, completion: completion)
         case .timelines(let action, _):
             return .timelines(action, completion: completion)
+        case .loop:
+            return self  // never finishes; the chain ignores calls after `repeatForever()`
         }
     }
 
@@ -114,6 +121,8 @@ enum ActionType: CustomStringConvertible {
             return .sequence(types.map { $0.replacingTimelines(with: replay) }, completion: completion)
         case .timelines(_, let completion):
             return .group(replay, completion: completion)
+        case .loop(let types):
+            return .loop(types.map { $0.replacingTimelines(with: replay) })
         }
     }
 
@@ -128,7 +137,7 @@ enum ActionType: CustomStringConvertible {
             guard let last = types.popLast(), let eased = last.withEasing(bezier) else { return nil }
             types.append(eased)
             return .sequence(types, completion: completion)
-        case .pause, .group, .timelines:
+        case .pause, .group, .timelines, .loop:
             return nil
         }
     }
@@ -150,6 +159,8 @@ enum ActionType: CustomStringConvertible {
             action.completion = completion
             action.control = control
             return action
+        case .loop(let types):
+            return LoopAction(types, control: control)
         }
     }
 }

@@ -77,6 +77,17 @@ laying out its views every frame so a constrained view does not snap back.
 - ``Bezier``
 - ``ColorInterpolation``
 
+### Looping
+
+``Kinieta/repeat(times:file:line:)`` appends copies of the chain so far, and
+``Kinieta/repeatForever(file:line:)`` replays it until the timeline is
+cancelled, as a spinner or a pulsing badge needs. A looping timeline never
+finishes, so ``Kinieta/finished()`` returns only once it is cancelled, and a
+chain call made after the loop does nothing.
+
+- ``Kinieta/repeatForever(file:line:)``
+- ``Kinieta/repeat(times:file:line:)``
+
 ### Controlling it
 
 A newer animation of a property takes it over from an older one still running

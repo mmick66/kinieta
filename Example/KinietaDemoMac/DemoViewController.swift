@@ -21,6 +21,8 @@ final class DemoViewController: NSViewController {
     private let controlsSquare = NSView()
     private let controlsStatus = NSTextField(wrappingLabelWithString: "Idle")
     private var controlsHandle: Kinieta?
+    /// Whether the latest run of the Controls row was started by Loop.
+    private var controlsLooping = false
     private var controlButtons: [String: NSButton] = [:]
     private let interruptTrack = TrackView()
     private let interruptSquare = NSView()
@@ -157,7 +159,8 @@ final class DemoViewController: NSViewController {
         addHeader(
             "Controls",
             detail: "One handle: round the corners, then() move out while a delayed spin and colour change run in "
-                + "parallel(), come back after a delay, repeat twice. The label is set when await finished() returns.")
+                + "parallel(), come back after a delay, repeat twice, or with Loop repeatForever() until Cancel. "
+                + "The label is set when await finished() returns.")
         controlsSquare.frame = home
         controlsSquare.wantsLayer = true
         controlsSquare.layer?.backgroundColor = pink.cgColor
@@ -167,7 +170,7 @@ final class DemoViewController: NSViewController {
         let buttons = NSStackView()
         buttons.distribution = .fillEqually
         for (title, action) in [
-            ("Play", #selector(playControls)), ("Pause", #selector(pauseControls)),
+            ("Play", #selector(playControls)), ("Loop", #selector(loopControls)), ("Pause", #selector(pauseControls)),
             ("Resume", #selector(resumeControls)), ("Cancel", #selector(cancelControls)),
         ] {
             let button = NSButton(title: title, target: self, action: action)
@@ -401,10 +404,18 @@ final class DemoViewController: NSViewController {
     // MARK: Controls
 
     @objc private func playControls() {
+        startControls(looping: false)
+    }
+
+    @objc private func loopControls() {
+        startControls(looping: true)
+    }
+
+    private func startControls(looping: Bool) {
         resetControls()
         view.layoutSubtreeIfNeeded()
         let end = controlsTrack.bounds.width - 38
-        let handle =
+        let trip =
             controlsSquare
             .animate(.cornerRadius(16), duration: 0.3)
             .then()
@@ -413,9 +424,10 @@ final class DemoViewController: NSViewController {
             .parallel()
             .animate(.x(6), .rotation(degrees: 0), .background(pink), .cornerRadius(6), duration: 1.2)
             .easeInOut(.cubic).delay(0.4)
-            .repeat(times: 2)
+        let handle = looping ? trip.repeatForever() : trip.repeat(times: 2)
         controlsHandle = handle
-        controlsStatus.stringValue = "Running…"
+        controlsLooping = looping
+        controlsStatus.stringValue = runningStatus
         updateControlButtons()
         Task { [weak self] in
             await handle.finished()
@@ -437,7 +449,7 @@ final class DemoViewController: NSViewController {
 
     @objc private func resumeControls() {
         controlsHandle?.resume()
-        controlsStatus.stringValue = "Running…"
+        controlsStatus.stringValue = runningStatus
         updateControlButtons()
     }
 
@@ -445,6 +457,10 @@ final class DemoViewController: NSViewController {
     /// by Play updates the label.
     @objc private func cancelControls() {
         controlsHandle?.cancel()
+    }
+
+    private var runningStatus: String {
+        controlsLooping ? "Looping until Cancel…" : "Running…"
     }
 
     private func updateControlButtons() {

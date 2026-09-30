@@ -8,6 +8,17 @@ All notable changes to Kinieta are documented here. The format follows
 
 ### Added
 
+- `repeatForever()` replays the whole chain so far, including the actions
+  already running or done, until the handle is cancelled: a spinner, a
+  pulsing badge or a breathing placeholder. The loop is one step holding one
+  copy of the chain, so memory stays flat. `finished()` returns once the
+  timeline is cancelled or its view deallocated, a group running it never
+  completes, and completion blocks inside the chain run on every cycle. A
+  cycle that takes no time, such as one of zero durations or one snapped by
+  Reduce Motion, plays once per frame. In debug builds, a chain call made
+  after `repeatForever()` logs a warning, since it could never run. The
+  example app's Controls row has a Loop button.
+
 - Experimental macOS support: on native macOS 14 and later, `NSView` gets
   `animate(_:duration:)` and `wait(_:)` with the full timeline API, for
   `.x`, `.y`, `.width`, `.height` and `.frame` (the view's frame),
@@ -113,6 +124,10 @@ All notable changes to Kinieta are documented here. The format follows
 
 ### Changed
 
+- `repeat(times:)` makes at most 10,000 copies and logs a warning when given
+  more. Before, `repeat(times: .max)` built its copies on the main thread
+  until the app hung. `Kinieta.wait(_:)` takes `file` and `line` parameters,
+  with defaults, like the other chain calls, for its debug warning.
 - `Property` has a new case, `extended(CustomProperty)`, which holds the
   properties made by `.custom` and `.constant`. A `switch` over `Property`
   that lists every case needs a `default` or the new case.

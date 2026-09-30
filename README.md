@@ -157,6 +157,18 @@ view.animate(.x(250), .y(500), duration: 0.5).easeInOut(.cubic)
     .repeat(times: 1)
 ```
 
+`repeatForever()` replays the whole chain the same way, over and over until you cancel the handle: a spinner, a pulsing badge, a breathing placeholder. The loop is a single step that replays one copy of the chain, so it costs the same however long it runs.
+
+```swift
+let pulse = badge.animate(.alpha(0.3), duration: 0.8).easeInOut(.sine)
+    .animate(.alpha(1), duration: 0.8).easeInOut(.sine)
+    .repeatForever()
+
+pulse.cancel()  // stops it where it is
+```
+
+A looping timeline never finishes: `finished()` returns once it is cancelled or its view is deallocated, and a `Kinieta.group` that runs it never calls its completion. Completion blocks inside the chain run on every cycle. Nothing can follow the loop, so a chain call made after `repeatForever()` does nothing and, in debug builds, logs a warning. A cycle that takes no time, such as one of zero durations or one that snaps under Reduce Motion, plays once per frame rather than hanging the app. Pausing, cancelling, grouping and interrupting work as on any other timeline; each cycle starts its animations anew, so it takes back a property that a newer animation took over during the previous one. `repeat(times:)` makes its copies at once and stops at 10,000 of them, with a warning; use `repeatForever()` to loop for good.
+
 Durations are in seconds. A negative or NaN duration is treated as zero and logs a warning, so it never skips ahead or stalls the timeline. `wait(.infinity)` and `delay(.infinity)` hold the timeline until you cancel it; an infinite `animate` duration is treated as zero.
 
 ### Parallel actions
@@ -191,7 +203,7 @@ let spin  = badge.animate(.rotation(degrees: 360), .alpha(0), duration: 1.2)
 Kinieta.group(slide, spin) { print("both finished") }
 ```
 
-The group is the first step of the handle's own timeline, so the handle chains like any other: `delay` postpones the whole group, `wait` and `onComplete` follow it, and `repeat` replays it.
+The group is the first step of the handle's own timeline, so the handle chains like any other: `delay` postpones the whole group, `wait` and `onComplete` follow it, and `repeat` or `repeatForever()` replays it.
 
 ```swift
 Kinieta.group(slide, spin)
@@ -323,6 +335,8 @@ easing(_:) follows a wait, not an animation; ignoring it (MyApp/CardView.swift:4
 | `delay`, `onComplete`, easing | the timeline is empty, or every action in it has already started | chain it straight after the action, before the next frame |
 | `parallel()`, `then()` | nothing was added since the last `then()` or `parallel()`, the timeline is empty, or everything has started | drop the extra call |
 | `repeat(times:)` | `times` is zero or negative, or the timeline is empty | pass 1 or more; a finished timeline forgets its actions, so repeat before it ends |
+| `repeatForever()` | the timeline is empty | chain it after the actions to loop, before the timeline ends |
+| any call | it follows `repeatForever()`, which never ends | put the call before `repeatForever()`, or start a new handle |
 | `animate` | the handle is a `Kinieta.group` handle, which has no view | animate the grouped timelines |
 
 Release builds neither check nor log these calls. A cancelled timeline ignores every call without a warning.
