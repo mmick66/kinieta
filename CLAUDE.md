@@ -61,18 +61,81 @@ This protocol applies when ending a Beads implementation workflow. It is subordi
 
 ## Build & Test
 
-_Add your build and test commands here_
+Requires Xcode 26.6 with the iOS 26.5 simulator runtime. Tests run on the pinned destination
+**iPhone 17 Pro, iOS 26.5**: the snapshot references are only valid for that runtime.
 
 ```bash
-# Example:
-# npm install
-# npm test
+scripts/ci-local.sh                  # every CI job except tvOS and visionOS, stops at the first failure
+scripts/ci-local.sh lint ios         # a subset: lint, spm-macos, ios, catalyst, evolution, spm-linux (needs Docker)
+
+# The same checks by hand
+xcrun swift-format lint --strict --recursive Sources Tests Example
+xcodebuild -scheme Kinieta -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5' test
+xcodebuild -scheme Kinieta -destination 'platform=macOS,variant=Mac Catalyst' test
+xcodebuild -project Example/KinietaDemo.xcodeproj -scheme KinietaDemo \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5' CODE_SIGNING_ALLOWED=NO build
+swift build && swift test            # macOS: the AppKit tests only; Linux: an empty module, 0 tests
+xcodebuild -project Example/KinietaDemo.xcodeproj -scheme KinietaDemoMac \
+  -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO build
+xcodebuild -scheme Kinieta -destination 'generic/platform=iOS Simulator' build \
+  BUILD_LIBRARY_FOR_DISTRIBUTION=YES OTHER_SWIFT_FLAGS=-alias-module-names-in-module-interface
+
+# Re-record snapshots after an intentional visual change, then review the PNGs
+TEST_RUNNER_SNAPSHOT_TESTING_RECORD=all xcodebuild -scheme Kinieta \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5' test
+
+# Build the DocC catalog for UIKit and for AppKit; neither should produce warnings
+xcodebuild docbuild -scheme Kinieta -destination 'generic/platform=iOS Simulator'
+xcodebuild docbuild -scheme Kinieta -destination 'platform=macOS'
 ```
+
+The tvOS build (`-destination 'generic/platform=tvOS Simulator' build`), the visionOS tests
+(Apple Vision Pro / visionOS 26.5 simulator) and the optional `pod lib lint` job run in CI only
+(`pod lib lint Kinieta.podspec --allow-warnings --platforms=ios,macos` lints iOS and macOS
+locally). CI is `.github/workflows/ci.yml`; keep it, `scripts/ci-local.sh` and README
+"Development" in sync.
 
 ## Architecture Overview
 
-_Add a brief overview of your project architecture_
+A UIKit animation library (iOS, tvOS, Mac Catalyst 17+, visionOS 1+), Swift 6, main-actor isolated,
+with experimental AppKit support (macOS 14+, every property; layer properties give a view without a
+layer one). Sources are behind `canImport(UIKit) || os(macOS)` (`os(macOS)` is false under
+Catalyst); `Platform.swift` aliases `PlatformView` to `UIView` or `NSView` and `PlatformColor` to
+`UIColor` or `NSColor`. Public signatures cannot use these internal aliases, so public API that
+names the view or colour type is declared once per platform. Linux builds an empty module.
+
+- `View.swift`: `UIView.animate(...)` / `wait(_:)` entry points; geometry goes through
+  `center` and `bounds`, not `frame`; on `NSView`, through the unrotated frame about its centre.
+- `Kinieta.swift`: the public handle. Each handle owns a `SequenceAction` (its timeline) and
+  exposes the chain API (`easing`, `delay`, `then()`, `parallel()`, `repeat`, `onComplete`),
+  control (`cancel`, `pause`, `resume`, `finished()`) and `Kinieta.group`.
+- Actions: the `Action` protocol, with `SequenceAction` (one after another), `GroupAction`
+  (together), `PropertyAnimation` (interpolates `Property` values on one view; its `owners`
+  table gives each view and `Property.Key` to the newest animation started on it) and
+  `PauseAction` (`wait`; `delay` is a pause sequenced before the action). A sequence's
+  `ActionQueue` holds `ActionType` descriptions that become live actions only when they start,
+  which is why chain calls can still edit actions that have not started.
+- `Engine.swift`: `Engine.shared` advances registered actions by real elapsed time from a
+  `FrameDriver` (a `CADisplayLink` in production, `ManualFrameDriver` in tests) and holds the
+  global settings (colour interpolation, Reduce Motion, frame rate range).
+- Easing: `Bezier` (baked lookup table, CSS `cubic-bezier()` semantics) and `Easing` presets.
+- Colour: `ColorMath.swift` (RGB/HSB/LCH interpolation, sRGB and Display P3).
+- `IgnoredCall.swift`: debug-only warnings for chain calls that do nothing.
+- Docs: `Sources/Kinieta/Kinieta.docc`. Demo: `Example/KinietaDemo.xcodeproj`, with a UIKit
+  target (`KinietaDemo`) and an AppKit one (`KinietaDemoMac`).
+- Tests (Swift Testing) in `Tests/KinietaTests`, snapshots in `__Snapshots__`.
 
 ## Conventions & Patterns
 
-_Add your project-specific conventions here_
+- Formatting follows `.swift-format` (4 spaces, 120 columns); lint must pass with `--strict`.
+- User-visible changes update `CHANGELOG.md` (Keep a Changelog, under `[Unreleased]`) and the
+  README; public API changes also update the DocC catalog.
+- Commits are per Beads ticket, with the ticket ID as the message prefix
+  (`kinieta-xyz: summary`).
+- Beads ticket titles are at most 60 characters: a plain summary of the change. Context, options
+  and details go in the description.
+- Tickets are worked through with `orchestra` (github.com/noesis-sol/orchestra); each worker
+  follows `.orchestra/worker-prompt.md`.
+- Tests drive the engine frame by frame with `ManualFrameDriver` rather than waiting on real time.
+  Every suite that touches `Engine.shared` takes `@Suite(.serialized, .usesSharedEngine)`, which
+  runs its tests alone among all such suites.

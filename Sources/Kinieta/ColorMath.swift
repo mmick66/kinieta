@@ -5,6 +5,11 @@
 
 #if canImport(UIKit)
 import UIKit
+#elseif os(macOS)
+import AppKit
+#endif
+
+#if canImport(UIKit) || os(macOS)
 
 /// The colour arithmetic behind colour interpolation, in one place:
 /// sRGB ⇄ linear sRGB ⇄ CIE XYZ (D65) ⇄ CIE Lab ⇄ CIE LCh, and sRGB ⇄ HSB.
@@ -27,12 +32,35 @@ enum ColorMath {
     /// The gamma-encoded sRGB components of a colour. Wide-gamut colours come
     /// back in extended range, outside 0...1.
     ///
-    /// UIKit converts CMYK, Lab and XYZ colours itself. `nil` when a colour
-    /// has no RGB equivalent, such as a pattern image.
-    static func extractComponents(of color: UIColor) -> RGB? {
+    /// UIKit and AppKit convert CMYK, Lab, XYZ and grey colours themselves.
+    /// `nil` when a colour has no RGB equivalent, such as a pattern image.
+    ///
+    /// A dynamic colour resolves against the current traits on UIKit and
+    /// the current drawing appearance on AppKit; see
+    /// ``extractComponents(of:resolvedAgainst:)``.
+    static func extractComponents(of color: PlatformColor) -> RGB? {
         var red: CGFloat = 0, green: CGFloat = 0, blue: CGFloat = 0, alpha: CGFloat = 0
+        #if canImport(UIKit)
         guard color.getRed(&red, green: &green, blue: &blue, alpha: &alpha) else { return nil }
+        #else
+        // AppKit reads components only in an RGB colour space, and raises in any other.
+        guard let rgb = color.usingColorSpace(.extendedSRGB) else { return nil }
+        rgb.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+        #endif
         return RGB(red: red, green: green, blue: blue, alpha: alpha)
+    }
+
+    /// The components of `color` with a dynamic colour resolved against
+    /// `appearance`, or as ``extractComponents(of:)`` does when it is `nil`.
+    static func extractComponents(of color: PlatformColor, resolvedAgainst appearance: PlatformAppearance?) -> RGB? {
+        guard let appearance else { return extractComponents(of: color) }
+        #if canImport(UIKit)
+        return extractComponents(of: color.resolvedColor(with: appearance))
+        #else
+        var components: RGB?
+        appearance.performAsCurrentDrawingAppearance { components = extractComponents(of: color) }
+        return components
+        #endif
     }
 
     // MARK: Transfer functions and helpers
@@ -75,14 +103,47 @@ enum ColorMath {
             RGB(red: red, green: green, blue: blue, alpha: alpha)
         }
 
-        func color() -> UIColor {
+        /// The colour, in extended sRGB.
+        func color() -> PlatformColor {
+            #if canImport(UIKit)
             UIColor(red: red, green: green, blue: blue, alpha: alpha)
+            #else
+            NSColor(colorSpace: .extendedSRGB, components: [red, green, blue, alpha], count: 4)
+            #endif
         }
 
-        /// Every channel clipped to 0...1. LCH paths can leave the gamut for saturated colours.
+        /// Gamma-encoded Display P3, from these extended-range sRGB components.
+        /// Both spaces share the sRGB transfer function and the D65 white.
+        var displayP3: RGB {
+            let r = linearized(red), g = linearized(green), b = linearized(blue)
+            return RGB(
+                red: gammaEncoded(r * 0.822_461_969 + g * 0.177_538_031),
+                green: gammaEncoded(r * 0.033_194_199 + g * 0.966_805_801),
+                blue: gammaEncoded(r * 0.017_082_631 + g * 0.072_397_441 + b * 0.910_519_929),
+                alpha: alpha
+            )
+        }
+
+        /// Extended-range sRGB, from these gamma-encoded Display P3 components.
+        var fromDisplayP3: RGB {
+            let r = linearized(red), g = linearized(green), b = linearized(blue)
+            return RGB(
+                red: gammaEncoded(r * 1.224_940_176 + g * -0.224_940_176),
+                green: gammaEncoded(r * -0.042_056_955 + g * 1.042_056_955),
+                blue: gammaEncoded(r * -0.019_637_555 + g * -0.078_636_046 + b * 1.098_273_600),
+                alpha: alpha
+            )
+        }
+
+        /// Every channel clipped to 0...1.
         func clamped() -> RGB {
             func clip(_ v: CGFloat) -> CGFloat { min(max(v, 0), 1) }
             return RGB(red: clip(red), green: clip(green), blue: clip(blue), alpha: clip(alpha))
+        }
+
+        /// Whether every channel is within 0...1, give or take `tolerance`.
+        func isInUnitRange(tolerance: CGFloat) -> Bool {
+            [red, green, blue].allSatisfy { $0 >= -tolerance && $0 <= 1 + tolerance }
         }
 
         func lerp(_ other: RGB, _ t: CGFloat) -> RGB {
@@ -121,6 +182,41 @@ enum ColorMath {
                 if hue < 0 { hue += 360 }
             }
             return HSB(hue: hue, saturation: high > 0 ? range / high : 0, brightness: high, alpha: alpha)
+        }
+    }
+
+    // MARK: - Gamut
+
+    /// The RGB gamut the frames between two colours are clipped to. HSB and LCH
+    /// paths can leave the gamut for saturated colours.
+    enum Gamut: Equatable {
+        case sRGB
+        case displayP3
+        /// Not clipped: UIKit and AppKit take extended-range components and the display clips.
+        case extended
+
+        /// How far outside 0...1 an endpoint may be and still count as inside:
+        /// about a quarter of an 8-bit step, above the drift of the system's own conversions.
+        static let tolerance: CGFloat = 1e-3
+
+        /// The smallest gamut that holds both colours, so no frame in between is
+        /// clipped harder than the endpoints are. A move between Display P3
+        /// colours keeps its saturation on the way instead of popping at the end.
+        static func smallest(containing a: RGB, _ b: RGB) -> Gamut {
+            if a.isInUnitRange(tolerance: tolerance) && b.isInUnitRange(tolerance: tolerance) { return .sRGB }
+            if a.displayP3.isInUnitRange(tolerance: tolerance) && b.displayP3.isInUnitRange(tolerance: tolerance) {
+                return .displayP3
+            }
+            return .extended
+        }
+
+        /// `color` with every channel clipped to this gamut, and alpha to 0...1.
+        func clip(_ color: RGB) -> RGB {
+            switch self {
+            case .sRGB: return color.clamped()
+            case .displayP3: return color.displayP3.clamped().fromDisplayP3
+            case .extended: return color.withAlpha(min(max(color.alpha, 0), 1))
+            }
         }
     }
 
@@ -229,7 +325,7 @@ enum ColorMath {
             return Lab(lightness: lightness, a: cos(angle) * chroma, b: sin(angle) * chroma)
         }
 
-        /// Unclamped: saturated colours can land outside sRGB. See ``RGB/clamped()``.
+        /// Unclamped: saturated colours can land outside sRGB. See ``Gamut``.
         var rgb: RGB { lab.xyz.rgb(alpha: alpha) }
 
         /// Hue takes the shorter arc, weighted by how much each end has a hue at
@@ -248,6 +344,68 @@ enum ColorMath {
                 hue: lerpHue(hue, other.hue, hueProgress),
                 alpha: ColorMath.lerp(alpha, other.alpha, t)
             )
+        }
+    }
+}
+
+// MARK: - Interpolating colours
+
+extension ColorMath {
+
+    /// The colours between `source` and `target` along `mode`, by progress.
+    /// `nil` when either colour has no RGB value, such as a pattern image.
+    ///
+    /// Progress is clamped to 0...1: an overshooting easing has no meaning
+    /// outside the gamut. The endpoints are returned as given, so a dynamic
+    /// (light/dark) or wide-gamut target survives the animation.
+    ///
+    /// The colours in between are clipped to the smallest of sRGB and Display
+    /// P3 that holds both endpoints, so a wide-gamut move does not pop at the
+    /// end. Dynamic colours are resolved against `appearance` when given:
+    /// the view's traits on UIKit, its effective appearance on AppKit. Inside
+    /// a display-link callback `UITraitCollection.current` is the app-wide
+    /// fallback, which ignores `overrideUserInterfaceStyle` and
+    /// presentation-level appearance.
+    static func interpolator(
+        from source: PlatformColor, to target: PlatformColor, mode: ColorInterpolation,
+        appearance: PlatformAppearance?
+    ) -> ((CGFloat) -> PlatformColor)? {
+        guard var from = extractComponents(of: source, resolvedAgainst: appearance),
+            var to = extractComponents(of: target, resolvedAgainst: appearance)
+        else { return nil }
+
+        // A fully transparent endpoint has no colour of its own. Fade the other
+        // colour's alpha instead of passing through black.
+        if from.alpha == 0 { from = to.withAlpha(0) }
+        if to.alpha == 0 { to = from.withAlpha(0) }
+
+        let path: (CGFloat) -> RGB
+        switch mode {
+        case .rgb:
+            path = { c in from.lerp(to, c) }
+        case .hsb:
+            // A grey endpoint has no hue; borrow the other one's so the
+            // interpolation does not sweep through the colour wheel. Hue then
+            // takes the shorter way round.
+            let achromatic: CGFloat = 1e-3
+            var f = from.hsb, t = to.hsb
+            if f.saturation < achromatic { f.hue = t.hue }
+            if t.saturation < achromatic { t.hue = f.hue }
+            path = { c in f.lerp(t, c).rgb }
+        case .lch:
+            // LCH.lerp weights hue by chroma, which covers greys and near-greys.
+            let f = from.lch, t = to.lch
+            path = { c in f.lerp(t, c).rgb }
+        }
+        // Clip to sRGB only when both ends are in it; Display P3 ends keep
+        // their saturation on the way.
+        let gamut = Gamut.smallest(containing: from, to)
+
+        return { progress in
+            let c = min(max(progress, 0), 1)
+            if c >= 1 { return target }
+            if c <= 0 { return source }
+            return gamut.clip(path(c)).color()
         }
     }
 }

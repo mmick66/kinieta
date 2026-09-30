@@ -1,47 +1,58 @@
 // Kinieta — MIT License. See LICENSE.
 
-#if canImport(UIKit)
+#if canImport(UIKit) || os(macOS)
 import Foundation
 
-/// An ordered list of pending action descriptions, owned by a `SequenceAction`.
-/// Descriptions become live actions only when they are popped.
+/// The action descriptions of a `SequenceAction`, in order. Descriptions
+/// become live actions only when they are popped.
+///
+/// Popping moves a cursor instead of removing the step, so every operation is
+/// O(1) apart from `popAllUngrouped`, which is linear in what it returns. The
+/// popped steps stay in `steps`, which is how a timeline remembers what it has
+/// already run for `repeat`.
 @MainActor
 struct ActionQueue {
 
-    private(set) var types: [ActionType]
+    /// Every step: first the ones already popped, then the ones still to come.
+    private(set) var steps: [ActionType]
+    /// The index in `steps` of the next step to pop.
+    private var next = 0
 
-    init(_ types: [ActionType] = []) {
-        self.types = types
+    init(_ steps: [ActionType] = []) {
+        self.steps = steps
     }
 
-    var isEmpty: Bool { types.isEmpty }
+    /// `true` when no step is left to pop.
+    var isEmpty: Bool { next == steps.count }
 
-    var count: Int { types.count }
+    /// The number of steps left to pop.
+    var count: Int { steps.count - next }
 
     mutating func add(_ type: ActionType) {
-        types.append(type)
+        steps.append(type)
     }
 
+    /// Removes and returns the last step, unless it has already been popped.
     mutating func popLast() -> ActionType? {
-        types.popLast()
+        isEmpty ? nil : steps.removeLast()
     }
 
-    mutating func popFirstAction() -> Action? {
-        guard !types.isEmpty else { return nil }
-        return types.removeFirst().makeAction()
+    mutating func popFirstAction(control: TimelineControl) -> Action? {
+        guard !isEmpty else { return nil }
+        defer { next += 1 }
+        return steps[next].makeAction(control: control)
     }
 
-    /// Removes and returns every trailing action up to, but not including,
-    /// the last group. Used by `parallel()` and `then`.
+    /// Removes and returns every trailing step not yet popped, up to but not
+    /// including the last group. Used by `parallel()` and `then()`.
     mutating func popAllUngrouped() -> [ActionType] {
-        var actions: [ActionType] = []
-        while let last = popLast() {
-            if case .group = last {
-                add(last)
-                break
-            }
-            actions.insert(last, at: 0)
+        var start = steps.count
+        while start > next {
+            if case .group = steps[start - 1] { break }
+            start -= 1
         }
+        let actions = Array(steps[start...])
+        steps.removeSubrange(start...)
         return actions
     }
 }

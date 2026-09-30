@@ -2,8 +2,14 @@
 
 #if canImport(UIKit)
 import UIKit
+#elseif os(macOS)
+import AppKit
+#endif
 
-public extension UIView {
+#if canImport(UIKit) || os(macOS)
+
+// `UIView`, or `NSView` on native macOS.
+public extension PlatformView {
 
     /// Starts a timeline that animates `properties` over `duration` seconds.
     /// Chain further calls on the returned handle to extend it.
@@ -25,6 +31,8 @@ public extension UIView {
 }
 
 // MARK: - Geometry helpers used by the interpolators
+
+#if canImport(UIKit)
 //
 // Position and size go through `center` and `bounds`, not `frame`, so they
 // stay meaningful while a rotation is applied. With an identity transform
@@ -111,17 +119,34 @@ extension UIView {
         set { objc_setAssociatedObject(self, &rotationStateKey, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC) }
     }
 
-    var backgroundColorOrClear: UIColor {
-        backgroundColor ?? .clear
+    /// `backgroundColor`, clear when there is none.
+    var animatedBackgroundColor: UIColor {
+        get { backgroundColor ?? .clear }
+        set { backgroundColor = newValue }
     }
 
-    var borderColorOrClear: UIColor {
-        layer.borderColor.map { UIColor(cgColor: $0) } ?? .clear
+    /// The layer's `borderColor`, clear when there is none.
+    var animatedBorderColor: UIColor {
+        get { layer.borderColor.map { UIColor(cgColor: $0) } ?? .clear }
+        set { layer.borderColor = newValue.cgColor }
     }
 
-    /// The view's traits with any pending change applied, such as an
-    /// `overrideUserInterfaceStyle` set since the last layout pass.
-    var currentTraits: UITraitCollection {
+    /// The layer's `borderWidth`.
+    var animatedBorderWidth: CGFloat {
+        get { layer.borderWidth }
+        set { layer.borderWidth = newValue }
+    }
+
+    /// The layer's `cornerRadius`.
+    var animatedCornerRadius: CGFloat {
+        get { layer.cornerRadius }
+        set { layer.cornerRadius = newValue }
+    }
+
+    /// What dynamic colours resolve against: the view's traits with any
+    /// pending change applied, such as an `overrideUserInterfaceStyle` set
+    /// since the last layout pass.
+    var currentAppearance: UITraitCollection {
         updateTraitsIfNeeded()
         return traitCollection
     }
@@ -144,4 +169,178 @@ private final class RotationState {
 }
 
 nonisolated(unsafe) private var rotationStateKey: UInt8 = 0
+
+#else
+
+// AppKit has no `center` or `transform`: a view is positioned by its frame in
+// its superview's coordinates, from the bottom left unless the superview is
+// flipped, and turned by `frameRotation` about the frame's origin. So that
+// position, size and rotation animate independently, as on UIKit, they work
+// on the frame the view would have unrotated, turned about its centre: `.x`
+// and `.y` are that frame's origin, which is exactly `frame.origin` while the
+// view is not rotated, and a rotation leaves the centre where it is.
+
+extension NSView {
+
+    var x: CGFloat {
+        get { untransformedOrigin.x }
+        set { untransformedOrigin.x = newValue }
+    }
+
+    var y: CGFloat {
+        get { untransformedOrigin.y }
+        set { untransformedOrigin.y = newValue }
+    }
+
+    /// Resizing keeps the unrotated origin where it is, like `setFrameSize`
+    /// on a view that is not rotated.
+    var width: CGFloat {
+        get { frame.width }
+        set {
+            let origin = untransformedOrigin
+            setFrameSize(NSSize(width: newValue, height: frame.height))
+            untransformedOrigin = origin
+        }
+    }
+
+    var height: CGFloat {
+        get { frame.height }
+        set {
+            let origin = untransformedOrigin
+            setFrameSize(NSSize(width: frame.width, height: newValue))
+            untransformedOrigin = origin
+        }
+    }
+
+    /// `x`, `y`, `width` and `height` together: `frame` while the view is not
+    /// rotated. Sizes are taken as given, not standardised.
+    var untransformedFrame: CGRect {
+        get { CGRect(origin: untransformedOrigin, size: frame.size) }
+        set {
+            setFrameSize(newValue.size)
+            untransformedOrigin = newValue.origin
+        }
+    }
+
+    /// The frame's origin before `frameRotation` turns it about the frame's
+    /// centre. `frame.origin` is the corner the rotation pivots on, so the
+    /// two differ by the centre's offset from it, rotated or not; with no
+    /// rotation that difference is exactly zero.
+    private var untransformedOrigin: CGPoint {
+        get {
+            let offset = pivotOffset
+            return CGPoint(x: frame.origin.x + offset.dx, y: frame.origin.y + offset.dy)
+        }
+        set {
+            let offset = pivotOffset
+            setFrameOrigin(NSPoint(x: newValue.x - offset.dx, y: newValue.y - offset.dy))
+        }
+    }
+
+    /// The centre's offset from the frame's origin after the rotation, less
+    /// the same offset before it.
+    private var pivotOffset: CGVector {
+        let (halfWidth, halfHeight) = (frame.width / 2, frame.height / 2)
+        let angle = frameRotation.degreesToRadians
+        return CGVector(
+            dx: halfWidth * cos(angle) - halfHeight * sin(angle) - halfWidth,
+            dy: halfWidth * sin(angle) + halfHeight * cos(angle) - halfHeight)
+    }
+
+    /// Rotation about the view's centre in degrees, unwrapped: after rotating
+    /// to 720 it reads 720, not 0. It is `frameRotation`, which wraps, with
+    /// the origin moved so the centre stays put, like `frameCenterRotation`.
+    ///
+    /// The logical angle is remembered together with the `frameRotation` it
+    /// produced. If something else has rotated the view since, the angle is
+    /// read back from `frameRotation` instead.
+    var rotation: CGFloat {
+        get {
+            if let state = rotationState, state.frameRotation == frameRotation { return state.degrees }
+            return frameRotation
+        }
+        set {
+            let origin = untransformedOrigin
+            frameRotation = newValue
+            untransformedOrigin = origin
+            rotationState = RotationState(degrees: newValue, frameRotation: frameRotation)
+        }
+    }
+
+    private var rotationState: RotationState? {
+        get { objc_getAssociatedObject(self, &rotationStateKey) as? RotationState }
+        set { objc_setAssociatedObject(self, &rotationStateKey, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC) }
+    }
+
+    /// `alphaValue`, under UIKit's name, so both platforms share `.alpha`.
+    var alpha: CGFloat {
+        get { alphaValue }
+        set { alphaValue = newValue }
+    }
+
+    // An `NSView` has no colours of its own: they are its layer's.
+
+    /// The layer's `backgroundColor`, clear when there is none. Setting it
+    /// gives a view without a layer one.
+    var animatedBackgroundColor: NSColor {
+        get { layer?.backgroundColor.flatMap(NSColor.init(cgColor:)) ?? .clear }
+        set { backingLayer.backgroundColor = layerColor(newValue) }
+    }
+
+    /// The layer's `borderColor`, clear when there is none. Setting it gives
+    /// a view without a layer one.
+    var animatedBorderColor: NSColor {
+        get { layer?.borderColor.flatMap(NSColor.init(cgColor:)) ?? .clear }
+        set { backingLayer.borderColor = layerColor(newValue) }
+    }
+
+    /// The layer's `borderWidth`, 0 when there is none. Setting it gives a
+    /// view without a layer one.
+    var animatedBorderWidth: CGFloat {
+        get { layer?.borderWidth ?? 0 }
+        set { backingLayer.borderWidth = newValue }
+    }
+
+    /// The layer's `cornerRadius`, 0 when there is none. Setting it gives a
+    /// view without a layer one.
+    var animatedCornerRadius: CGFloat {
+        get { layer?.cornerRadius ?? 0 }
+        set { backingLayer.cornerRadius = newValue }
+    }
+
+    /// What dynamic colours resolve against.
+    var currentAppearance: NSAppearance {
+        effectiveAppearance
+    }
+
+    /// The view's layer, made if the view has none.
+    private var backingLayer: CALayer {
+        if let layer { return layer }
+        wantsLayer = true
+        return layer!
+    }
+
+    /// `color` for a layer, which takes a `CGColor`: a dynamic colour is
+    /// resolved against the view's appearance, not the app's.
+    private func layerColor(_ color: NSColor) -> CGColor {
+        var resolved: CGColor?
+        effectiveAppearance.performAsCurrentDrawingAppearance { resolved = color.cgColor }
+        return resolved ?? color.cgColor
+    }
+}
+
+/// The last angle Kinieta gave a view, with the `frameRotation` AppKit stored
+/// for it, to tell whether it is still current.
+private final class RotationState {
+    let degrees: CGFloat
+    let frameRotation: CGFloat
+
+    init(degrees: CGFloat, frameRotation: CGFloat) {
+        self.degrees = degrees
+        self.frameRotation = frameRotation
+    }
+}
+
+nonisolated(unsafe) private var rotationStateKey: UInt8 = 0
+#endif
 #endif

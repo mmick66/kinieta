@@ -8,14 +8,17 @@
 
 /* Begin PBXBuildFile section */
 		A1D000000000000000000001 /* Kinieta in Frameworks */ = {isa = PBXBuildFile; productRef = A1D000000000000000000003 /* Kinieta */; };
+		A1D000000000000000000012 /* Kinieta in Frameworks */ = {isa = PBXBuildFile; productRef = A1D00000000000000000001C /* Kinieta */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		A1D000000000000000000002 /* KinietaDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = KinietaDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1D000000000000000000013 /* KinietaDemoMac.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = KinietaDemoMac.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		A1D000000000000000000007 /* KinietaDemo */ = {isa = PBXFileSystemSynchronizedRootGroup; path = KinietaDemo; sourceTree = "<group>"; };
+		A1D000000000000000000014 /* KinietaDemoMac */ = {isa = PBXFileSystemSynchronizedRootGroup; path = KinietaDemoMac; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -27,6 +30,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A1D000000000000000000015 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1D000000000000000000012 /* Kinieta in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -34,6 +45,7 @@
 			isa = PBXGroup;
 			children = (
 				A1D000000000000000000007 /* KinietaDemo */,
+				A1D000000000000000000014 /* KinietaDemoMac */,
 				A1D000000000000000000000 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -42,6 +54,7 @@
 			isa = PBXGroup;
 			children = (
 				A1D000000000000000000002 /* KinietaDemo.app */,
+				A1D000000000000000000013 /* KinietaDemoMac.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -72,6 +85,29 @@
 			productReference = A1D000000000000000000002 /* KinietaDemo.app */;
 			productType = "com.apple.product-type.application";
 		};
+		A1D000000000000000000018 /* KinietaDemoMac */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1D000000000000000000019 /* Build configuration list for PBXNativeTarget "KinietaDemoMac" */;
+			buildPhases = (
+				A1D000000000000000000016 /* Sources */,
+				A1D000000000000000000015 /* Frameworks */,
+				A1D000000000000000000017 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				A1D000000000000000000014 /* KinietaDemoMac */,
+			);
+			name = KinietaDemoMac;
+			packageProductDependencies = (
+				A1D00000000000000000001C /* Kinieta */,
+			);
+			productName = KinietaDemoMac;
+			productReference = A1D000000000000000000013 /* KinietaDemoMac.app */;
+			productType = "com.apple.product-type.application";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -83,6 +119,9 @@
 				LastUpgradeCheck = 2600;
 				TargetAttributes = {
 					A1D000000000000000000006 = {
+						CreatedOnToolsVersion = 26.0;
+					};
+					A1D000000000000000000018 = {
 						CreatedOnToolsVersion = 26.0;
 					};
 				};
@@ -105,6 +144,7 @@
 			projectRoot = "";
 			targets = (
 				A1D000000000000000000006 /* KinietaDemo */,
+				A1D000000000000000000018 /* KinietaDemoMac */,
 			);
 		};
 /* End PBXProject section */
@@ -117,10 +157,24 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A1D000000000000000000017 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		A1D00000000000000000000D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1D000000000000000000016 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -241,6 +295,52 @@
 			};
 			name = Release;
 		};
+		A1D00000000000000000001A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.karmadust.KinietaDemoMac;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		A1D00000000000000000001B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.karmadust.KinietaDemoMac;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -262,6 +362,15 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		A1D000000000000000000019 /* Build configuration list for PBXNativeTarget "KinietaDemoMac" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1D00000000000000000001A /* Debug */,
+				A1D00000000000000000001B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
@@ -273,6 +382,10 @@
 
 /* Begin XCSwiftPackageProductDependency section */
 		A1D000000000000000000003 /* Kinieta */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Kinieta;
+		};
+		A1D00000000000000000001C /* Kinieta */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = Kinieta;
 		};

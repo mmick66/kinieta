@@ -18,6 +18,7 @@ Guidelines, and returns a handle you can control.
 | `["brw": 2]`, `["crd": 8]` | `.borderWidth(2)`, `.cornerRadius(8)` |
 | `.easeInOut(.Back)` | `.easeInOut(.back)` or `.easing(.inOut(.back))` |
 | `.easeInOut(.Custom(bezier))` | `.easing(.custom(bezier))` |
+| `.then` | `.then()` |
 | `.wait(for: 1)` | `.wait(1)` |
 | `.delay(for: 1)` | `.delay(1)` |
 | `.again(times: 2)` | `.repeat(times: 2)` |
@@ -33,12 +34,14 @@ Guidelines, and returns a handle you can control.
   the curve parameter, which distorted every preset.
 - Time advances by the real elapsed interval, so dropped frames catch up.
 - Views are held weakly and never kept alive. When a view is deallocated
-  its timeline is cancelled on the next frame, without running any further
+  its timeline is cancelled, even while paused, without running any further
   completion blocks.
 - Zero-duration animations and pauses run their completion blocks.
-- Animations snap to their end state when Reduce Motion is on. Set
-  `Engine.shared.respectsReduceMotion = false` to opt out.
-- `then` keeps the order of the actions it seals.
+- Movement snaps to its end state when Reduce Motion is on, while fades and
+  colour changes still animate. Set `Engine.shared.reduceMotionBehavior =
+  .snapAll` to snap everything, or `Engine.shared.respectsReduceMotion = false`
+  to opt out.
+- `then()` keeps the order of the actions it seals.
 
 ## Distribution
 

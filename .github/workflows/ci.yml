@@ -19,26 +19,33 @@ jobs:
     name: Build and test (iOS Simulator)
     runs-on: macos-26
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_26.6.app
       - name: Xcode version
-        run: xcodebuild -version
+        id: xcode
+        run: |
+          xcodebuild -version
+          echo "build=$(xcodebuild -version | awk '/Build version/ { print $3 }')" >> "$GITHUB_OUTPUT"
       - name: Verify xcbeautify
         run: command -v xcbeautify || brew install xcbeautify && xcbeautify --version
-      - name: Cache DerivedData
-        uses: actions/cache@v4
+      # Only the resolved package checkouts are cached. The key changes with the
+      # Xcode build or the manifest, not with every source edit, so a push restores
+      # it exactly and saves nothing new. Package.resolved is not committed, so a
+      # restored cache still resolves `from:` ranges to their latest versions.
+      - name: Cache Swift packages
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
-          path: DerivedData
-          key: deriveddata-${{ runner.os }}-${{ hashFiles('Package.swift', 'Sources/**', 'Tests/**') }}
-          restore-keys: deriveddata-${{ runner.os }}-
+          path: DerivedData/SourcePackages
+          key: spm-${{ runner.os }}-xcode-${{ steps.xcode.outputs.build }}-${{ hashFiles('Package.swift') }}
+          restore-keys: spm-${{ runner.os }}-
       - name: Test package
         run: |
           set -o pipefail
           xcodebuild -scheme Kinieta -destination "$DESTINATION" -derivedDataPath DerivedData -resultBundlePath TestResults.xcresult test | xcbeautify --renderer github-actions
       - name: Upload test results
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: TestResults.xcresult
           path: TestResults.xcresult
@@ -48,13 +55,13 @@ jobs:
           set -o pipefail
           xcodebuild -project Example/KinietaDemo.xcodeproj -scheme KinietaDemo -destination "$DESTINATION" -derivedDataPath DerivedData CODE_SIGNING_ALLOWED=NO build | xcbeautify --renderer github-actions
 
-  # The snapshot references are iOS only, so Catalyst runs every test except
-  # the snapshot suite, and tvOS is a build check with no test run.
+  # The snapshot references are iOS only, so Catalyst and visionOS run every
+  # test except the snapshot suite, and tvOS is a build check with no test run.
   catalyst:
     name: Build and test (Mac Catalyst)
     runs-on: macos-26
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_26.6.app
       - name: Verify xcbeautify
@@ -68,7 +75,7 @@ jobs:
     name: Build (tvOS Simulator)
     runs-on: macos-26
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_26.6.app
       - name: Verify xcbeautify
@@ -78,38 +85,99 @@ jobs:
           set -o pipefail
           xcodebuild -scheme Kinieta -destination 'generic/platform=tvOS Simulator' build | xcbeautify --renderer github-actions
 
-  # Kinieta is UIKit only. On other hosts every source and test file compiles
-  # away behind canImport(UIKit); these jobs keep that true, so `swift build`
-  # and `swift test` succeed there and run 0 tests.
+  # An XCFramework is built with library evolution. The module and its main
+  # class share the name Kinieta, so the .swiftinterface verifies only when it
+  # names the module by an alias.
+  evolution:
+    name: Build with library evolution (iOS Simulator)
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_26.6.app
+      - name: Verify xcbeautify
+        run: command -v xcbeautify || brew install xcbeautify && xcbeautify --version
+      - name: Build package
+        run: |
+          set -o pipefail
+          xcodebuild -scheme Kinieta -destination 'generic/platform=iOS Simulator' BUILD_LIBRARY_FOR_DISTRIBUTION=YES OTHER_SWIFT_FLAGS=-alias-module-names-in-module-interface build | xcbeautify --renderer github-actions
+
+  visionos:
+    name: Build and test (visionOS Simulator)
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_26.6.app
+      - name: Verify xcbeautify
+        run: command -v xcbeautify || brew install xcbeautify && xcbeautify --version
+      - name: Install the visionOS simulator runtime
+        run: xcrun simctl list runtimes | grep -q '^visionOS 26\.5 ' || xcodebuild -downloadPlatform visionOS -buildVersion 26.5
+      - name: Test package
+        run: |
+          set -o pipefail
+          xcodebuild -scheme Kinieta -destination 'platform=visionOS Simulator,name=Apple Vision Pro,OS=26.5' test | xcbeautify --renderer github-actions
+
+  # On the macOS host, `swift test` runs the experimental AppKit tests, the
+  # same ones `xcodebuild test` would for platform=macOS, and the AppKit
+  # example app is built. On Linux every source and test file compiles away
+  # behind canImport(UIKit) || os(macOS), so `swift build` and `swift test`
+  # succeed there and run 0 tests.
   spm-macos:
     name: swift build + test (macOS host)
     runs-on: macos-26
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_26.6.app
+      - name: Verify xcbeautify
+        run: command -v xcbeautify || brew install xcbeautify && xcbeautify --version
       - name: Build
         run: swift build
       - name: Test
         run: swift test
+      - name: Build example app (macOS)
+        run: |
+          set -o pipefail
+          xcodebuild -project Example/KinietaDemo.xcodeproj -scheme KinietaDemoMac -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO build | xcbeautify --renderer github-actions
 
   spm-linux:
     name: swift build + test (Linux)
     runs-on: ubuntu-latest
     container: swift:6.3
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - name: Build
         run: swift build
       - name: Test
         run: swift test
 
+  # Catches podspec regressions, such as a dropped privacy bundle, until 1.1.0,
+  # the final CocoaPods release. Optional: a failure here does not fail the run.
+  # `pod lib lint` builds for every platform the podspec declares (iOS, tvOS
+  # and macOS), on a simulator where there is one, so the tvOS runtime is
+  # installed if the runner lacks it.
+  pod-lint:
+    name: pod lib lint (optional)
+    runs-on: macos-26
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_26.6.app
+      - name: Verify CocoaPods
+        run: command -v pod || brew install cocoapods && pod --version
+      - name: Install the tvOS simulator runtime
+        run: xcrun simctl list runtimes | grep -q '^tvOS ' || xcodebuild -downloadPlatform tvOS
+      - name: Lint podspec
+        run: pod lib lint Kinieta.podspec --allow-warnings
+
   lint:
     name: swift-format lint
     runs-on: macos-26
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_26.6.app
       - name: Lint
-        run: xcrun swift-format lint --strict --recursive Sources Tests Example/KinietaDemo
+        run: xcrun swift-format lint --strict --recursive Sources Tests Example

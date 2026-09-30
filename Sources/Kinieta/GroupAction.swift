@@ -1,6 +1,6 @@
 // Kinieta — MIT License. See LICENSE.
 
-#if canImport(UIKit)
+#if canImport(UIKit) || os(macOS)
 import Foundation
 
 /// Runs its actions at the same time and finishes when the last one does.
@@ -14,20 +14,28 @@ final class GroupAction: Action {
         case running([Action])
     }
 
-    var completion: Block?
+    var completion: Kinieta.Completion?
+    /// The timeline this group runs in. A group of timelines is handed the
+    /// group handle's when it is made live; see `ActionType.makeAction(control:)`.
+    var control: TimelineControl
     private var phase: Phase
     /// Actions that joined since the last update, or during it.
     private var joining: [Action] = []
     private var hasEnded = false
 
-    init(pending types: [ActionType], completion: Block? = nil) {
+    init(
+        pending types: [ActionType], control: TimelineControl = TimelineControl(), completion: Kinieta.Completion? = nil
+    ) {
         self.phase = .pending(types)
+        self.control = control
         self.completion = completion
     }
 
     /// Groups actions that are already live, such as the sequences of other handles.
-    init(running actions: [Action], completion: Block? = nil) {
+    init(running actions: [Action], control: TimelineControl = TimelineControl(), completion: Kinieta.Completion? = nil)
+    {
         self.phase = .running(actions)
+        self.control = control
         self.completion = completion
     }
 
@@ -39,6 +47,14 @@ final class GroupAction: Action {
         return !members.isEmpty && members.allSatisfy(\.isIdle)
     }
 
+    /// Abandoned once every member is: a member whose handle is still around
+    /// can be resumed or cancelled, and the group moves on with it.
+    var isAbandoned: Bool {
+        guard case .running(let live) = phase else { return false }
+        let members = live + joining
+        return !members.isEmpty && members.allSatisfy(\.isAbandoned)
+    }
+
     /// Adds an action that is already live, such as a grouped timeline that
     /// was extended after it finished. Returns `false` once the group has ended.
     func adopt(_ action: Action) -> Bool {
@@ -47,10 +63,21 @@ final class GroupAction: Action {
         return true
     }
 
+    /// Ends a started group without running it again and returns the members
+    /// it was still running, for another driver to take over.
+    func releaseMembers() -> [Action] {
+        guard case .running(let live) = phase else { return [] }
+        let members = live + joining
+        phase = .running([])
+        joining = []
+        hasEnded = true
+        return members
+    }
+
     func update(_ frame: Engine.Frame) -> ActionResult {
         var actions: [Action]
         switch phase {
-        case .pending(let types): actions = types.map { $0.makeAction() }
+        case .pending(let types): actions = types.map { $0.makeAction(control: control) }
         case .running(let live): actions = live
         }
         actions += joining
@@ -58,7 +85,13 @@ final class GroupAction: Action {
 
         var stillRunning: [Action] = []
         var overshoot = frame.duration
-        for action in actions {
+        for (index, action) in actions.enumerated() {
+            // A member's completion block may have cancelled or paused the
+            // timeline, or released its view: leave the members after it as they are.
+            if control.isHalted || control.cancelIfViewIsGone() {
+                stillRunning += actions[index...]
+                break
+            }
             switch action.update(frame) {
             case .running: stillRunning.append(action)
             case .finished(let unused): overshoot = min(overshoot, unused)
@@ -69,8 +102,18 @@ final class GroupAction: Action {
         joining = []
         phase = .running(stillRunning)
 
+        if control.isCancelled {
+            hasEnded = true
+            return .finished(overshoot: 0)
+        }
+        // Paused after the last member finished: complete on resume, as a sequence does.
+        if control.isPaused { return .running }
+
         if stillRunning.isEmpty {
             hasEnded = true
+            // A member's completion block may have released the view: the
+            // group's own block, from the chain, is one more that must not run.
+            if completion != nil && control.cancelIfViewIsGone() { return .finished(overshoot: 0) }
             completion?()
             // The group ends when its last child ends, so the smallest remainder wins.
             return .finished(overshoot: overshoot)

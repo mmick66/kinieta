@@ -25,14 +25,17 @@
 
 #if canImport(UIKit)
 import UIKit
+#elseif os(macOS)
+import AppKit
+#endif
 
-public typealias Block = () -> Void
+#if canImport(UIKit) || os(macOS)
 
 /// A weak reference to the view an action targets, so a pending timeline never
 /// keeps a view alive. An animation whose view has gone finishes immediately.
 struct ViewRef {
-    weak var view: UIView?
-    init(_ view: UIView?) { self.view = view }
+    weak var view: PlatformView?
+    init(_ view: PlatformView?) { self.view = view }
 }
 
 /// An animation waiting to run: which view, what to change, and how.
@@ -42,11 +45,11 @@ struct AnimationSpec {
     var duration: TimeInterval
     /// `nil` means linear.
     var easing: Bezier?
-    var completion: Block?
+    var completion: Kinieta.Completion?
 
     init(
-        _ view: UIView?, _ properties: [Property], duration: TimeInterval,
-        easing: Bezier? = nil, completion: Block? = nil
+        _ view: PlatformView?, _ properties: [Property], duration: TimeInterval,
+        easing: Bezier? = nil, completion: Kinieta.Completion? = nil
     ) {
         self.target = ViewRef(view)
         self.properties = properties
@@ -60,17 +63,17 @@ struct AnimationSpec {
 /// they are turned into live `Action` objects when their turn comes.
 enum ActionType: CustomStringConvertible {
     case animation(AnimationSpec)
-    case pause(TimeInterval, completion: Block? = nil)
-    case group([ActionType], completion: Block? = nil)
-    case sequence([ActionType], completion: Block? = nil)
+    case pause(TimeInterval, completion: Kinieta.Completion? = nil)
+    case group([ActionType], completion: Kinieta.Completion? = nil)
+    case sequence([ActionType], completion: Kinieta.Completion? = nil)
     /// The live group behind a `Kinieta.group` handle. Its members are other
     /// handles' sequences, already running, so it cannot be copied.
-    case timelines(GroupAction, completion: Block? = nil)
+    case timelines(GroupAction, completion: Kinieta.Completion? = nil)
 
     var description: String {
         switch self {
         case .animation(let spec):
-            return "Animation (\(spec.properties.map(\.key.rawValue).joined(separator: " ")))"
+            return "Animation (\(spec.properties.map(\.name).joined(separator: " ")))"
         case .pause(let duration, _):
             return "Pause (\(duration))"
         case .group(let types, _):
@@ -83,7 +86,7 @@ enum ActionType: CustomStringConvertible {
     }
 
     /// The same action, calling `completion` when it finishes instead of any previous block.
-    func withCompletion(_ completion: @escaping Block) -> ActionType {
+    func withCompletion(_ completion: @escaping Kinieta.Completion) -> ActionType {
         switch self {
         case .animation(var spec):
             spec.completion = completion
@@ -130,21 +133,55 @@ enum ActionType: CustomStringConvertible {
         }
     }
 
+    /// The live action, answering to `control`: nested sequences and groups
+    /// stop as soon as the timeline they belong to is cancelled or paused.
     @MainActor
-    func makeAction() -> Action {
+    func makeAction(control: TimelineControl) -> Action {
         switch self {
         case .animation(let spec):
             return PropertyAnimation(spec)
         case .pause(let duration, let completion):
             return PauseAction(duration, completion: completion)
         case .group(let types, let completion):
-            return GroupAction(pending: types, completion: completion)
+            return GroupAction(pending: types, control: control, completion: completion)
         case .sequence(let types, let completion):
-            return SequenceAction(types, completion: completion)
+            return SequenceAction(types, control: control, isNested: true, completion: completion)
         case .timelines(let action, let completion):
             action.completion = completion
+            action.control = control
             return action
         }
+    }
+}
+
+/// Whether a timeline has been cancelled or paused, and the view it runs,
+/// shared by its main sequence and every sequence and group nested in it. A
+/// completion block can cancel or pause the timeline, or release its view, at
+/// any depth, so each of them checks this after every child it updates and
+/// stops there, in that same frame.
+@MainActor
+final class TimelineControl {
+    var isCancelled = false
+    var isPaused = false
+
+    /// The view of the timeline, if it has one. Once the view is deallocated
+    /// the timeline cancels itself before running anything else and calls
+    /// `onViewLost`, so its handle can end as cancelled.
+    var target: ViewRef?
+    var onViewLost: Kinieta.Completion?
+
+    var isHalted: Bool { isCancelled || isPaused }
+
+    var hasLostView: Bool {
+        target.map { $0.view == nil } ?? false
+    }
+
+    /// Cancels the timeline if its view has gone. Returns `true` if it has.
+    func cancelIfViewIsGone() -> Bool {
+        guard hasLostView else { return false }
+        isCancelled = true
+        onViewLost?()
+        return true
     }
 }
 
@@ -167,9 +204,13 @@ protocol Action: AnyObject {
     /// `true` while no frame can change anything: the action is paused or
     /// waiting forever. The engine stops its driver when every action is idle.
     var isIdle: Bool { get }
+    /// `true` while idle with nothing left that could wake it: every handle
+    /// that could resume or cancel it is gone. The engine lets go of it.
+    var isAbandoned: Bool { get }
 }
 
 extension Action {
     var isIdle: Bool { false }
+    var isAbandoned: Bool { false }
 }
 #endif

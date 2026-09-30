@@ -17,9 +17,15 @@ import UIKit
 /// References are recorded on the iPhone 17 Pro simulator running iOS 26.5, the
 /// runtime pinned in `.github/workflows/ci.yml` and the README. Other runtimes can
 /// render differently enough to fail the 0.98 perceptual precision.
-@Suite(.serialized)
+@Suite(.serialized, .usesSharedEngine)
 @MainActor
 struct SnapshotTests {
+
+    // Tests must not depend on the host's accessibility settings: on Mac Catalyst,
+    // UIAccessibility reads the Mac's Reduce Motion switch, which some CI runners have on.
+    init() {
+        Engine.shared.isReduceMotionEnabled = { false }
+    }
 
     nonisolated static let progressPoints: [CGFloat] = [0, 0.25, 0.5, 0.75, 1]
 
@@ -127,6 +133,17 @@ struct SnapshotTests {
         let (greyStage, greyBox) = stage { $0.backgroundColor = .gray }
         drive(greyBox, [.background(.systemBlue, interpolation: .hsb)], to: 0.5)
         assertSnapshot(of: greyStage, as: image(), named: "grey-to-blue-hsb")
+    }
+
+    @Test func displayP3ColoursAtTheMidpoint() {
+        // Between two Display P3 colours the frames stay outside sRGB instead of being clipped to it.
+        let red = UIColor(displayP3Red: 1, green: 0, blue: 0, alpha: 1)
+        let green = UIColor(displayP3Red: 0, green: 1, blue: 0, alpha: 1)
+        for (name, mode) in [("rgb", ColorInterpolation.rgb), ("hsb", .hsb), ("lch", .lch)] {
+            let (stage, box) = stage { $0.backgroundColor = red }
+            drive(box, [.background(green, interpolation: mode)], to: 0.5)
+            assertSnapshot(of: stage, as: image(), named: "p3-red-to-green-\(name)")
+        }
     }
 }
 #endif

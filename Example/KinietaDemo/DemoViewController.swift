@@ -2,21 +2,47 @@ import Kinieta
 import UIKit
 
 /// A gallery of what Kinieta does: every easing preset on its own track, the
-/// three colour interpolation modes side by side, and a composed timeline.
+/// three colour interpolation modes side by side, a composed timeline, one
+/// handle driven by Pause, Resume and Cancel buttons, a square whose movement
+/// newer animations take over mid-flight, and a view placed by Auto Layout
+/// that animates its constraint.
 final class DemoViewController: UIViewController {
 
     private let stack = UIStackView()
     private var easingTracks: [(easing: Easing, square: UIView, track: UIView)] = []
     private var colourSwatches: [(mode: ColorInterpolation, view: UIView)] = []
     private let darkSwatch = UIView()
+    private let wideSwatch = UIView()
+    private let timelineRow = UIView()
     private var timelineSquares: [UIView] = []
     private let timelineStatus = UILabel()
+    private let reduceMotionStatus = UILabel()
+    private let reduceMotionPicker = UISegmentedControl(items: ["Snap motion", "Snap all"])
     private var running: [Kinieta] = []
+    private let controlsTrack = UIView()
+    private let controlsSquare = UIView()
+    private let controlsStatus = UILabel()
+    private var controlsHandle: Kinieta?
+    private let interruptTrack = UIView()
+    private let interruptSquare = UIView()
+    private let interruptStatus = UILabel()
+    private var interruptHandles: [Kinieta] = []
+    private let autoLayoutTrack = UIView()
+    private let autoLayoutSquare = UIView()
+    private var autoLayoutCentre: NSLayoutConstraint!
+    private var autoLayoutHandle: Kinieta?
+    private lazy var controlButtons: [(title: String, action: Selector)] = [
+        ("Play", #selector(playControls)), ("Pause", #selector(pauseControls)),
+        ("Resume", #selector(resumeControls)), ("Cancel", #selector(cancelControls)),
+    ]
+    private var controlButtonViews: [String: UIButton] = [:]
     private lazy var frameRateButton = UIBarButtonItem(
         title: nil, style: .plain, target: self, action: #selector(toggleFrameRate))
 
     private let pink = UIColor(red: 1.00, green: 0.44, blue: 0.75, alpha: 1.00)
     private let cyan = UIColor(red: 0.00, green: 0.80, blue: 0.90, alpha: 1.00)
+    private let p3Red = UIColor(displayP3Red: 1, green: 0, blue: 0, alpha: 1)
+    private let p3Green = UIColor(displayP3Red: 0, green: 1, blue: 0, alpha: 1)
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -30,6 +56,10 @@ final class DemoViewController: UIViewController {
         navigationItem.leftBarButtonItem = UIBarButtonItem(
             title: "Reset", style: .plain, target: self, action: #selector(reset))
         buildLayout()
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(updateReduceMotionStatus),
+            name: UIAccessibility.reduceMotionStatusDidChangeNotification, object: nil)
+        updateReduceMotionStatus()
     }
 
     override func viewDidAppear(_ animated: Bool) {
@@ -52,8 +82,9 @@ final class DemoViewController: UIViewController {
 
         NSLayoutConstraint.activate([
             scroll.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-            scroll.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            scroll.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            // The safe area keeps the tracks clear of the sensor housing in landscape.
+            scroll.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor),
+            scroll.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor),
             scroll.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             stack.topAnchor.constraint(equalTo: scroll.contentLayoutGuide.topAnchor, constant: 16),
             stack.leadingAnchor.constraint(equalTo: scroll.contentLayoutGuide.leadingAnchor, constant: 20),
@@ -106,22 +137,119 @@ final class DemoViewController: UIViewController {
             darkSwatch.bottomAnchor.constraint(equalTo: panel.bottomAnchor, constant: -6),
         ])
         stack.addArrangedSubview(labelled("lch to .label, dark override", panel))
+        // Both ends are outside sRGB. On a wide-colour display the frames in between
+        // stay as saturated, so there is no jump on the last frame.
+        wideSwatch.backgroundColor = p3Red
+        wideSwatch.layer.cornerRadius = 8
+        wideSwatch.heightAnchor.constraint(equalToConstant: 36).isActive = true
+        stack.addArrangedSubview(labelled("lch, Display P3 red to green", wideSwatch))
 
         addHeader(
             "Timeline", detail: "The first square moves, then the other two move together, then one completion fires.")
-        let row = UIView()
-        row.heightAnchor.constraint(equalToConstant: 44).isActive = true
+        timelineRow.heightAnchor.constraint(equalToConstant: 44).isActive = true
         for i in 0..<3 {
             let square = makeSquare(color: [pink, cyan, .systemIndigo][i])
             square.frame = CGRect(x: 6 + CGFloat(i) * 44, y: 6, width: 32, height: 32)
-            row.addSubview(square)
+            timelineRow.addSubview(square)
             timelineSquares.append(square)
         }
-        stack.addArrangedSubview(row)
+        stack.addArrangedSubview(timelineRow)
         timelineStatus.font = .preferredFont(forTextStyle: .footnote)
         timelineStatus.textColor = .secondaryLabel
         timelineStatus.text = "Idle"
         stack.addArrangedSubview(timelineStatus)
+
+        addHeader(
+            "Controls",
+            detail: "One handle: round the corners, then() move out while a delayed spin and colour change run in "
+                + "parallel(), come back after a delay, repeat twice. The label is set when await finished() returns.")
+        controlsTrack.backgroundColor = .secondarySystemFill
+        controlsTrack.layer.cornerRadius = 8
+        controlsTrack.heightAnchor.constraint(equalToConstant: 44).isActive = true
+        controlsSquare.backgroundColor = pink
+        controlsSquare.layer.cornerRadius = 6
+        controlsSquare.frame = CGRect(x: 6, y: 6, width: 32, height: 32)
+        controlsTrack.addSubview(controlsSquare)
+        stack.addArrangedSubview(controlsTrack)
+        let buttons = UIStackView()
+        buttons.distribution = .fillEqually
+        buttons.spacing = 8
+        for (title, action) in controlButtons {
+            let button = UIButton(configuration: .gray())
+            button.configuration?.title = title
+            button.addTarget(self, action: action, for: .touchUpInside)
+            buttons.addArrangedSubview(button)
+            controlButtonViews[title] = button
+        }
+        stack.addArrangedSubview(buttons)
+        controlsStatus.font = .preferredFont(forTextStyle: .footnote)
+        controlsStatus.textColor = .secondaryLabel
+        controlsStatus.numberOfLines = 0
+        controlsStatus.text = "Idle"
+        stack.addArrangedSubview(controlsStatus)
+        updateControlButtons()
+
+        addHeader(
+            "Interrupting",
+            detail: "Play starts a 3 s move with a colour change. Tap Left or Right while it runs: "
+                + "the new animation takes x over from where the square is, and the colour keeps going.")
+        interruptTrack.backgroundColor = .secondarySystemFill
+        interruptTrack.layer.cornerRadius = 8
+        interruptTrack.heightAnchor.constraint(equalToConstant: 44).isActive = true
+        interruptSquare.backgroundColor = pink
+        interruptSquare.layer.cornerRadius = 6
+        interruptSquare.frame = CGRect(x: 6, y: 6, width: 32, height: 32)
+        interruptTrack.addSubview(interruptSquare)
+        stack.addArrangedSubview(interruptTrack)
+        let directions = UIStackView()
+        directions.distribution = .fillEqually
+        directions.spacing = 8
+        for (title, action) in [("Left", #selector(moveLeft)), ("Right", #selector(moveRight))] {
+            let button = UIButton(configuration: .gray())
+            button.configuration?.title = title
+            button.addTarget(self, action: action, for: .touchUpInside)
+            directions.addArrangedSubview(button)
+        }
+        stack.addArrangedSubview(directions)
+        interruptStatus.font = .preferredFont(forTextStyle: .footnote)
+        interruptStatus.textColor = .secondaryLabel
+        interruptStatus.numberOfLines = 0
+        interruptStatus.text = "Idle"
+        stack.addArrangedSubview(interruptStatus)
+
+        addHeader(
+            "Auto Layout",
+            detail: "The square is centred by a constraint, and .constant animates its constant. "
+                + "Rotate while it plays: the track resizes and the square keeps its place and keeps going.")
+        autoLayoutTrack.backgroundColor = .secondarySystemFill
+        autoLayoutTrack.layer.cornerRadius = 8
+        autoLayoutTrack.heightAnchor.constraint(equalToConstant: 44).isActive = true
+        autoLayoutSquare.backgroundColor = cyan
+        autoLayoutSquare.layer.cornerRadius = 6
+        autoLayoutSquare.layer.shadowColor = UIColor.black.cgColor
+        autoLayoutSquare.layer.shadowOffset = CGSize(width: 0, height: 4)
+        autoLayoutSquare.layer.shadowRadius = 4
+        autoLayoutSquare.translatesAutoresizingMaskIntoConstraints = false
+        autoLayoutTrack.addSubview(autoLayoutSquare)
+        autoLayoutCentre = autoLayoutSquare.centerXAnchor.constraint(equalTo: autoLayoutTrack.centerXAnchor)
+        NSLayoutConstraint.activate([
+            autoLayoutCentre,
+            autoLayoutSquare.centerYAnchor.constraint(equalTo: autoLayoutTrack.centerYAnchor),
+            autoLayoutSquare.widthAnchor.constraint(equalToConstant: 32),
+            autoLayoutSquare.heightAnchor.constraint(equalToConstant: 32),
+        ])
+        stack.addArrangedSubview(labelled(".constant(centreX, to: ±120)", autoLayoutTrack))
+
+        addHeader(
+            "Reduce Motion",
+            detail: "Turn it on in Settings › Accessibility › Motion, then play: the squares jump, "
+                + "while fades and colours still animate unless you pick Snap all.")
+        reduceMotionPicker.addTarget(self, action: #selector(changeReduceMotionBehavior), for: .valueChanged)
+        stack.addArrangedSubview(reduceMotionPicker)
+        reduceMotionStatus.font = .preferredFont(forTextStyle: .footnote)
+        reduceMotionStatus.textColor = .secondaryLabel
+        reduceMotionStatus.numberOfLines = 0
+        stack.addArrangedSubview(reduceMotionStatus)
     }
 
     private func addHeader(_ title: String, detail: String) {
@@ -173,7 +301,24 @@ final class DemoViewController: UIViewController {
     // MARK: Actions
 
     @objc private func playAll() {
-        reset()
+        playGallery()
+        playAutoLayout()
+    }
+
+    /// Everything but the Auto Layout row, which rotation leaves running.
+    ///
+    /// Pressed again while the gallery plays, it starts over from where every
+    /// view is instead of putting them back. The old timelines are cancelled
+    /// first: a newer animation takes a property over, but a later step of an
+    /// old timeline would take it back.
+    private func playGallery() {
+        if running.contains(where: { $0.state == .running || $0.state == .paused }) {
+            for handle in running { handle.cancel() }
+            running.removeAll()
+            resetControls()
+        } else {
+            resetGallery()
+        }
         view.layoutIfNeeded()
         for entry in easingTracks {
             let end = entry.track.bounds.width - 38
@@ -195,7 +340,12 @@ final class DemoViewController: UIViewController {
                 .animate(.background(.label), duration: 1.6)
                 .wait(0.4)
                 .animate(.background(pink), duration: 1.6))
-        let width = view.bounds.width - 40
+        running.append(
+            wideSwatch
+                .animate(.background(p3Green, interpolation: .lch), duration: 1.6)
+                .wait(0.4)
+                .animate(.background(p3Red, interpolation: .lch), duration: 1.6))
+        let width = timelineRow.bounds.width
         let first = timelineSquares[0].animate(.x(width - 38), duration: 1.0).easeInOut(.cubic)
         let second = timelineSquares[1]
             .wait(1.0)
@@ -208,6 +358,150 @@ final class DemoViewController: UIViewController {
             self?.timelineStatus.text = "Done: three timelines, one completion"
         }
         running.append(group)
+        playInterrupt()
+        playControls()
+    }
+
+    // MARK: Interrupting
+
+    /// Cancels the previous run's handles, if any, but leaves the square where it is.
+    private func playInterrupt() {
+        for handle in interruptHandles { handle.cancel() }
+        interruptHandles.removeAll()
+        let end = interruptTrack.bounds.width - 38
+        interruptStatus.text = "Running…"
+        let handle =
+            interruptSquare
+            .animate(.x(end), .background(cyan), duration: 3.0).easeInOut(.sine)
+            .onComplete { [weak self] in
+                self?.interruptStatus.text = "The 3 s animation completed: it kept the colour change to the end"
+            }
+        interruptHandles.append(handle)
+    }
+
+    @objc private func moveLeft() {
+        move(to: 6)
+    }
+
+    @objc private func moveRight() {
+        move(to: interruptTrack.bounds.width - 38)
+    }
+
+    /// Nothing is cancelled: the newest animation of `x` owns it until it ends.
+    private func move(to x: CGFloat) {
+        interruptHandles.removeAll { $0.state == .finished }
+        interruptHandles.append(interruptSquare.animate(.x(x), duration: 0.8).easeOut(.cubic))
+    }
+
+    private func resetInterrupt() {
+        for handle in interruptHandles { handle.cancel() }
+        interruptHandles.removeAll()
+        interruptSquare.frame = CGRect(x: 6, y: 6, width: 32, height: 32)
+        interruptSquare.backgroundColor = pink
+        interruptStatus.text = "Idle"
+    }
+
+    // MARK: Auto Layout
+
+    /// Swings the square right, left and back to the centre by animating the
+    /// constant of the constraint that centres it. The offsets do not depend
+    /// on the track's width, so the timeline stays valid through rotation.
+    private func playAutoLayout() {
+        resetAutoLayout()
+        autoLayoutHandle =
+            autoLayoutSquare
+            .animate(.constant(autoLayoutCentre, to: 120), .custom(\.layer.shadowOpacity, to: 0.35), duration: 1.2)
+            .easeInOut(.cubic)
+            .animate(.constant(autoLayoutCentre, to: -120), duration: 1.6).easeInOut(.cubic)
+            .animate(.constant(autoLayoutCentre, to: 0), .custom(\.layer.shadowOpacity, to: 0), duration: 1.2)
+            .easeOut(.back)
+    }
+
+    private func resetAutoLayout() {
+        autoLayoutHandle?.cancel()
+        autoLayoutHandle = nil
+        autoLayoutCentre.constant = 0
+        autoLayoutSquare.layer.shadowOpacity = 0
+    }
+
+    // MARK: Controls
+
+    @objc private func playControls() {
+        resetControls()
+        view.layoutIfNeeded()
+        let end = controlsTrack.bounds.width - 38
+        let handle =
+            controlsSquare
+            .animate(.cornerRadius(16), duration: 0.3)
+            .then()
+            .animate(.x(end), duration: 1.2).easeInOut(.cubic)
+            .animate(.rotation(degrees: 180), .background(cyan), duration: 0.6).delay(0.6)
+            .parallel()
+            .animate(.x(6), .rotation(degrees: 0), .background(pink), .cornerRadius(6), duration: 1.2)
+            .easeInOut(.cubic).delay(0.4)
+            .repeat(times: 2)
+        controlsHandle = handle
+        controlsStatus.text = "Running…"
+        updateControlButtons()
+        Task { [weak self] in
+            await handle.finished()
+            // A newer Play replaced this handle; its own task reports on it.
+            guard let self, self.controlsHandle === handle else { return }
+            self.controlsStatus.text =
+                handle.state == .cancelled
+                ? "await finished() returned: cancelled, the square stays where it stopped"
+                : "await finished() returned: finished, three round trips"
+            self.updateControlButtons()
+        }
+    }
+
+    @objc private func pauseControls() {
+        controlsHandle?.pause()
+        controlsStatus.text = "Paused"
+        updateControlButtons()
+    }
+
+    @objc private func resumeControls() {
+        controlsHandle?.resume()
+        controlsStatus.text = "Running…"
+        updateControlButtons()
+    }
+
+    /// `finished()` returns once the handle is cancelled, so the task started
+    /// by Play updates the label.
+    @objc private func cancelControls() {
+        controlsHandle?.cancel()
+    }
+
+    private func updateControlButtons() {
+        let state = controlsHandle?.state
+        controlButtonViews["Pause"]?.isEnabled = state == .running
+        controlButtonViews["Resume"]?.isEnabled = state == .paused
+        controlButtonViews["Cancel"]?.isEnabled = state == .running || state == .paused
+    }
+
+    // MARK: Rotation
+
+    /// Targets are computed from the track widths when Play is pressed, so a
+    /// size change would leave squares short of or past the new track end.
+    /// Kinieta sets frames directly and Auto Layout does not correct them:
+    /// cancel, put everything back, and replay at the new size what was playing.
+    /// The Auto Layout row is left alone: its constraint keeps it in place.
+    override func viewWillTransition(to size: CGSize, with coordinator: any UIViewControllerTransitionCoordinator) {
+        super.viewWillTransition(to: size, with: coordinator)
+        let galleryWasPlaying = running.contains { $0.state == .running || $0.state == .paused }
+        let controlsState = controlsHandle?.state
+        resetGallery()
+        coordinator.animate(alongsideTransition: nil) { [weak self] _ in
+            guard let self else { return }
+            if galleryWasPlaying {
+                self.playGallery()
+                if controlsState != .running && controlsState != .paused { self.resetControls() }
+            } else if controlsState == .running || controlsState == .paused {
+                self.playControls()
+            }
+            if controlsState == .paused { self.pauseControls() }
+        }
     }
 
     /// Switches the engine between at most 60 Hz and up to 120 Hz. It takes
@@ -223,7 +517,32 @@ final class DemoViewController: UIViewController {
         frameRateButton.title = Engine.shared.preferredFrameRateRange.maximum <= 60 ? "60 Hz" : "120 Hz"
     }
 
+    /// Picks which properties snap under Reduce Motion. It applies to animations
+    /// that start afterwards, so it takes effect on the next Play.
+    @objc private func changeReduceMotionBehavior() {
+        Engine.shared.reduceMotionBehavior = reduceMotionPicker.selectedSegmentIndex == 1 ? .snapAll : .snapMotion
+        updateReduceMotionStatus()
+    }
+
+    @objc private func updateReduceMotionStatus() {
+        let snapsAll = Engine.shared.reduceMotionBehavior == .snapAll
+        reduceMotionPicker.selectedSegmentIndex = snapsAll ? 1 : 0
+        guard UIAccessibility.isReduceMotionEnabled, Engine.shared.respectsReduceMotion else {
+            reduceMotionStatus.text = "Reduce Motion is off: everything animates."
+            return
+        }
+        reduceMotionStatus.text =
+            snapsAll
+            ? "Reduce Motion is on: every property snaps to its end state."
+            : "Reduce Motion is on: movement snaps, fades and colours still animate."
+    }
+
     @objc private func reset() {
+        resetGallery()
+        resetAutoLayout()
+    }
+
+    private func resetGallery() {
         for handle in running { handle.cancel() }
         running.removeAll()
         for entry in easingTracks {
@@ -233,10 +552,25 @@ final class DemoViewController: UIViewController {
         }
         for swatch in colourSwatches { swatch.view.backgroundColor = pink }
         darkSwatch.backgroundColor = pink
+        wideSwatch.backgroundColor = p3Red
         for (i, square) in timelineSquares.enumerated() {
             square.frame = CGRect(x: 6 + CGFloat(i) * 44, y: 6, width: 32, height: 32)
             square.alpha = 1
         }
         timelineStatus.text = "Idle"
+        resetInterrupt()
+        resetControls()
+    }
+
+    private func resetControls() {
+        let handle = controlsHandle
+        controlsHandle = nil
+        handle?.cancel()
+        controlsSquare.transform = .identity
+        controlsSquare.frame = CGRect(x: 6, y: 6, width: 32, height: 32)
+        controlsSquare.backgroundColor = pink
+        controlsSquare.layer.cornerRadius = 6
+        controlsStatus.text = "Idle"
+        updateControlButtons()
     }
 }

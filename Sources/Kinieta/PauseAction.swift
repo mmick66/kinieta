@@ -1,6 +1,6 @@
 // Kinieta — MIT License. See LICENSE.
 
-#if canImport(UIKit)
+#if canImport(UIKit) || os(macOS)
 import Foundation
 
 /// Does nothing for a while.
@@ -8,13 +8,17 @@ import Foundation
 final class PauseAction: Action {
 
     let duration: TimeInterval
-    let completion: Block?
+    let completion: Kinieta.Completion?
     private var elapsed: TimeInterval = 0
 
     /// A wait of `.infinity` never ends, so no frame can advance it.
     var isIdle: Bool { duration == .infinity }
 
-    init(_ duration: TimeInterval, completion: Block?) {
+    /// Only cancelling its timeline ends a wait of `.infinity`, and the
+    /// timeline's sequence checks for a handle that can do that.
+    var isAbandoned: Bool { isIdle }
+
+    init(_ duration: TimeInterval, completion: Kinieta.Completion?) {
         self.duration = duration
         self.completion = completion
     }

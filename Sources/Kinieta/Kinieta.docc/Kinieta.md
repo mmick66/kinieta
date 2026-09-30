@@ -2,6 +2,14 @@
 
 A timeline animation engine for UIKit with a typed, chainable API.
 
+@Metadata {
+    @Available(iOS, introduced: "17.0")
+    @Available("Mac Catalyst", introduced: "17.0")
+    @Available(tvOS, introduced: "17.0")
+    @Available(visionOS, introduced: "1.0")
+    @Available(macOS, introduced: "14.0")
+}
+
 ## Overview
 
 Kinieta animates `UIView` properties on a display link and composes those
@@ -25,6 +33,20 @@ Colours interpolate through the perceptual LCH space by default, so a
 transition from pink to cyan never passes through grey. Easing curves are cubic
 Béziers with the same semantics as CSS and cubic-bezier.com.
 
+### Platforms
+
+Kinieta animates `UIView` on iOS, tvOS and Mac Catalyst 17 and later, and on
+visionOS 1 and later. On native macOS 14 and later, support for `NSView` is
+experimental: the same timeline API and the same properties, with geometry in
+the superview's coordinates, from the bottom left unless the superview is
+flipped. `.rotation` sets `frameRotation` about the view's centre, and the
+layer properties, such as ``Property/background(_:interpolation:)`` and
+``Property/cornerRadius(_:)``, give a view without a layer one. Where a
+signature names the view or colour type, such as
+``Property/custom(_:to:isMotion:)-(ReferenceWritableKeyPath<Root,Value>,_,_)``,
+this documentation shows the platform it was built for: AppKit has the same
+API with `NSView` and `NSColor` where UIKit has `UIView` and `UIColor`.
+
 ## Topics
 
 ### Starting a timeline
@@ -38,6 +60,16 @@ as zero.
 
 - ``Property``
 
+### Animating anything else
+
+``Property/custom(_:to:isMotion:)-(ReferenceWritableKeyPath<Root,Value>,_,_)`` animates any
+writable key path of a view to an ``Interpolatable`` value, and
+``Property/constant(_:to:)`` animates an Auto Layout constraint's constant,
+laying out its views every frame so a constrained view does not snap back.
+
+- ``Interpolatable``
+- ``CustomProperty``
+
 ### Shaping it
 
 - ``Kinieta``
@@ -45,11 +77,47 @@ as zero.
 - ``Bezier``
 - ``ColorInterpolation``
 
+### Controlling it
+
+A newer animation of a property takes it over from an older one still running
+on the same view, starting from the value on screen. The older animation stops
+writing that property, keeps animating the rest and runs its completion block
+when its duration ends. `.frame` counts as `.x`, `.y`, `.width` and `.height`,
+and a key path to the view's `transform` counts as `.rotation`.
+
+- ``Kinieta/State``
+- ``Kinieta/state``
+
 ### Engine settings
 
 - ``Engine``
+- ``Engine/shared``
+- ``Engine/colorInterpolation``
 - ``Engine/preferredFrameRateRange``
 - ``Engine/defaultFrameRateRange``
+
+### Reduce Motion
+
+When the user has Reduce Motion on, position, size, rotation, constraint
+constants, transforms and key paths marked `isMotion` snap to their end state, while
+opacity, colours, border width, corner radius and other key paths still animate
+over the full duration, so fades and colour changes keep giving feedback.
+Completion blocks run and pauses keep their duration, so a timeline's timing is
+unchanged.
+
+- ``Engine/reduceMotionBehavior``
+- ``ReduceMotionBehavior``
+- ``Engine/respectsReduceMotion``
+
+### Name clashes
+
+The module and its main class share the name `Kinieta`, so `Kinieta.Property`
+names a member of the class. The class nests each of the library's types under
+the same name, so a module with its own `Property`, `Easing` or `Engine` can
+still write `Kinieta.Property`, `Kinieta.Easing` and `Kinieta.Engine`.
+
+- ``Kinieta/Completion``
+- ``Block``
 
 ### Migrating
 
