@@ -7,7 +7,7 @@
 A timeline animation engine for UIKit with a typed, chainable API.
 
 - **Timelines.** Animations run one after another, side by side, or grouped across views with a single completion.
-- **Typed properties.** `.x(250)`, `.background(.systemPink)`, `.rotation(degrees: 30)`. Wrong types are compile errors. Anything else through a key path, `.custom(\.layer.shadowOpacity, to: 0.4)`, or an Auto Layout constraint, `.constant(leading, to: 120)`.
+- **Typed properties.** `.x(250)`, `.background(.systemPink)`, `.rotation(degrees: 30)`. Wrong types are compile errors. Anything else through a key path, `.custom(\.layer.shadowOpacity, to: 0.4)`, or an Auto Layout constraint, `.constant(of: leading, to: 120)`.
 - **Real easing.** Cubic Bézier curves with the same semantics as CSS and cubic-bezier.com, plus presets from sine to back.
 - **Perceptual colour.** Colours interpolate through LCH by default, so pink to cyan never passes through grey.
 - **Handles.** Every timeline can be cancelled, paused, resumed or awaited.
@@ -74,14 +74,14 @@ view.animate(.frame(target), .alpha(0), duration: 0.3)
 | `.cornerRadius` | `CGFloat` in points | `layer.cornerRadius` |
 | `.custom(keyPath, to:)` | any `Interpolatable` | the view's key path; see [Custom properties](#custom-properties) |
 | `.custom(\.transform, to:)` | `CGAffineTransform` | `transform` as a whole, decomposed into translation, rotation, scale and shear |
-| `.constant(constraint, to:)` | `CGFloat` in points | an `NSLayoutConstraint`'s `constant`, laying out its views each frame |
+| `.constant(of: constraint, to:)` | `CGFloat` in points | an `NSLayoutConstraint`'s `constant`, laying out its views each frame |
 
 Position and size, `.frame` included, are interpolated through `center` and `bounds`, so they stay correct while a rotation is applied: on a rotated view `.frame` sets the rect it would occupy unrotated, not UIKit's bounding-box `frame`. Rotation is not wrapped: after `.rotation(degrees: 720)`, animating to `810` turns a quarter, and going from `270` to `360` turns 90°, not 450°. Sizes, border width and corner radius never go below zero, even with an overshooting curve.
 
 **Auto Layout.** `.x`, `.y`, `.width`, `.height` and `.frame` set geometry directly, so a view positioned by constraints snaps back on the next layout pass, which device rotation, size class changes and the keyboard all trigger. For a constrained view, animate the constraint instead:
 
 ```swift
-badge.animate(.constant(badgeLeading, to: 120), duration: 0.5).easeOut(.back)
+badge.animate(.constant(of: badgeLeading, to: 120), duration: 0.5).easeOut(.back)
 ```
 
 Each frame sets the constant and calls `layoutIfNeeded()` on the nearest common superview of the constraint's views (the view's superview for a width or height constraint), so the view moves with its constraints and stays where the animation leaves it. The constraint is held weakly; if it is gone when the animation starts, the property is skipped.

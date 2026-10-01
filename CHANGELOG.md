@@ -40,7 +40,7 @@ All notable changes to Kinieta are documented here. The format follows
   paths rooted in `NSView` or a subclass, such as `\.layer!.shadowOpacity` or
   `\NSBox.fillColor`, with colours interpolated like `.background`; a key path
   to `frameRotation` or `frameCenterRotation` shares `.rotation`'s key and
-  counts as motion. `Property.constant(_:to:)` animates a constraint's constant
+  counts as motion. `Property.constant(of:to:)` animates a constraint's constant
   with `layoutSubtreeIfNeeded()` on every frame. See "macOS (experimental)" in
   the README.
 - The podspec declares macOS 14, and the example project has a
@@ -62,7 +62,7 @@ All notable changes to Kinieta are documented here. The format follows
   `\UILabel.textColor`, to an `Interpolatable` value. Colours go through the
   engine's colour interpolation like `.background`. Pass `isMotion: true` to
   snap it under Reduce Motion.
-- `Property.constant(_:to:)` animates an `NSLayoutConstraint`'s constant and
+- `Property.constant(of:to:)` animates an `NSLayoutConstraint`'s constant and
   lays out the constraint's views every frame, so a view placed by Auto Layout
   can animate without snapping back on the next layout pass. It snaps under
   Reduce Motion. The example app has an Auto Layout row that keeps playing

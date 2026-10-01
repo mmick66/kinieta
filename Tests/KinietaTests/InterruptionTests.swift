@@ -168,9 +168,9 @@ struct InterruptionTests {
         container.addSubview(label)
         let width = badge.widthAnchor.constraint(equalToConstant: 0)
         width.isActive = true
-        badge.animate(.constant(width, to: 100), duration: 1)
+        badge.animate(.constant(of: width, to: 100), duration: 1)
         frames.step(0.5)
-        label.animate(.constant(width, to: 0), duration: 1)
+        label.animate(.constant(of: width, to: 0), duration: 1)
         frames.step(0.25)
         #expect(approx(width.constant, 37.5))
         frames.step(0.75)

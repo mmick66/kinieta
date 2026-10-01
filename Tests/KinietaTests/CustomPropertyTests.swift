@@ -330,7 +330,7 @@ struct CustomPropertyTests {
         let frames = ManualFrameDriver.install()
         defer { frames.uninstall() }
         let (container, child, leading) = constrainedChild()
-        let handle = child.animate(.constant(leading, to: 110), duration: 1)
+        let handle = child.animate(.constant(of: leading, to: 110), duration: 1)
         frames.step(0.5)
         // Laid out on the frame itself, not on the next layout pass.
         #expect(child.frame.minX == 60)
@@ -376,7 +376,7 @@ struct CustomPropertyTests {
         defer { frames.uninstall() }
         let view = UIView()
         let property: Property = autoreleasepool {
-            .constant(view.widthAnchor.constraint(equalToConstant: 10), to: 20)
+            .constant(of: view.widthAnchor.constraint(equalToConstant: 10), to: 20)
         }
         let handle = view.animate(property, .alpha(0), duration: 1)
         frames.step(1)
@@ -395,13 +395,13 @@ struct CustomPropertyTests {
         let (container, child, leading) = constrainedChild()
         defer { withExtendedLifetime(container) {} }
         child.animate(
-            .constant(leading, to: 110), .custom(\.alpha, to: 0),
+            .constant(of: leading, to: 110), .custom(\.alpha, to: 0),
             .custom(\.layer.shadowOffset, to: CGSize(width: 10, height: 10), isMotion: true), duration: 1)
         frames.step(0.5)
         #expect(leading.constant == 110)
         #expect(child.layer.shadowOffset == CGSize(width: 10, height: 10))
         #expect(approx(child.alpha, 0.5))
-        #expect(Property.constant(leading, to: 0).isMotion)
+        #expect(Property.constant(of: leading, to: 0).isMotion)
         #expect(!Property.custom(\.alpha, to: 0).isMotion)
     }
 

@@ -248,7 +248,7 @@ final class DemoViewController: UIViewController {
             autoLayoutSquare.widthAnchor.constraint(equalToConstant: 32),
             autoLayoutSquare.heightAnchor.constraint(equalToConstant: 32),
         ])
-        stack.addArrangedSubview(labelled(".constant(centreX, to: ±120)", autoLayoutTrack))
+        stack.addArrangedSubview(labelled(".constant(of: centreX, to: ±120)", autoLayoutTrack))
 
         addHeader(
             "Reduce Motion",
@@ -420,10 +420,10 @@ final class DemoViewController: UIViewController {
         resetAutoLayout()
         autoLayoutHandle =
             autoLayoutSquare
-            .animate(.constant(autoLayoutCentre, to: 120), .custom(\.layer.shadowOpacity, to: 0.35), duration: 1.2)
+            .animate(.constant(of: autoLayoutCentre, to: 120), .custom(\.layer.shadowOpacity, to: 0.35), duration: 1.2)
             .easeInOut(.cubic)
-            .animate(.constant(autoLayoutCentre, to: -120), duration: 1.6).easeInOut(.cubic)
-            .animate(.constant(autoLayoutCentre, to: 0), .custom(\.layer.shadowOpacity, to: 0), duration: 1.2)
+            .animate(.constant(of: autoLayoutCentre, to: -120), duration: 1.6).easeInOut(.cubic)
+            .animate(.constant(of: autoLayoutCentre, to: 0), .custom(\.layer.shadowOpacity, to: 0), duration: 1.2)
             .easeOut(.back)
     }
 

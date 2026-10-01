@@ -12,7 +12,7 @@ import os
 /// A property Kinieta has no case for: a key path or a constraint constant.
 ///
 /// Make one with ``Property/custom(_:to:isMotion:)-(ReferenceWritableKeyPath<Root,Value>,_,_)``
-/// or ``Property/constant(_:to:)``; it has no public members.
+/// or ``Property/constant(of:to:)``; it has no public members.
 ///
 /// Unchecked `Sendable`: every stored value is immutable, and the key path or
 /// constraint it captures is only read and written on the main actor, when
@@ -204,7 +204,7 @@ public extension Property {
     /// constraint's views on every frame.
     ///
     /// ```swift
-    /// badge.animate(.constant(badgeLeading, to: 120), duration: 0.5)
+    /// badge.animate(.constant(of: badgeLeading, to: 120), duration: 0.5)
     /// ```
     ///
     /// Unlike `.x` or `.frame`, the change survives the next layout pass, so a
@@ -220,7 +220,7 @@ public extension Property {
     /// The constraint is held weakly, and counts as motion: it snaps under
     /// Reduce Motion.
     @MainActor
-    static func constant(_ constraint: NSLayoutConstraint, to value: CGFloat) -> Property {
+    static func constant(of constraint: NSLayoutConstraint, to value: CGFloat) -> Property {
         let identifier = ObjectIdentifier(constraint)
         let name = "constant(\(constraint.identifier ?? "\(identifier)"))"
         return .extended(

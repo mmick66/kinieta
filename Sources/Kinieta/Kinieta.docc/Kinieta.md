@@ -64,7 +64,7 @@ as zero.
 
 ``Property/custom(_:to:isMotion:)-(ReferenceWritableKeyPath<Root,Value>,_,_)`` animates any
 writable key path of a view to an ``Interpolatable`` value, and
-``Property/constant(_:to:)`` animates an Auto Layout constraint's constant,
+``Property/constant(of:to:)`` animates an Auto Layout constraint's constant,
 laying out its views every frame so a constrained view does not snap back.
 
 - ``Interpolatable``

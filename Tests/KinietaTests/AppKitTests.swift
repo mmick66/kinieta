@@ -527,7 +527,7 @@ struct AppKitTests {
         let frames = ManualFrameDriver.install()
         defer { frames.uninstall() }
         let (container, child, leading) = constrainedChild()
-        let handle = child.animate(.constant(leading, to: 110), duration: 1)
+        let handle = child.animate(.constant(of: leading, to: 110), duration: 1)
         frames.step(0.5)
         // Laid out on the frame itself, not on the next layout pass.
         #expect(child.frame.minX == 60)
@@ -537,7 +537,7 @@ struct AppKitTests {
         container.layoutSubtreeIfNeeded()
         #expect(leading.constant == 110)
         #expect(child.frame.minX == 110)
-        #expect(Property.constant(leading, to: 0).isMotion)
+        #expect(Property.constant(of: leading, to: 0).isMotion)
     }
 
     @Test func constraintConstantsLayOutTheNearestCommonSuperview() {
@@ -561,7 +561,7 @@ struct AppKitTests {
         defer { frames.uninstall() }
         let view = makeView()
         let property: Kinieta.Property = autoreleasepool {
-            .constant(view.widthAnchor.constraint(equalToConstant: 10), to: 20)
+            .constant(of: view.widthAnchor.constraint(equalToConstant: 10), to: 20)
         }
         #expect(property.name.hasPrefix("constant("))
         let handle = view.animate(property, .alpha(0), duration: 1)

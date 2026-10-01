@@ -23,7 +23,7 @@ public enum ColorInterpolation: Sendable, Equatable {
 ///
 /// Beyond the built-in cases, ``custom(_:to:isMotion:)-(ReferenceWritableKeyPath<Root,Value>,_,_)``
 /// animates any writable key path to an ``Interpolatable`` value, and
-/// ``constant(_:to:)`` animates an Auto Layout constraint's constant.
+/// ``constant(of:to:)`` animates an Auto Layout constraint's constant.
 public enum Property: Sendable {
     case x(CGFloat)
     case y(CGFloat)
@@ -53,7 +53,7 @@ public enum Property: Sendable {
     /// The layer's `cornerRadius`. On AppKit a view without a layer is given one.
     case cornerRadius(CGFloat)
     /// A key path or constraint constant. Make one with
-    /// ``custom(_:to:isMotion:)-(ReferenceWritableKeyPath<Root,Value>,_,_)`` or ``constant(_:to:)``.
+    /// ``custom(_:to:isMotion:)-(ReferenceWritableKeyPath<Root,Value>,_,_)`` or ``constant(of:to:)``.
     case extended(CustomProperty)
 
     /// Identifies a property regardless of value. When the same property is
