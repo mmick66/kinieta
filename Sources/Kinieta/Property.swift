@@ -24,12 +24,25 @@ public enum ColorInterpolation: Sendable, Equatable {
 /// Beyond the built-in cases, ``custom(_:to:isMotion:)-(ReferenceWritableKeyPath<Root,Value>,_,_)``
 /// animates any writable key path to an ``Interpolatable`` value, and
 /// ``constant(of:to:)`` animates an Auto Layout constraint's constant.
+///
+/// Positions and sizes are in points, in the superview's coordinate space, and
+/// describe the frame the view has before it is rotated: on UIKit they go
+/// through `center` and `bounds`, on AppKit through the unrotated frame about
+/// its centre. With no rotation they are exactly the view's `frame`.
 public enum Property: Sendable {
+    /// The frame's horizontal origin, in points.
     case x(CGFloat)
+    /// The frame's vertical origin, in points. On AppKit it is the bottom edge
+    /// unless the superview is flipped.
     case y(CGFloat)
+    /// The width, in points. The origin stays where it is.
     case width(CGFloat)
+    /// The height, in points. The origin stays where it is.
     case height(CGFloat)
+    /// The origin and size together, in points: `.x`, `.y`, `.width` and
+    /// `.height` in one, each of which a later animation can take over on its own.
     case frame(CGRect)
+    /// The opacity, from 0 to 1: `alpha` on UIKit, `alphaValue` on AppKit.
     case alpha(CGFloat)
     /// Rotation about the view's centre, in degrees. Starts from the angle the
     /// view was last rotated to, unwrapped. On UIKit it keeps any scale in the
@@ -38,14 +51,18 @@ public enum Property: Sendable {
     /// flipped.
     case rotation(degrees: CGFloat)
     #if canImport(UIKit)
+    /// The view's `backgroundColor`, clear when it has none.
     /// `interpolation` overrides `Engine.shared.colorInterpolation` for this property.
     case background(UIColor, interpolation: ColorInterpolation? = nil)
+    /// The layer's `borderColor`, clear when it has none.
+    /// `interpolation` overrides `Engine.shared.colorInterpolation` for this property.
     case borderColor(UIColor, interpolation: ColorInterpolation? = nil)
     #else
     /// The layer's `backgroundColor`; a view without a layer is given one.
     /// `interpolation` overrides `Engine.shared.colorInterpolation` for this property.
     case background(NSColor, interpolation: ColorInterpolation? = nil)
     /// The layer's `borderColor`; a view without a layer is given one.
+    /// `interpolation` overrides `Engine.shared.colorInterpolation` for this property.
     case borderColor(NSColor, interpolation: ColorInterpolation? = nil)
     #endif
     /// The layer's `borderWidth`. On AppKit a view without a layer is given one.

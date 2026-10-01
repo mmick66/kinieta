@@ -60,6 +60,9 @@ public enum ReduceMotionBehavior: Sendable, Equatable {
     case snapAll
 }
 
+/// The clock that advances every timeline, frame by frame, and the settings
+/// they share: colour interpolation, Reduce Motion and the frame rate range.
+/// Use the one ``shared`` instance.
 @MainActor
 public final class Engine {
 
@@ -295,17 +298,17 @@ public final class Engine {
     /// everything, as Kinieta 1.0 did. Read when each animation starts.
     public var reduceMotionBehavior: ReduceMotionBehavior = .snapMotion
 
-    /// The default ``preferredFrameRateRange``: 120 Hz where the display offers
-    /// it, but the system may go as low as 30 Hz to save power or under
-    /// thermal pressure.
-    ///
-    /// On visionOS it is 30–100 Hz preferring 90. The display runs at 90 Hz
-    /// and switches to 96 or 100 Hz to match video; a 100 Hz maximum keeps
-    /// animations at the full display rate in those modes rather than halving
-    /// it to stay under 90.
+    // The value differs by platform; a doc comment must sit inside the `#if` to attach.
     #if os(visionOS)
+    /// The default ``preferredFrameRateRange``: 30–100 Hz preferring 90. The
+    /// display runs at 90 Hz and switches to 96 or 100 Hz to match video; a
+    /// 100 Hz maximum keeps animations at the full display rate in those modes
+    /// rather than halving it to stay under 90.
     public static let defaultFrameRateRange = CAFrameRateRange(minimum: 30, maximum: 100, preferred: 90)
     #else
+    /// The default ``preferredFrameRateRange``: 120 Hz where the display offers
+    /// it, but the system may go as low as 30 Hz to save power or under
+    /// thermal pressure. On visionOS it is 30–100 Hz preferring 90.
     public static let defaultFrameRateRange = CAFrameRateRange(minimum: 30, maximum: 120, preferred: 120)
     #endif
 

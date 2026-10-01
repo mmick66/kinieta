@@ -18,6 +18,8 @@ public extension PlatformView {
         Kinieta(view: self).animate(properties, duration: duration)
     }
 
+    /// Starts a timeline that animates `properties` over `duration` seconds.
+    /// Same as ``animate(_:duration:)-(Property...,_)`` with an array.
     @discardableResult
     func animate(_ properties: [Property], duration: TimeInterval = 0) -> Kinieta {
         Kinieta(view: self).animate(properties, duration: duration)

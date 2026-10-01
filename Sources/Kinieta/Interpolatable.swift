@@ -37,6 +37,7 @@ public protocol Interpolatable {
 }
 
 extension CGFloat: Interpolatable {
+    /// The value `progress` of the way to `target`, along a straight line.
     /// Exactly `target` at progress 1, which `self + (target - self) * progress` is not.
     public func interpolated(to target: CGFloat, progress: CGFloat) -> CGFloat {
         (1 - progress) * self + progress * target
@@ -44,6 +45,7 @@ extension CGFloat: Interpolatable {
 }
 
 extension Double: Interpolatable {
+    /// The value `progress` of the way to `target`, along a straight line, like `CGFloat`.
     public func interpolated(to target: Double, progress: CGFloat) -> Double {
         let t = Double(progress)
         return (1 - t) * self + t * target
@@ -51,6 +53,7 @@ extension Double: Interpolatable {
 }
 
 extension Float: Interpolatable {
+    /// The value `progress` of the way to `target`, along a straight line, like `CGFloat`.
     public func interpolated(to target: Float, progress: CGFloat) -> Float {
         let t = Float(progress)
         return (1 - t) * self + t * target
@@ -58,6 +61,7 @@ extension Float: Interpolatable {
 }
 
 extension CGPoint: Interpolatable {
+    /// The point `progress` of the way to `target`, along a straight line.
     public func interpolated(to target: CGPoint, progress: CGFloat) -> CGPoint {
         CGPoint(
             x: x.interpolated(to: target.x, progress: progress),
@@ -66,6 +70,7 @@ extension CGPoint: Interpolatable {
 }
 
 extension CGSize: Interpolatable {
+    /// The size `progress` of the way to `target`, width and height each linearly.
     public func interpolated(to target: CGSize, progress: CGFloat) -> CGSize {
         CGSize(
             width: width.interpolated(to: target.width, progress: progress),
@@ -74,6 +79,7 @@ extension CGSize: Interpolatable {
 }
 
 extension CGRect: Interpolatable {
+    /// The rectangle `progress` of the way to `target`.
     /// Origin and size separately, as given: neither end is standardised.
     public func interpolated(to target: CGRect, progress: CGFloat) -> CGRect {
         CGRect(

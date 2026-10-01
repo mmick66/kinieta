@@ -35,7 +35,9 @@ public struct Bezier: Sendable, Equatable {
 
     /// A control point of the curve: `x` is time and `y` is progress.
     public struct Point: Sendable, Equatable, CustomStringConvertible {
+        /// The time coordinate.
         public let x: Double
+        /// The progress coordinate.
         public let y: Double
 
         /// Creates a point at time `x` and progress `y`.
@@ -44,6 +46,7 @@ public struct Bezier: Sendable, Equatable {
             self.y = y
         }
 
+        /// Creates a point at (`x`, `y`), the origin by default.
         @available(*, deprecated, renamed: "init(x:y:)", message: "Removed in Kinieta 2.0.")
         public init(_ x: Double = 0, _ y: Double = 0) {
             self.init(x: x, y: y)
@@ -52,12 +55,17 @@ public struct Bezier: Sendable, Equatable {
         static let zero = Point(x: 0, y: 0)
         static func * (lhs: Double, rhs: Point) -> Point { Point(x: lhs * rhs.x, y: lhs * rhs.y) }
         static func + (lhs: Point, rhs: Point) -> Point { Point(x: lhs.x + rhs.x, y: lhs.y + rhs.y) }
+        /// The point as `(x: 0.25, y: 0.1)`.
         public var description: String { "(x: \(x), y: \(y))" }
     }
 
+    /// The start point, always (0, 0).
     public let p0 = Point(x: 0, y: 0)
+    /// The first inner control point, which shapes the start of the curve.
     public let p1: Point
+    /// The second inner control point, which shapes the end of the curve.
     public let p2: Point
+    /// The end point, always (1, 1).
     public let p3 = Point(x: 1, y: 1)
 
     let points: [Point]
@@ -78,6 +86,7 @@ public struct Bezier: Sendable, Equatable {
         points = baked
     }
 
+    /// Whether two curves have the same inner control points, after clamping.
     public static func == (lhs: Bezier, rhs: Bezier) -> Bool {
         lhs.p1 == rhs.p1 && lhs.p2 == rhs.p2
     }

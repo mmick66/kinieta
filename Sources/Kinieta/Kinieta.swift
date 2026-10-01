@@ -66,7 +66,9 @@ public final class Kinieta {
     /// The timeline's current state.
     public private(set) var state: State = .running
 
+    /// Whether ``state`` is ``State/running``.
     public var isRunning: Bool { state == .running }
+    /// Whether ``state`` is ``State/paused``.
     public var isPaused: Bool { state == .paused }
 
     /// The running instance. Its queue is the timeline.
@@ -156,6 +158,8 @@ public final class Kinieta {
         animate(properties, duration: duration, file: file, line: line)
     }
 
+    /// Animates `properties` to their values over `duration` seconds. Same as
+    /// ``animate(_:duration:file:line:)-(Property...,_,_,_)`` with an array.
     @discardableResult
     public func animate(
         _ properties: [Property], duration: TimeInterval = 0, file: StaticString = #fileID, line: UInt = #line
@@ -423,16 +427,25 @@ public final class Kinieta {
         return self
     }
 
+    /// Applies ``Easing/in(_:)`` with `curve` to the previous animation: it
+    /// starts slowly and accelerates. The default `.quad` is a gentle curve;
+    /// see ``easing(_:file:line:)`` for when this does nothing.
     @discardableResult
     public func easeIn(_ curve: Easing.Curve = .quad, file: StaticString = #fileID, line: UInt = #line) -> Kinieta {
         easing(.in(curve), file: file, line: line)
     }
 
+    /// Applies ``Easing/out(_:)`` with `curve` to the previous animation: it
+    /// starts fast and decelerates. The default `.quad` is a gentle curve;
+    /// see ``easing(_:file:line:)`` for when this does nothing.
     @discardableResult
     public func easeOut(_ curve: Easing.Curve = .quad, file: StaticString = #fileID, line: UInt = #line) -> Kinieta {
         easing(.out(curve), file: file, line: line)
     }
 
+    /// Applies ``Easing/inOut(_:)`` with `curve` to the previous animation: it
+    /// eases at both ends. The default `.quad` is a gentle curve;
+    /// see ``easing(_:file:line:)`` for when this does nothing.
     @discardableResult
     public func easeInOut(_ curve: Easing.Curve = .quad, file: StaticString = #fileID, line: UInt = #line) -> Kinieta {
         easing(.inOut(curve), file: file, line: line)
@@ -592,6 +605,8 @@ public final class Kinieta {
         return handle
     }
 
+    /// Runs several timelines together and returns one handle for all of them.
+    /// Same as ``group(_:completion:)-([Kinieta],_)`` with a variadic list.
     @discardableResult
     public static func group(_ handles: Kinieta..., completion: Completion? = nil) -> Kinieta {
         group(handles, completion: completion)

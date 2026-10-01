@@ -12,12 +12,20 @@ public struct Easing: Sendable, Equatable {
     /// The shape of an easing. Each shape comes in `in`, `out` and `inOut`
     /// placements. For your own curve use ``Easing/custom(_:)``.
     public enum Curve: Sendable, Equatable {
+        /// A sine curve: the gentlest of the presets.
         case sine
+        /// A quadratic curve. The default for every placement.
         case quad
+        /// A cubic curve, steeper than `quad`.
         case cubic
+        /// A quartic curve, steeper than `cubic`.
         case quart
+        /// A quintic curve, steeper than `quart`.
         case quint
+        /// An exponential curve: the steepest of the presets.
         case expo
+        /// A curve that overshoots: it pulls back before it starts, goes past
+        /// the target before it settles, or both, depending on the placement.
         case back
         /// Uses the Bézier as given, whatever the placement: `.in(.custom(b))`,
         /// `.out(.custom(b))` and `.inOut(.custom(b))` are all the same curve.
