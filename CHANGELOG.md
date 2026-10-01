@@ -155,8 +155,7 @@ All notable changes to Kinieta are documented here. The format follows
   way; module qualification cannot, because `Kinieta` names the class. See
   "Name clashes" in the README.
 - `Kinieta.Completion`, `@MainActor () -> Void`: the type of the blocks passed
-  to `onComplete(_:)` and `Kinieta.group(_:completion:)`. A stored
-  `() -> Void` is still accepted.
+  to `onComplete(_:)` and `Kinieta.group(_:completion:)`.
 - CI builds the library with `BUILD_LIBRARY_FOR_DISTRIBUTION=YES`, as an
   XCFramework is built. Its `.swiftinterface` only verifies with
   `OTHER_SWIFT_FLAGS=-alias-module-names-in-module-interface`, because the
@@ -210,33 +209,27 @@ All notable changes to Kinieta are documented here. The format follows
   with a logged warning, any timeline that is already in a group or has
   already finished or been cancelled, and runs a timeline listed twice once.
 
-### Deprecated
+### Removed
+
+The APIs deprecated during this cycle. Nothing deprecated remains.
 
 - The `UIColor` helpers vendored from HandyUIKit: `ChangeableColorComponent`,
   `change(_:by:)`, `change(_:to:)`, `hlca`, `hsba`, `rgba` and
   `init(hue:luminance:chroma:alpha:)`. They were never part of Kinieta's API
-  and clash with HandyUIKit itself. They are removed in 2.0.
-- `UIColor.Components`, which was public but had no public members. It is
-  removed in 2.0. See "Replacing the deprecated colour helpers" in the DocC
-  catalog.
-- The `then` property, renamed `then()`. Reading a property changed the
-  timeline, so a second read, a `print` or the debugger could seal it again;
-  the method is discardable and its warnings carry the file and line.
-- `Easing.Curve.custom(Bezier)`. Use `Easing.custom(_:)`: the curve is used as
-  given, so `.in(.custom(b))`, `.out(.custom(b))` and `.inOut(.custom(b))`
-  silently ignored the placement.
-- `Bezier.solve(_:)`, renamed `progress(at:)`, and `Bezier.Point(_:_:)`,
-  replaced by `Point(x:y:)`. `curve.solve(0.3)` said neither what goes in nor
-  what comes out. Both are removed in 2.0.
-- The top-level `Block` typealias. It put a generic name in every client's
-  namespace and did not say its blocks run on the main actor. Use
-  `Kinieta.Completion`. It is removed in 2.0.
-- Planned for 2.0: the module is renamed so that it no longer shares its name
-  with the `Kinieta` class, which makes module qualification work and the
-  alias flag above unnecessary, and `Block` is removed. `onComplete(_:)` and
-  `Kinieta.group(_:completion:)` then take only a `Kinieta.Completion`.
-  Whether the generic top-level names (`Property`, `Easing`, `Engine`,
-  `Bezier`) also move under the class is decided with the rename.
+  and clashed with HandyUIKit itself. Use `getRed(_:green:blue:alpha:)` and
+  `getHue(_:saturation:brightness:alpha:)`, or HandyUIKit.
+- `UIColor.Components`, which was public but had no public members.
+- The `then` property. Use `then()`: reading a property changed the timeline,
+  so a second read, a `print` or the debugger could seal it again.
+- `Easing.Curve.custom(Bezier)`. Use `Easing.custom(_:)`: `.in(.custom(b))`,
+  `.out(.custom(b))` and `.inOut(.custom(b))` silently ignored the placement.
+- `Bezier.solve(_:)` and `Bezier.Point(_:_:)`. Use `progress(at:)` and
+  `Point(x:y:)`.
+- The top-level `Block` typealias. Use `Kinieta.Completion`, which also says
+  that the block runs on the main actor.
+- `onComplete(_:)` and `Kinieta.group(_:completion:)` take only a
+  `Kinieta.Completion`. Closure literals are unaffected; wrap a stored
+  `() -> Void` in one: `onComplete { block() }`.
 
 ### Fixed
 
@@ -244,8 +237,6 @@ All notable changes to Kinieta are documented here. The format follows
   no longer sit under the sensor housing, and a rotation mid-animation
   replays the gallery at the new size instead of leaving squares short of or
   past the end of their tracks.
-- The deprecated `change(.alpha, to:)` no longer shifts the colour: it sets
-  the alpha directly instead of going through LCH.
 - `Easing.inOut(.sine)` used the `inOut(.quad)` curve. It now uses Ceaser's
   easeInOutSine, `Bezier(0.445, 0.05, 0.55, 0.95)`.
 - `onComplete`, `delay` and `repeat` on a `Kinieta.group` handle

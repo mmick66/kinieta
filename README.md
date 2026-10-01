@@ -435,7 +435,7 @@ let done: Kinieta.Completion = { print("faded") }
 view.animate(fadeOut, duration: 0.3).easing(Kinieta.Easing.inOut(.cubic)).onComplete(done)
 ```
 
-`Kinieta.Completion` is the type of completion blocks, `@MainActor () -> Void`. It replaces the top-level `Block`, which is deprecated.
+`Kinieta.Completion` is the type of completion blocks, `@MainActor () -> Void`.
 
 ### Building an XCFramework
 

@@ -6,8 +6,8 @@ import os
 /// A chain call that did nothing, such as easing after a `wait`, and where it
 /// was made. Reported in debug builds only.
 struct IgnoredCall: Equatable, Sendable {
-    /// Where the call was made. `nil` for the deprecated `then` property,
-    /// which cannot take its caller's location.
+    /// Where the call was made. `nil` when the library makes the call on the
+    /// caller's behalf, as `Kinieta.run` does, without its location.
     struct Site: Equatable, Sendable {
         let fileID: String
         let line: UInt

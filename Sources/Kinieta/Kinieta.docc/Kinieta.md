@@ -148,9 +148,7 @@ the same name, so a module with its own `Property`, `Easing` or `Engine` can
 still write `Kinieta.Property`, `Kinieta.Easing` and `Kinieta.Engine`.
 
 - ``Kinieta/Completion``
-- ``Block``
 
 ### Migrating
 
 - <doc:MigratingFrom0.5>
-- <doc:DeprecatedColorHelpers>

@@ -46,12 +46,6 @@ public struct Bezier: Sendable, Equatable {
             self.y = y
         }
 
-        /// Creates a point at (`x`, `y`), the origin by default.
-        @available(*, deprecated, renamed: "init(x:y:)", message: "Removed in Kinieta 2.0.")
-        public init(_ x: Double = 0, _ y: Double = 0) {
-            self.init(x: x, y: y)
-        }
-
         static let zero = Point(x: 0, y: 0)
         static func * (lhs: Double, rhs: Point) -> Point { Point(x: lhs * rhs.x, y: lhs * rhs.y) }
         static func + (lhs: Point, rhs: Point) -> Point { Point(x: lhs.x + rhs.x, y: lhs.y + rhs.y) }
@@ -114,11 +108,6 @@ public struct Bezier: Sendable, Equatable {
         let span = b.x - a.x
         guard span > 0 else { return a.y }
         return a.y + (b.y - a.y) * (x - a.x) / span
-    }
-
-    @available(*, deprecated, renamed: "progress(at:)", message: "Removed in Kinieta 2.0.")
-    public func solve(_ x: Double) -> Double {
-        progress(at: x)
     }
 }
 #endif

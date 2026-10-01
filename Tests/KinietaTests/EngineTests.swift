@@ -107,18 +107,11 @@ struct EngineTests {
     @Test func customEasingUsesTheGivenCurve() {
         let custom = Bezier(0.16, 0.73, 0.89, 0.24)
         #expect(Easing.custom(custom).bezier == custom)
-        #expect(Easing.inOut(.deprecatedCustom(custom)).bezier == custom)
-        #expect(Easing.in(.deprecatedCustom(custom)).bezier == custom)
         #expect(custom.p1.x == 0.16 && custom.p2.y == 0.24)
     }
 
-    @Test func deprecatedBezierSpellingsStillWork() {
+    @Test func bezierPointsAreLabelled() {
         let curve = Bezier(0.16, 0.73, 0.89, 0.24)
-        for i in 0...20 {
-            let x = Double(i) / 20
-            #expect(curve.deprecatedSolve(x) == curve.progress(at: x))
-        }
-        #expect(Bezier.Point.deprecatedInit(0.25, -0.5) == Bezier.Point(x: 0.25, y: -0.5))
         #expect(Bezier.Point(x: 0.25, y: -0.5).description == "(x: 0.25, y: -0.5)")
         #expect(curve.p0 == Bezier.Point(x: 0, y: 0) && curve.p3 == Bezier.Point(x: 1, y: 1))
     }
@@ -791,18 +784,6 @@ struct EngineTests {
             Issue.record("expected a Group holding a Sequence"); return
         }
         #expect(steps.map { $0.description } == ["Animation (x)", "Pause (1.0)"], "then must keep the original order")
-    }
-
-    @Test func deprecatedThenPropertyStillSeals() {
-        let k = Kinieta(for: makeView()).animate(.x(1), duration: 1).wait(1)
-        defer { k.cancel() }
-        #if DEBUG
-        let calls = ignoredCalls { _ = k.deprecatedThen.deprecatedThen }
-        #expect(calls.count == 1 && calls.first?.site == nil)
-        #else
-        _ = k.deprecatedThen.deprecatedThen
-        #endif
-        #expect(descriptions(k) == ["Group (1)"])
     }
 
     @Test func repeatAppendsCopiesOfTheWholeChain() {
@@ -2596,45 +2577,6 @@ struct EngineTests {
         #expect(!Engine.shared.driver.isRunning)
     }
 }
-
-/// Reaches the deprecated `then` property through a protocol witness, so
-/// testing it does not warn.
-@MainActor
-private protocol DeprecatedThen {
-    var then: Kinieta { get }
-}
-extension DeprecatedThen {
-    var deprecatedThen: Kinieta { then }
-}
-extension Kinieta: DeprecatedThen {}
-
-/// Reaches the deprecated `Easing.Curve.custom` case through a protocol
-/// witness, so testing it does not warn.
-private protocol DeprecatedCustomCurve {
-    static func custom(_ bezier: Bezier) -> Self
-}
-extension DeprecatedCustomCurve {
-    static func deprecatedCustom(_ bezier: Bezier) -> Self { custom(bezier) }
-}
-extension Easing.Curve: DeprecatedCustomCurve {}
-
-/// Reaches the deprecated `Bezier.solve(_:)` and `Bezier.Point.init(_:_:)`
-/// through protocol witnesses, so testing them does not warn.
-private protocol DeprecatedBezierSolve {
-    func solve(_ x: Double) -> Double
-}
-extension DeprecatedBezierSolve {
-    func deprecatedSolve(_ x: Double) -> Double { solve(x) }
-}
-extension Bezier: DeprecatedBezierSolve {}
-
-private protocol DeprecatedPointInit {
-    init(_ x: Double, _ y: Double)
-}
-extension DeprecatedPointInit {
-    static func deprecatedInit(_ x: Double, _ y: Double) -> Self { Self(x, y) }
-}
-extension Bezier.Point: DeprecatedPointInit {}
 
 func approx<T: BinaryFloatingPoint>(_ a: T, _ b: T, _ tolerance: T = 1e-6) -> Bool {
     abs(a - b) <= tolerance

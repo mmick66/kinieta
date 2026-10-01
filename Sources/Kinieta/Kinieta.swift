@@ -312,15 +312,7 @@ public final class Kinieta {
         seal(file: file, line: line)
     }
 
-    /// Seals everything before it into one step. Reading a property should not
-    /// change the timeline, and this one cannot locate its caller: its warnings
-    /// carry no file and line.
-    @available(*, deprecated, renamed: "then()")
-    public var then: Kinieta {
-        seal(file: nil, line: 0)
-    }
-
-    private func seal(file: StaticString?, line: UInt) -> Kinieta {
+    private func seal(file: StaticString, line: UInt) -> Kinieta {
         editUnstarted("then()", file: file, line: line) { queue in
             let actions = queue.popAllUngrouped()
             guard !actions.isEmpty else {

@@ -73,24 +73,6 @@ struct NamespaceTests {
         #expect(finished)
     }
 
-    /// Before `Completion`, completion blocks were plain `() -> Void`, which
-    /// cannot convert to it. Stored closures of that type still work.
-    @Test func aStoredNonisolatedBlockIsStillAccepted() {
-        let frames = ManualFrameDriver.install()
-        defer { frames.uninstall() }
-        let counter = Counter()
-        let block: () -> Void = { counter.count += 1 }
-        let optional: (() -> Void)? = block
-        let views = [UIView(), UIView(), UIView(), UIView()]
-        views[0].animate(.alpha(0), duration: 1).onComplete(block)
-        Kinieta.group(views[1].animate(.alpha(0), duration: 1), completion: block)
-        Kinieta.group([views[2].animate(.alpha(0), duration: 1)], completion: optional)
-        Kinieta.group([views[3].animate(.alpha(0), duration: 1)], completion: nil)
-        frames.step(1)
-        #expect(counter.count == 3)
-        #expect(views.allSatisfy { $0.alpha == 0 })
-    }
-
     @Test func kinietasProtocolsAndSettingsAreReachableThroughTheClassName() {
         func halfway<Value: Kinieta.Interpolatable>(_ from: Value, _ to: Value) -> Value {
             from.interpolated(to: to, progress: 0.5)
@@ -103,9 +85,5 @@ struct NamespaceTests {
         let custom: Kinieta.CustomProperty? = nil
         #expect(custom == nil)
     }
-}
-
-private final class Counter {
-    var count = 0
 }
 #endif

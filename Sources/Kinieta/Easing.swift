@@ -27,10 +27,6 @@ public struct Easing: Sendable, Equatable {
         /// A curve that overshoots: it pulls back before it starts, goes past
         /// the target before it settles, or both, depending on the placement.
         case back
-        /// Uses the Bézier as given, whatever the placement: `.in(.custom(b))`,
-        /// `.out(.custom(b))` and `.inOut(.custom(b))` are all the same curve.
-        @available(*, deprecated, message: "use Easing.custom(_:); the in, out or inOut placement is ignored")
-        case custom(Bezier)
     }
 
     let bezier: Bezier
@@ -62,8 +58,6 @@ public struct Easing: Sendable, Equatable {
 
     static func resolve(_ curve: Curve, _ placement: Placement) -> Bezier {
         switch (curve, placement) {
-        case (.custom(let bezier), _): return bezier
-
         case (.sine, .in): return Preset.sineIn
         case (.sine, .out): return Preset.sineOut
         case (.sine, .inOut): return Preset.sineInOut

@@ -8,9 +8,6 @@ import AppKit
 
 #if canImport(UIKit) || os(macOS)
 
-@available(*, deprecated, renamed: "Kinieta.Completion", message: "Block will be removed in Kinieta 2.0")
-public typealias Block = () -> Void
-
 // The module and its main class share the name `Kinieta`, so a client cannot
 // write `Kinieta.Property` to mean the module's `Property`: it names a member of
 // the class. The nested aliases below make that spelling work. They cannot
@@ -53,33 +50,4 @@ extension Kinieta {
     public typealias Step = _KinietaStep
 }
 
-// Completion blocks were plain `() -> Void` before 1.1. A stored closure of
-// that type cannot become a `Completion`, which is implicitly `Sendable`, so
-// these keep accepting one. Closure literals and `nil` pick the overloads
-// that take a `Completion`. To be removed in 2.0.
-extension Kinieta {
-    @_documentation(visibility: internal)
-    @_disfavoredOverload
-    @discardableResult
-    public func onComplete(
-        _ block: @escaping () -> Void, file: StaticString = #fileID, line: UInt = #line
-    ) -> Kinieta {
-        onComplete({ block() }, file: file, line: line)
-    }
-
-    @_documentation(visibility: internal)
-    @_disfavoredOverload
-    @discardableResult
-    public static func group(_ handles: [Kinieta], completion: (() -> Void)?) -> Kinieta {
-        guard let completion else { return group(handles, completion: nil as Completion?) }
-        return group(handles, completion: { completion() })
-    }
-
-    @_documentation(visibility: internal)
-    @_disfavoredOverload
-    @discardableResult
-    public static func group(_ handles: Kinieta..., completion: (() -> Void)?) -> Kinieta {
-        group(handles, completion: completion)
-    }
-}
 #endif
