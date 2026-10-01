@@ -114,17 +114,21 @@ names the view or colour type is declared once per platform. Linux builds an emp
 
 - `View.swift`: `UIView.animate(...)` / `wait(_:)` entry points; geometry goes through
   `center` and `bounds`, not `frame`; on `NSView`, through the unrotated frame about its centre.
-- `Kinieta.swift`: the public handle. Each handle owns a `SequenceAction` (its timeline) and
+- `Kinieta.swift`: the public handle. Each handle owns a `TimelineAction` (its timeline) and
   exposes the chain API (`easing`, `delay`, `then()`, `parallel()`, `repeat`, `onComplete`),
   control (`cancel`, `pause`, `resume`, `finished()`) and `Kinieta.group`.
-- Actions: the `Action` protocol, with `SequenceAction` (one after another), `GroupAction`
-  (together), `PropertyAnimation` (interpolates `Property` values on one view; its `owners`
+- Actions: the `Action` protocol, with `TimelineAction` (a handle's root: owns the
+  `TimelineControl` and the handle back-reference, runs a `SequenceAction` and finishes the
+  handle), `SequenceAction` (one after another), `GroupAction` (together), `LoopAction`
+  (`repeatForever`), `PropertyAnimation` (interpolates `Property` values on one view; its `owners`
   table gives each view and `Property.Key` to the newest animation started on it),
   `PauseAction` (`wait`; `delay` is a pause sequenced before the action) and `CallAction`
   (runs a block in no time; `onComplete` is a call sequenced after the action). A sequence's
   `ActionQueue` holds `ActionType` descriptions that become live actions only when they start,
   which is why chain calls can still edit actions that have not started. A sequence nested
   directly in a sequence runs its steps in line, so `delay` and `onComplete` cost no frame work.
+  After every child, sequences, groups and loops ask `TimelineControl.checkpoint(hasMoreToRun:)`
+  whether a completion block cancelled or paused the timeline or released its view.
 - `Engine.swift`: `Engine.shared` advances registered actions by real elapsed time from a
   `FrameDriver` (a `CADisplayLink` in production, `ManualFrameDriver` in tests) and holds the
   global settings (colour interpolation, Reduce Motion, frame rate range).

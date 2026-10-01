@@ -42,9 +42,8 @@ final class LoopAction: Action {
                 return .running
             case .finished(let overshoot):
                 cycle = nil
-                // A completion block may have cancelled or paused the timeline.
-                if control.isCancelled { return .finished(overshoot: 0) }
-                if control.isPaused { return .running }
+                // A loop always has another cycle to run.
+                if case .stop(let result) = control.checkpoint(hasMoreToRun: true) { return result }
                 // Start the next cycle with the rest of the frame, as a sequence
                 // starts its next action.
                 guard overshoot > 0 else { return .running }

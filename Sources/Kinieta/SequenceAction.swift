@@ -4,34 +4,19 @@
 import Foundation
 
 /// Runs its actions one after another.
+///
+/// A handle's timeline is one, run by a `TimelineAction`; the others are
+/// nested in it, as members of a group or cycles of a loop.
 @MainActor
 final class SequenceAction: Action {
 
     /// The sequence's steps, as descriptions: the ones already started, then
-    /// the ones still to come. A main sequence's queue is its handle's timeline.
+    /// the ones still to come. A handle's sequence's queue is its timeline.
     var queue: ActionQueue
 
-    /// Ends a main sequence's handle when its timeline has run. A nested
-    /// sequence has none: a block from the chain, such as `onComplete`, is a
-    /// call step in its queue.
-    var completion: Kinieta.Completion?
-
-    /// Shared with the timeline this sequence belongs to: a main sequence
-    /// makes its own and hands it to every sequence and group nested in it.
+    /// Shared with the timeline this sequence belongs to: its root makes it
+    /// and hands it to every sequence and group nested in it.
     let control: TimelineControl
-
-    /// While paused the sequence reports `.running` without advancing.
-    var isPaused: Bool {
-        get { control.isPaused }
-        set { control.isPaused = newValue }
-    }
-
-    /// A cancelled sequence finishes on its next update without running any
-    /// completion block, whether the engine or a group is driving it.
-    var isCancelled: Bool {
-        get { control.isCancelled }
-        set { control.isCancelled = newValue }
-    }
 
     var currentAction: Action?
 
@@ -49,28 +34,19 @@ final class SequenceAction: Action {
         inlined.last?.startsWithCall ?? queue.nextIsCall
     }
 
-    /// The handle whose timeline this is; `nil` for a nested sequence, and
-    /// once the handle has been released.
-    weak var handle: Kinieta?
-
     var isIdle: Bool {
-        !isCancelled && !control.hasLostView && (isPaused || currentAction?.isIdle == true)
+        !control.isCancelled && !control.hasLostView && (control.isPaused || currentAction?.isIdle == true)
     }
 
-    /// Idle with its handle gone: nothing can resume or cancel it any more.
-    /// A nested sequence answers for what it is running; its main sequence
-    /// has already checked the handle.
+    /// Idle with nothing that could wake what it is running. The root checks
+    /// whether the handle, which could resume or cancel it, is gone.
     var isAbandoned: Bool {
-        guard isIdle, handle == nil else { return false }
-        return isPaused || currentAction?.isAbandoned == true
+        isIdle && (control.isPaused || currentAction?.isAbandoned == true)
     }
 
-    init(
-        _ types: [ActionType] = [], control: TimelineControl = TimelineControl(), completion: Kinieta.Completion? = nil
-    ) {
+    init(_ types: [ActionType] = [], control: TimelineControl = TimelineControl()) {
         self.queue = ActionQueue(types)
         self.control = control
-        self.completion = completion
     }
 
     /// Drops every step, started or not, and the blocks they hold.
@@ -100,35 +76,23 @@ final class SequenceAction: Action {
         return nil
     }
 
+    /// Finishes when its last step does, or with no overshoot once the
+    /// timeline is cancelled or has lost its view.
     func update(_ frame: Engine.Frame) -> ActionResult {
-        if isCancelled || control.cancelIfViewIsGone() { return .finished(overshoot: 0) }
-        if isPaused { return .running }
+        if control.isCancelled || control.cancelIfViewIsGone() { return .finished(overshoot: 0) }
+        if control.isPaused { return .running }
 
         var frame = frame
         while true {
             if currentAction == nil { currentAction = popNextAction() }
-            guard let current = currentAction else {
-                completion?()
-                return .finished(overshoot: frame.duration)
-            }
+            guard let current = currentAction else { return .finished(overshoot: frame.duration) }
             switch current.update(frame) {
             case .running:
                 return .running
             case .finished(let overshoot):
                 currentAction = nil
-                // The child's completion block may have cancelled or paused
-                // the timeline; honour that before anything else runs.
-                if isCancelled { return .finished(overshoot: 0) }
-                if isPaused { return .running }
-                // With nothing left to run, the timeline ends as finished even
-                // if a completion block has released the view.
-                if isDone {
-                    completion?()
-                    return .finished(overshoot: overshoot)
-                }
-                // A completion block may have released the view: nothing else
-                // runs, not even the call of an `onComplete` block.
-                if control.cancelIfViewIsGone() { return .finished(overshoot: 0) }
+                if case .stop(let result) = control.checkpoint(hasMoreToRun: !isDone) { return result }
+                if isDone { return .finished(overshoot: overshoot) }
                 // Hand the unused part of the frame to the next action so a
                 // boundary never costs a frame. Nothing left: wait for the
                 // next one, unless the next action is a call, which takes no time.

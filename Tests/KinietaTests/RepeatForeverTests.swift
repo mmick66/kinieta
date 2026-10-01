@@ -102,6 +102,21 @@ struct RepeatForeverTests {
         #expect(handle.state == .cancelled)
     }
 
+    @Test func aBlockThatReleasesTheViewEndsTheLoopInThatFrame() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        var view: UIView? = makeView()
+        var cycles = 0
+        let handle = view!.animate(.x(100)).onComplete {
+            cycles += 1
+            if cycles == 3 { view = nil }
+        }
+        .repeatForever()
+        frames.step(count: 2)  // the chain and the first cycle, then the second cycle
+        #expect(cycles == 3)
+        #expect(handle.state == .cancelled)
+    }
+
     @Test func aZeroDurationCyclePlaysOncePerFrame() {
         let frames = ManualFrameDriver.install()
         defer { frames.uninstall() }

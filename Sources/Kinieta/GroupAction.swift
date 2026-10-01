@@ -27,7 +27,7 @@ final class GroupAction: Action {
         self.control = control
     }
 
-    /// Groups actions that are already live, such as the sequences of other handles.
+    /// Groups actions that are already live, such as the timelines of other handles.
     init(running actions: [Action], control: TimelineControl = TimelineControl()) {
         self.phase = .running(actions)
         self.control = control
@@ -80,9 +80,9 @@ final class GroupAction: Action {
         var stillRunning: [Action] = []
         var overshoot = frame.duration
         for (index, action) in actions.enumerated() {
-            // A member's completion block may have cancelled or paused the
-            // timeline, or released its view: leave the members after it as they are.
-            if control.isHalted || control.cancelIfViewIsGone() {
+            // A member's completion block may have halted the timeline: leave
+            // the members after it as they are.
+            if case .stop = control.checkpoint(hasMoreToRun: true) {
                 stillRunning += actions[index...]
                 break
             }
@@ -96,13 +96,12 @@ final class GroupAction: Action {
         joining = []
         phase = .running(stillRunning)
 
-        if control.isCancelled {
-            hasEnded = true
-            return .finished(overshoot: 0)
-        }
+        // Nothing else runs this frame, so a lost view waits for the next one.
         // Paused after the last member finished: complete on resume, as a sequence does.
-        if control.isPaused { return .running }
-
+        if case .stop(let result) = control.checkpoint(hasMoreToRun: false) {
+            if result.isFinished { hasEnded = true }
+            return result
+        }
         if stillRunning.isEmpty {
             hasEnded = true
             // The group ends when its last child ends, so the smallest remainder wins.

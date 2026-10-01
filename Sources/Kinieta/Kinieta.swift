@@ -79,8 +79,10 @@ public final class Kinieta {
     /// Whether ``state`` is ``State/paused``.
     public var isPaused: Bool { state == .paused }
 
-    /// The running instance. Its queue is the timeline.
-    let mainSequence: SequenceAction
+    /// What the engine, or the group handle this timeline is in, drives.
+    let root: TimelineAction
+    /// The sequence the root runs. Its queue is the timeline.
+    var mainSequence: SequenceAction { root.sequence }
     /// Every step added since the handle was made or last finished, including the ones
     /// already running or done, so `repeat` and `repeatForever` can copy the whole chain. Emptied
     /// when the timeline ends, which releases the completion blocks it holds.
@@ -120,18 +122,18 @@ public final class Kinieta {
     init(view: PlatformView?) {
         self.view = view
         hasView = view != nil
-        mainSequence = SequenceAction()
-        mainSequence.handle = self
-        mainSequence.completion = { [weak self] in self?.finish(as: .finished) }
+        root = TimelineAction()
+        root.handle = self
+        root.completion = { [weak self] in self?.finish(as: .finished) }
         if let view {
-            mainSequence.control.target = ViewRef(view)
-            mainSequence.control.onViewLost = { [weak self] in self?.cancel() }
+            root.control.target = ViewRef(view)
+            root.control.onViewLost = { [weak self] in self?.cancel() }
             ViewReleaseObserver.observe(view, for: self)
             #if os(macOS)
             Engine.shared.follow(view)  // so the link starts on the view's screen
             #endif
         }
-        Engine.shared.add(mainSequence)
+        Engine.shared.add(root)
     }
 
     /// A paused timeline, or one waiting forever, that loses its handle can
@@ -144,8 +146,8 @@ public final class Kinieta {
     deinit {
         let orphaned = state == .paused ? members : nil
         Task { @MainActor in
-            for case let sequence as SequenceAction in orphaned?.releaseMembers() ?? [] {
-                sequence.handle?.leaveReleasedGroup()
+            for case let timeline as TimelineAction in orphaned?.releaseMembers() ?? [] {
+                timeline.handle?.leaveReleasedGroup()
             }
             Engine.shared.refreshDriver()
         }
@@ -458,21 +460,21 @@ public final class Kinieta {
     /// leaves the group and the engine drives it.
     private func restart() {
         state = .running
-        if let owner, owner.members?.adopt(mainSequence) == true {
+        if let owner, owner.members?.adopt(root) == true {
             if owner.isPaused { pause() }
             Engine.shared.refreshDriver()
             return
         }
         owner?.children.removeAll { $0 === self }
         owner = nil
-        Engine.shared.add(mainSequence)
+        Engine.shared.add(root)
     }
 
     /// Hands this timeline to the engine after its group handle was released
     /// while paused. Does nothing if it has since joined another group or ended.
     private func leaveReleasedGroup() {
         guard owner == nil, state == .running || state == .paused else { return }
-        Engine.shared.add(mainSequence)
+        Engine.shared.add(root)
     }
 
     // MARK: Easing
@@ -553,12 +555,12 @@ public final class Kinieta {
         Engine.shared.remove(cancelled)  // one pass for a whole group
     }
 
-    /// Cancels this timeline and those in it, adding their sequences to
+    /// Cancels this timeline and those in it, adding their roots to
     /// `cancelled` for the caller to take off the engine.
     private func cancel(collecting cancelled: inout [Action]) {
         guard state == .running || state == .paused else { return }
-        mainSequence.isCancelled = true  // also stops it when a group is driving it
-        cancelled.append(mainSequence)
+        root.control.isCancelled = true  // also stops it when a group is driving it
+        cancelled.append(root)
         finish(as: .cancelled)
         for child in children { child.cancel(collecting: &cancelled) }
     }
@@ -572,7 +574,7 @@ public final class Kinieta {
     /// handle leaves the timelines in it paused, each resumable on its own handle.
     public func pause() {
         guard state == .running else { return }
-        mainSequence.isPaused = true
+        root.control.isPaused = true
         state = .paused
         for child in children { child.pause() }
         Engine.shared.refreshDriver()
@@ -583,7 +585,7 @@ public final class Kinieta {
     /// unless the group's handle has been released.
     public func resume() {
         guard state == .paused, owner?.isPaused != true else { return }
-        mainSequence.isPaused = false
+        root.control.isPaused = false
         state = .running
         for child in children { child.resume() }
         Engine.shared.refreshDriver()
@@ -665,8 +667,8 @@ public final class Kinieta {
         // engine never empties and restarts its clock in between.
         let handle = Kinieta(view: nil)
         for child in members { child.owner = handle }
-        Engine.shared.remove(members.map { $0.mainSequence })
-        let action = GroupAction(running: members.map { $0.mainSequence })
+        Engine.shared.remove(members.map(\.root))
+        let action = GroupAction(running: members.map(\.root))
         handle.children = members
         handle.members = action
         handle.editUnstarted("group(_:completion:)", file: nil, line: 0) {

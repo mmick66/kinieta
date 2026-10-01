@@ -65,7 +65,7 @@ enum ActionType: CustomStringConvertible {
     case group([ActionType])
     case sequence([ActionType])
     /// The live group behind a `Kinieta.group` handle. Its members are other
-    /// handles' sequences, already running, so it cannot be copied.
+    /// handles' timelines, already running, so it cannot be copied.
     case timelines(GroupAction)
     /// Replays its steps until the timeline is cancelled. It never finishes,
     /// so nothing can follow it.
@@ -251,12 +251,21 @@ enum ActionType: CustomStringConvertible {
 }
 
 /// Whether a timeline has been cancelled or paused, and the view it runs,
-/// shared by its main sequence and every sequence and group nested in it. A
-/// completion block can cancel or pause the timeline, or release its view, at
-/// any depth, so each of them checks this after every child it updates and
-/// stops there, in that same frame.
+/// shared by its root and every sequence, group and loop in it. A completion
+/// block can cancel or pause the timeline, or release its view, at any depth,
+/// so each of them asks ``checkpoint(hasMoreToRun:)`` after every child it
+/// updates and stops there, in that same frame.
 @MainActor
 final class TimelineControl {
+
+    /// What an action does at a boundary between its children.
+    enum Checkpoint {
+        /// Nothing has halted the timeline: carry on.
+        case proceed
+        /// The timeline has halted: return `result` without running anything else.
+        case stop(ActionResult)
+    }
+
     var isCancelled = false
     var isPaused = false
 
@@ -268,8 +277,6 @@ final class TimelineControl {
     var target: ViewRef?
     var onViewLost: Kinieta.Completion?
 
-    var isHalted: Bool { isCancelled || isPaused }
-
     var hasLostView: Bool {
         target.map { $0.view == nil } ?? false
     }
@@ -280,6 +287,18 @@ final class TimelineControl {
         isCancelled = true
         onViewLost?()
         return true
+    }
+
+    /// Whether to go on after a child has run, which may have called a
+    /// completion block. Cancelled, the timeline finishes; paused, it holds,
+    /// and completes on resume if nothing is left. With `hasMoreToRun`, a lost
+    /// view cancels it, so nothing else runs, not even an `onComplete` call;
+    /// with nothing left, it ends as finished even if a block has released the view.
+    func checkpoint(hasMoreToRun: Bool) -> Checkpoint {
+        if isCancelled { return .stop(.finished(overshoot: 0)) }
+        if isPaused { return .stop(.running) }
+        if hasMoreToRun && cancelIfViewIsGone() { return .stop(.finished(overshoot: 0)) }
+        return .proceed
     }
 }
 

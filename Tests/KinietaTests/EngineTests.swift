@@ -704,7 +704,7 @@ struct EngineTests {
 
     @Test func sequenceFiresItsOwnCompletionExactlyOnce() {
         var completions = 0
-        let sequence = SequenceAction([.pause(0.5), .pause(0.5)], completion: { completions += 1 })
+        let sequence = TimelineAction([.pause(0.5), .pause(0.5)], completion: { completions += 1 })
         #expect(sequence.update(frame(0.6)) == .running)
         #expect(completions == 0)
         #expect(sequence.update(frame(0.6)).isFinished)
@@ -715,10 +715,10 @@ struct EngineTests {
         let view = makeView()
         let sequence = SequenceAction([.animation(AnimationSpec(view, [.x(100)], duration: 1.0))])
         _ = sequence.update(frame(0.5))
-        sequence.isPaused = true
+        sequence.control.isPaused = true
         #expect(sequence.update(frame(0.5)) == .running)
         #expect(approx(view.frame.origin.x, 50, 0.5))
-        sequence.isPaused = false
+        sequence.control.isPaused = false
         #expect(sequence.update(frame(0.5)).isFinished)
         #expect(approx(view.frame.origin.x, 100))
     }
