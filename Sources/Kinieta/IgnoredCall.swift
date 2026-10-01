@@ -55,13 +55,16 @@ extension ActionType {
             return "wait"
         case .group:
             return "parallel() or then()"
-        case .sequence(let types, _):
-            // Only `delay` puts a sequence in a timeline's queue.
+        case .sequence(let types):
+            // Only `delay` and `onComplete` put a sequence in a timeline's queue.
+            if let (step, _) = completed { return step.callName }
             return "delayed " + (types.last?.callName ?? "step")
         case .timelines:
             return "Kinieta.group"
         case .loop:
             return "repeatForever()"
+        case .call:
+            return "onComplete(_:)"
         }
     }
 }

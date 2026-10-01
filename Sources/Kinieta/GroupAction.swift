@@ -14,7 +14,6 @@ final class GroupAction: Action {
         case running([Action])
     }
 
-    var completion: Kinieta.Completion?
     /// The timeline this group runs in. A group of timelines is handed the
     /// group handle's when it is made live; see `ActionType.makeAction(control:)`.
     var control: TimelineControl
@@ -23,20 +22,15 @@ final class GroupAction: Action {
     private var joining: [Action] = []
     private var hasEnded = false
 
-    init(
-        pending types: [ActionType], control: TimelineControl = TimelineControl(), completion: Kinieta.Completion? = nil
-    ) {
+    init(pending types: [ActionType], control: TimelineControl = TimelineControl()) {
         self.phase = .pending(types)
         self.control = control
-        self.completion = completion
     }
 
     /// Groups actions that are already live, such as the sequences of other handles.
-    init(running actions: [Action], control: TimelineControl = TimelineControl(), completion: Kinieta.Completion? = nil)
-    {
+    init(running actions: [Action], control: TimelineControl = TimelineControl()) {
         self.phase = .running(actions)
         self.control = control
-        self.completion = completion
     }
 
     /// Idle once started and every member is idle. A group with no members
@@ -111,10 +105,6 @@ final class GroupAction: Action {
 
         if stillRunning.isEmpty {
             hasEnded = true
-            // A member's completion block may have released the view: the
-            // group's own block, from the chain, is one more that must not run.
-            if completion != nil && control.cancelIfViewIsGone() { return .finished(overshoot: 0) }
-            completion?()
             // The group ends when its last child ends, so the smallest remainder wins.
             return .finished(overshoot: overshoot)
         }

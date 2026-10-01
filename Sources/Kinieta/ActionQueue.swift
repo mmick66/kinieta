@@ -28,6 +28,12 @@ struct ActionQueue {
     /// The number of steps left to pop.
     var count: Int { steps.count - next }
 
+    /// `true` when the next step to pop is a call, which takes no time.
+    var nextIsCall: Bool {
+        guard !isEmpty, case .call = steps[next] else { return false }
+        return true
+    }
+
     mutating func add(_ type: ActionType) {
         steps.append(type)
     }
@@ -37,10 +43,10 @@ struct ActionQueue {
         isEmpty ? nil : steps.removeLast()
     }
 
-    mutating func popFirstAction(control: TimelineControl) -> Action? {
+    mutating func popFirst() -> ActionType? {
         guard !isEmpty else { return nil }
         defer { next += 1 }
-        return steps[next].makeAction(control: control)
+        return steps[next]
     }
 
     /// Removes and returns every trailing step not yet popped, up to but not
@@ -48,7 +54,7 @@ struct ActionQueue {
     mutating func popAllUngrouped() -> [ActionType] {
         var start = steps.count
         while start > next {
-            if case .group = steps[start - 1] { break }
+            if steps[start - 1].isGroup { break }
             start -= 1
         }
         let actions = Array(steps[start...])

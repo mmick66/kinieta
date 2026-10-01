@@ -13,8 +13,9 @@ import AppKit
 /// An animation owns the properties it writes. When a newer animation starts
 /// on a property of the same view, from any timeline, it takes that property
 /// over: this one stops writing it and keeps animating the rest. Its duration
-/// and completion block are unchanged, so the timeline it belongs to keeps
-/// its schedule even when every property has been taken.
+/// is unchanged, so the timeline it belongs to keeps its schedule, and runs
+/// the completion block that follows it on time, even when every property
+/// has been taken.
 @MainActor
 final class PropertyAnimation: Action {
 
@@ -37,12 +38,9 @@ final class PropertyAnimation: Action {
     private var previousFactor: CGFloat?
     private var appliedFrame: Int?
 
-    let completion: Kinieta.Completion?
-
     init(_ spec: AnimationSpec) {
         self.target = spec.target
         self.easing = spec.easing ?? .linear
-        self.completion = spec.completion
 
         // The last property listed for a key wins, so `.frame(…), .x(…)` takes
         // the position from `.x`. Order of first mention is kept.
@@ -94,7 +92,6 @@ final class PropertyAnimation: Action {
         guard duration > 0 else {
             apply(1.0, to: view)
             end()
-            completion?()
             return .finished(overshoot: frame.duration)
         }
 
@@ -105,7 +102,6 @@ final class PropertyAnimation: Action {
 
         if elapsed >= duration {
             end()
-            completion?()
             return .finished(overshoot: total - duration)
         }
         return .running

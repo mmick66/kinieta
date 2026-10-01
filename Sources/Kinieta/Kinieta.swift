@@ -568,8 +568,7 @@ public final class Kinieta {
         self.state = state
         // Drop what has run: a completion block that captures this handle, or
         // an owner of it, would otherwise keep both alive.
-        mainSequence.queue = ActionQueue()
-        mainSequence.currentAction = nil
+        mainSequence.clear()
         members = nil
         let pending = waiters.values
         waiters = [:]
@@ -619,7 +618,7 @@ public final class Kinieta {
         handle.children = members
         handle.members = action
         handle.editUnstarted("group(_:completion:)", file: nil, line: 0) {
-            $0.add(.timelines(action, completion: completion))
+            $0.add(completion.map { ActionType.timelines(action).withCompletion($0) } ?? .timelines(action))
         }
         return handle
     }

@@ -38,12 +38,17 @@ struct EngineTests {
         UIView(frame: CGRect(x: 0, y: 0, width: 10, height: 10))
     }
 
+    /// The animation, followed by a call to `completion` if there is one, as
+    /// `onComplete` builds it: in a sequence on the view's timeline.
     private func animation(
         _ view: UIView, _ properties: [Property], duration: TimeInterval,
         easing: Easing? = nil, completion: Kinieta.Completion? = nil
-    ) -> PropertyAnimation {
-        let spec = AnimationSpec(view, properties, duration: duration, easing: easing?.bezier, completion: completion)
-        return PropertyAnimation(spec)
+    ) -> Action {
+        let spec = AnimationSpec(view, properties, duration: duration, easing: easing?.bezier)
+        guard let completion else { return PropertyAnimation(spec) }
+        let control = TimelineControl()
+        control.target = ViewRef(view)
+        return SequenceAction([.animation(spec), .call(completion)], control: control)
     }
 
     // MARK: Bezier & easing
@@ -216,7 +221,7 @@ struct EngineTests {
 
     @Test func pauseRunsForItsDurationThenCompletesOnce() {
         var completions = 0
-        let pause = PauseAction(1.0, completion: { completions += 1 })
+        let pause = SequenceAction([.pause(1.0), .call { completions += 1 }])
         #expect(pause.update(frame(0.25)) == .running)
         #expect(pause.update(frame(0.25)) == .running)
         #expect(pause.update(frame(0.25)) == .running)
@@ -226,13 +231,13 @@ struct EngineTests {
 
     @Test func zeroDurationPauseFinishesImmediately() {
         var completed = false
-        let pause = PauseAction(0.0, completion: { completed = true })
+        let pause = SequenceAction([.pause(0.0), .call { completed = true }])
         #expect(pause.update(frame(0.016)).isFinished)
         #expect(completed)
     }
 
     @Test func pauseNeverHandsOnMoreThanTheFrame() {
-        #expect(PauseAction(-5, completion: nil).update(frame(0.1)) == .finished(overshoot: 0.1))
+        #expect(PauseAction(-5).update(frame(0.1)) == .finished(overshoot: 0.1))
     }
 
     // MARK: Animation
@@ -415,7 +420,7 @@ struct EngineTests {
 
     @Test func animationFinishesQuietlyWhenItsViewIsGone() {
         var completed = false
-        let a: PropertyAnimation
+        let a: Action
         do {
             let view = makeView()
             a = animation(view, [.x(100)], duration: 1.0, completion: { completed = true })
@@ -434,7 +439,7 @@ struct EngineTests {
         #expect(a.update(frame(0.016)).isFinished)
         #expect(view.frame.origin.x == 100)
         #expect(completed)
-        let pause = PauseAction(1.0, completion: nil)
+        let pause = PauseAction(1.0)
         #expect(pause.update(frame(0.5)) == .running)
 
         Engine.shared.respectsReduceMotion = false
@@ -721,11 +726,13 @@ struct EngineTests {
     @Test func groupFinishesWhenTheLongestChildFinishes() {
         let a = makeView(), b = makeView()
         var completed = false
-        let group = GroupAction(
-            pending: [
+        let group = SequenceAction([
+            .group([
                 .animation(AnimationSpec(a, [.x(100)], duration: 0.5)),
                 .animation(AnimationSpec(b, [.x(100)], duration: 1.0)),
-            ], completion: { completed = true })
+            ]),
+            .call { completed = true },
+        ])
 
         #expect(group.update(frame(0.5)) == .running)
         #expect(approx(a.frame.origin.x, 100))
@@ -753,7 +760,7 @@ struct EngineTests {
         let k = Kinieta(for: makeView()).animate(.x(1), duration: 1).delay(0.5)
         defer { k.cancel() }
         #expect(descriptions(k) == ["Sequence (2)"])
-        guard case .sequence(let inner, _)? = k.timeline.first else {
+        guard case .sequence(let inner)? = k.timeline.first else {
             Issue.record("expected a Sequence"); return
         }
         #expect(inner.map { $0.description } == ["Pause (0.5)", "Animation (x)"])
@@ -778,8 +785,8 @@ struct EngineTests {
             .parallel()
         defer { k.cancel() }
         #expect(descriptions(k) == ["Group (1)", "Group (2)"])
-        guard case .group(let sealed, _)? = k.timeline.first,
-            case .sequence(let steps, _)? = sealed.first
+        guard case .group(let sealed)? = k.timeline.first,
+            case .sequence(let steps)? = sealed.first
         else {
             Issue.record("expected a Group holding a Sequence"); return
         }
@@ -824,7 +831,7 @@ struct EngineTests {
         let view = makeView()
         let k = Kinieta(for: view).animate(.x(100), duration: 1).delay(0.5).easeIn(.cubic)
         defer { k.cancel() }
-        guard case .sequence(let inner, _)? = k.timeline.first,
+        guard case .sequence(let inner)? = k.timeline.first,
             case .animation(let spec)? = inner.last, let bezier = spec.easing
         else {
             Issue.record("easing was not applied inside the delay wrapper"); return
@@ -840,18 +847,66 @@ struct EngineTests {
     @Test func onCompleteAttachesToTheLastAction() {
         let k = Kinieta(for: makeView()).animate(.x(1), duration: 1).wait(1).onComplete {}
         defer { k.cancel() }
-        guard case .pause(_, let block)? = k.timeline.last else {
-            Issue.record("expected a Pause"); return
+        guard case .pause? = k.timeline.last?.completed?.step else {
+            Issue.record("expected a Pause followed by a call"); return
         }
-        #expect(block != nil)
+    }
+
+    @Test func easingAfterOnCompleteEasesTheAnimation() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        var completed = false
+        view.animate(.x(100), duration: 1).onComplete { completed = true }.easeIn(.cubic)
+        frames.step(0.5)
+        #expect(approx(view.frame.origin.x, 14.5, 0.5))  // cubicIn(0.5), not linear 50
+        frames.step(0.5)
+        #expect(completed)
+    }
+
+    @Test func aSecondOnCompleteReplacesTheFirst() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        var calls: [String] = []
+        let handle = view.animate(.x(100), duration: 1)
+            .onComplete { calls.append("first") }
+            .onComplete { calls.append("second") }
+        #expect(handle.timeline.count == 1)
+        frames.step(1)
+        #expect(calls == ["second"])
+    }
+
+    @Test func parallelAfterAGroupWithOnCompleteGathersOnlyWhatFollows() {
+        let k = Kinieta(for: makeView())
+            .animate(.x(1), duration: 1)
+            .animate(.alpha(0), duration: 1)
+            .parallel()
+            .onComplete {}
+            .animate(.x(2), duration: 1)
+            .animate(.y(2), duration: 1)
+            .parallel()
+        defer { k.cancel() }
+        #expect(descriptions(k) == ["Group (2)", "Group (2)"])
+    }
+
+    @Test func aCompletionAtTheEndOfAFrameRunsInThatFrame() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        var completed = false
+        let handle = view.animate(.x(100), duration: 1).onComplete { completed = true }
+        frames.step(0.5)
+        frames.step(0.5)  // ends the animation with nothing left over
+        #expect(completed && handle.state == .finished)
     }
 
     // MARK: animate(_:duration:delay:easing:)
 
     /// The pause and the eased animation of a step `delay` wraps; nil for any other step.
     private func delayedAnimation(_ type: ActionType?) -> (delay: TimeInterval, spec: AnimationSpec)? {
-        guard case .sequence(let inner, _)? = type, inner.count == 2,
-            case .pause(let delay, _) = inner[0], case .animation(let spec) = inner[1]
+        guard case .sequence(let inner)? = type, inner.count == 2,
+            case .pause(let delay) = inner[0], case .animation(let spec) = inner[1]
         else { return nil }
         return (delay, spec)
     }
@@ -958,7 +1013,7 @@ struct EngineTests {
     @Test func aPostfixEasingStillReachesAnAnimationDelayedTwice() {
         let k = Kinieta(for: makeView()).animate(.x(1), duration: 1, delay: 0.5).delay(0.25).easeIn()
         defer { k.cancel() }
-        guard case .sequence(let outer, _)? = k.timeline.first,
+        guard case .sequence(let outer)? = k.timeline.first,
             let inner = delayedAnimation(outer.last)
         else {
             Issue.record("expected a delayed step inside a delay"); return

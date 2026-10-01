@@ -35,7 +35,7 @@ final class LoopAction: Action {
                 let now = Engine.shared.frameNumber
                 guard startFrame != now else { return .running }
                 startFrame = now
-                cycle = SequenceAction(types, control: control, isNested: true)
+                cycle = SequenceAction(types, control: control)
             }
             switch cycle!.update(frame) {
             case .running:

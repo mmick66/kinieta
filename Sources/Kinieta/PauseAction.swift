@@ -8,7 +8,6 @@ import Foundation
 final class PauseAction: Action {
 
     let duration: TimeInterval
-    let completion: Kinieta.Completion?
     private var elapsed: TimeInterval = 0
 
     /// A wait of `.infinity` never ends, so no frame can advance it.
@@ -18,15 +17,13 @@ final class PauseAction: Action {
     /// timeline's sequence checks for a handle that can do that.
     var isAbandoned: Bool { isIdle }
 
-    init(_ duration: TimeInterval, completion: Kinieta.Completion?) {
+    init(_ duration: TimeInterval) {
         self.duration = duration
-        self.completion = completion
     }
 
     func update(_ frame: Engine.Frame) -> ActionResult {
         elapsed += frame.duration
         if elapsed >= duration {
-            completion?()
             // Never hand on more than this frame, whatever the duration was.
             return .finished(overshoot: min(elapsed - duration, frame.duration))
         }
