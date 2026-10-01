@@ -1,3 +1,4 @@
 {
-  "concurrent": 3
+  "concurrent": 3,
+  "check": "scripts/ci-local.sh lint spm-macos ios"
 }
