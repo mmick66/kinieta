@@ -6,8 +6,8 @@ import Foundation
 /// A cubic Bézier easing curve from (0, 0) to (1, 1), defined by its two inner
 /// control points, exactly as CSS `cubic-bezier()` and cubic-bezier.com do.
 ///
-/// The curve is baked into a lookup table once at creation, so solving is a
-/// binary search rather than root finding. Copies share the table, and the
+/// The curve is baked into a lookup table once at creation, so
+/// ``progress(at:)`` is a binary search rather than root finding. Copies share the table, and the
 /// preset easings are baked once and reused.
 public struct Bezier: Sendable, Equatable {
 
@@ -33,22 +33,32 @@ public struct Bezier: Sendable, Equatable {
         }
     }
 
+    /// A control point of the curve: `x` is time and `y` is progress.
     public struct Point: Sendable, Equatable, CustomStringConvertible {
         public let x: Double
         public let y: Double
-        public init(_ x: Double = 0, _ y: Double = 0) {
+
+        /// Creates a point at time `x` and progress `y`.
+        public init(x: Double, y: Double) {
             self.x = x
             self.y = y
         }
-        static func * (lhs: Double, rhs: Point) -> Point { Point(lhs * rhs.x, lhs * rhs.y) }
-        static func + (lhs: Point, rhs: Point) -> Point { Point(lhs.x + rhs.x, lhs.y + rhs.y) }
+
+        @available(*, deprecated, renamed: "init(x:y:)", message: "Removed in Kinieta 2.0.")
+        public init(_ x: Double = 0, _ y: Double = 0) {
+            self.init(x: x, y: y)
+        }
+
+        static let zero = Point(x: 0, y: 0)
+        static func * (lhs: Double, rhs: Point) -> Point { Point(x: lhs * rhs.x, y: lhs * rhs.y) }
+        static func + (lhs: Point, rhs: Point) -> Point { Point(x: lhs.x + rhs.x, y: lhs.y + rhs.y) }
         public var description: String { "(x: \(x), y: \(y))" }
     }
 
-    public let p0 = Point(0, 0)
+    public let p0 = Point(x: 0, y: 0)
     public let p1: Point
     public let p2: Point
-    public let p3 = Point(1, 1)
+    public let p3 = Point(x: 1, y: 1)
 
     let points: [Point]
 
@@ -58,10 +68,10 @@ public struct Bezier: Sendable, Equatable {
     /// As in CSS, `p1x` and `p2x` are clamped to 0...1 so that time stays
     /// monotonic. The y values may leave that range to overshoot.
     public init(_ p1x: Double, _ p1y: Double, _ p2x: Double, _ p2y: Double) {
-        p1 = Point(min(max(p1x, 0), 1), p1y)
-        p2 = Point(min(max(p2x, 0), 1), p2y)
+        p1 = Point(x: min(max(p1x, 0), 1), y: p1y)
+        p2 = Point(x: min(max(p2x, 0), 1), y: p2y)
         let f = Bezier.factors
-        var baked = [Point](repeating: Point(), count: Bezier.accuracy + 1)
+        var baked = [Point](repeating: .zero, count: Bezier.accuracy + 1)
         for step in 0...Bezier.accuracy {
             baked[step] = f.c0[step] * p0 + f.c1[step] * p1 + f.c2[step] * p2 + f.c3[step] * p3
         }
@@ -72,12 +82,17 @@ public struct Bezier: Sendable, Equatable {
         lhs.p1 == rhs.p1 && lhs.p2 == rhs.p2
     }
 
-    /// Returns the eased progress for a time fraction `x` in 0...1.
+    /// Returns the eased progress at a time fraction `x` in 0...1.
     ///
     /// `x` is time and `y` is progress. The baked table is searched on `x` and
     /// `y` is interpolated linearly between the two nearest samples, so `y` can
     /// leave 0...1 for curves such as `backInOut`. Time outside 0...1 is clamped.
-    public func solve(_ x: Double) -> Double {
+    ///
+    /// ```swift
+    /// let snap = Bezier(0.16, 0.73, 0.89, 0.24)
+    /// let y = snap.progress(at: 0.3)
+    /// ```
+    public func progress(at x: Double) -> Double {
         if x <= 0 { return 0 }
         if x >= 1 { return 1 }
         var low = 0
@@ -90,6 +105,11 @@ public struct Bezier: Sendable, Equatable {
         let span = b.x - a.x
         guard span > 0 else { return a.y }
         return a.y + (b.y - a.y) * (x - a.x) / span
+    }
+
+    @available(*, deprecated, renamed: "progress(at:)", message: "Removed in Kinieta 2.0.")
+    public func solve(_ x: Double) -> Double {
+        progress(at: x)
     }
 }
 #endif

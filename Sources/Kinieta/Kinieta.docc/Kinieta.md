@@ -72,6 +72,10 @@ laying out its views every frame so a constrained view does not snap back.
 
 ### Shaping it
 
+An ``Easing`` maps time to progress through a ``Bezier`` curve, which takes its
+control points in CSS `cubic-bezier()` order. ``Bezier/progress(at:)`` gives a
+curve's eased progress at a time fraction.
+
 - ``Kinieta``
 - ``Easing``
 - ``Bezier``

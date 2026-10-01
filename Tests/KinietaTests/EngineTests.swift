@@ -61,9 +61,9 @@ struct EngineTests {
 
     @Test func linearBezierIsTheIdentity() {
         let linear = Bezier.linear
-        #expect(linear.solve(0.0) == 0.0)
-        #expect(approx(linear.solve(0.5), 0.5, 1e-3))
-        #expect(linear.solve(1.0) == 1.0)
+        #expect(linear.progress(at: 0.0) == 0.0)
+        #expect(approx(linear.progress(at: 0.5), 0.5, 1e-3))
+        #expect(linear.progress(at: 1.0) == 1.0)
         #expect(Easing.linear.bezier == .linear)
     }
 
@@ -71,9 +71,9 @@ struct EngineTests {
         let curves: [Easing.Curve] = [.sine, .quad, .cubic, .quart, .quint, .expo, .back]
         for curve in curves {
             // `in` lags the identity at mid time, `out` leads it (back dips negative early).
-            #expect(Easing.in(curve).bezier.solve(0.5) < 0.5)
-            #expect(Easing.out(curve).bezier.solve(0.5) > 0.5)
-            #expect(Easing.inOut(curve).bezier.solve(0.5) > 0.25 && Easing.inOut(curve).bezier.solve(0.5) < 0.75)
+            #expect(Easing.in(curve).bezier.progress(at: 0.5) < 0.5)
+            #expect(Easing.out(curve).bezier.progress(at: 0.5) > 0.5)
+            #expect((0.25...0.75).contains(Easing.inOut(curve).bezier.progress(at: 0.5)))
             #expect(Easing.in(curve) != Easing.out(curve))
         }
     }
@@ -107,6 +107,17 @@ struct EngineTests {
         #expect(custom.p1.x == 0.16 && custom.p2.y == 0.24)
     }
 
+    @Test func deprecatedBezierSpellingsStillWork() {
+        let curve = Bezier(0.16, 0.73, 0.89, 0.24)
+        for i in 0...20 {
+            let x = Double(i) / 20
+            #expect(curve.deprecatedSolve(x) == curve.progress(at: x))
+        }
+        #expect(Bezier.Point.deprecatedInit(0.25, -0.5) == Bezier.Point(x: 0.25, y: -0.5))
+        #expect(Bezier.Point(x: 0.25, y: -0.5).description == "(x: 0.25, y: -0.5)")
+        #expect(curve.p0 == Bezier.Point(x: 0, y: 0) && curve.p3 == Bezier.Point(x: 1, y: 1))
+    }
+
     @Test func tableSolverMatchesExactBezierEvaluation() {
         let curves = [
             (0.55, 0.055, 0.675, 0.19), (0.68, -0.55, 0.265, 1.55), (0.16, 0.73, 0.89, 0.24), (1.0, 0.0, 0.0, 1.0),
@@ -116,7 +127,7 @@ struct EngineTests {
             let exact = exactBezier(a, b, c, d)
             for i in 1..<20 {
                 let x = Double(i) / 20
-                #expect(approx(table.solve(x), exact(x), 1e-3), "(\(a), \(b), \(c), \(d)) at \(x)")
+                #expect(approx(table.progress(at: x), exact(x), 1e-3), "(\(a), \(b), \(c), \(d)) at \(x)")
             }
         }
     }
@@ -140,18 +151,18 @@ struct EngineTests {
         ]
         for (easing, name, function) in reference {
             for t in [0.25, 0.5, 0.75] {
-                #expect(approx(easing.bezier.solve(t), function(t), 0.06), "\(name) at \(t)")
+                #expect(approx(easing.bezier.progress(at: t), function(t), 0.06), "\(name) at \(t)")
             }
         }
     }
 
-    @Test func solveClampsTimeOutsideTheUnitInterval() {
+    @Test func progressClampsTimeOutsideTheUnitInterval() {
         let curve = Easing.inOut(.back).bezier
-        #expect(curve.solve(-0.5) == 0)
-        #expect(curve.solve(1.5) == 1)
+        #expect(curve.progress(at: -0.5) == 0)
+        #expect(curve.progress(at: 1.5) == 1)
         // backInOut dips below 0 early and overshoots 1 late.
-        #expect(curve.solve(0.1) < 0)
-        #expect(curve.solve(0.9) > 1)
+        #expect(curve.progress(at: 0.1) < 0)
+        #expect(curve.progress(at: 0.9) > 1)
     }
 
     // MARK: Frame clock
@@ -195,7 +206,7 @@ struct EngineTests {
         #expect(curve.p1.x == 0 && curve.p2.x == 1)
         var previous = 0.0
         for i in 1...20 {
-            let y = curve.solve(Double(i) / 20)
+            let y = curve.progress(at: Double(i) / 20)
             #expect(y >= previous && y <= 1)
             previous = y
         }
@@ -2426,6 +2437,24 @@ extension DeprecatedCustomCurve {
     static func deprecatedCustom(_ bezier: Bezier) -> Self { custom(bezier) }
 }
 extension Easing.Curve: DeprecatedCustomCurve {}
+
+/// Reaches the deprecated `Bezier.solve(_:)` and `Bezier.Point.init(_:_:)`
+/// through protocol witnesses, so testing them does not warn.
+private protocol DeprecatedBezierSolve {
+    func solve(_ x: Double) -> Double
+}
+extension DeprecatedBezierSolve {
+    func deprecatedSolve(_ x: Double) -> Double { solve(x) }
+}
+extension Bezier: DeprecatedBezierSolve {}
+
+private protocol DeprecatedPointInit {
+    init(_ x: Double, _ y: Double)
+}
+extension DeprecatedPointInit {
+    static func deprecatedInit(_ x: Double, _ y: Double) -> Self { Self(x, y) }
+}
+extension Bezier.Point: DeprecatedPointInit {}
 
 func approx<T: BinaryFloatingPoint>(_ a: T, _ b: T, _ tolerance: T = 1e-6) -> Bool {
     abs(a - b) <= tolerance

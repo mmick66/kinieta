@@ -100,7 +100,7 @@ final class PropertyAnimation: Action {
 
         let total = elapsed + frame.duration
         elapsed = min(total, duration)
-        let progress = easing.solve(elapsed / duration)
+        let progress = easing.progress(at: elapsed / duration)
         apply(CGFloat(progress), to: view)
 
         if elapsed >= duration {

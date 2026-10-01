@@ -8,6 +8,10 @@ All notable changes to Kinieta are documented here. The format follows
 
 ### Added
 
+- `Bezier.progress(at:)` returns the eased progress at a time fraction, and
+  `Bezier.Point(x:y:)` creates a control point with labelled coordinates, as
+  `CGPoint` does.
+
 - `repeatForever()` replays the whole chain so far, including the actions
   already running or done, until the handle is cancelled: a spinner, a
   pulsing badge or a breathing placeholder. The loop is one step holding one
@@ -183,6 +187,9 @@ All notable changes to Kinieta are documented here. The format follows
 - `Easing.Curve.custom(Bezier)`. Use `Easing.custom(_:)`: the curve is used as
   given, so `.in(.custom(b))`, `.out(.custom(b))` and `.inOut(.custom(b))`
   silently ignored the placement.
+- `Bezier.solve(_:)`, renamed `progress(at:)`, and `Bezier.Point(_:_:)`,
+  replaced by `Point(x:y:)`. `curve.solve(0.3)` said neither what goes in nor
+  what comes out. Both are removed in 2.0.
 - The top-level `Block` typealias. It put a generic name in every client's
   namespace and did not say its blocks run on the main actor. Use
   `Kinieta.Completion`. It is removed in 2.0.
