@@ -42,21 +42,24 @@ final class PropertyAnimation: Action {
         self.target = spec.target ?? ViewRef(nil)
         self.easing = spec.easing ?? .linear
 
+        // Each property's description, built once: it holds a closure.
+        let properties = spec.properties.map(\.descriptor)
+
         // The last property listed for a key wins, so `.frame(…), .x(…)` takes
         // the position from `.x`. Order of first mention is kept.
         var order: [Property.Key] = []
         var latest: [Property.Key: Int] = [:]
-        for (index, property) in spec.properties.enumerated() {
+        for (index, property) in properties.enumerated() {
             for key in property.keys {
                 if latest[key] == nil { order.append(key) }
                 latest[key] = index
             }
         }
-        let winners = spec.properties.indices.filter(Set(latest.values).contains)
+        let winners = properties.indices.filter(Set(latest.values).contains)
 
         // Under Reduce Motion, an animation with nothing left to interpolate finishes on its first frame.
         let engine = Engine.shared
-        let snaps = winners.map { engine.snapsUnderReduceMotion(spec.properties[$0]) }
+        let snaps = winners.map { engine.snapsUnderReduceMotion(properties[$0]) }
         self.duration = engine.shouldSkipMotion && !snaps.contains(false) ? 0 : spec.duration
 
         guard let view = target.view else { return }
@@ -66,17 +69,17 @@ final class PropertyAnimation: Action {
 
         // Take the keys over before reading the starting values, so an older
         // animation that already wrote this frame hands back what was on screen.
-        var slots: [Property.Key: Slot] = [:]
-        for key in order { slots[key] = Slot(object: spec.properties[latest[key]!].owner(on: view), key: key) }
-        PropertyAnimation.owners.claim(order.map { slots[$0]! }, for: self)
+        PropertyAnimation.owners.claim(
+            order.map { Slot(object: properties[latest[$0]!].owner(on: view), key: $0) }, for: self)
 
         let mode = engine.colorInterpolation
         var built: [Property.Key: Channel] = [:]
         for (index, snaps) in zip(winners, snaps) {
-            let property = spec.properties[index]
+            let property = properties[index]
+            let owner = property.owner(on: view)
             let parts = property.transformations(for: view, defaultColorInterpolation: mode)
             for (key, apply) in zip(property.keys, parts) where latest[key] == index {
-                built[key] = Channel(slot: slots[key]!, apply: apply, snaps: snaps)
+                built[key] = Channel(slot: Slot(object: owner, key: key), apply: apply, snaps: snaps)
             }
         }
         channels = order.compactMap { built[$0] }

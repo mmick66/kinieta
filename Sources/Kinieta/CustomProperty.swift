@@ -14,6 +14,10 @@ import os
 /// Make one with ``Property/custom(_:to:isMotion:)-(ReferenceWritableKeyPath<Root,Value>,_,_)``
 /// or ``Property/constant(of:to:)``; it has no public members.
 ///
+/// Internally it describes every property, built-in cases included: what the
+/// property writes, whether it is motion, and how to build its per-frame
+/// transformation. See `Property.descriptor`.
+///
 /// Unchecked `Sendable`: every stored value is immutable, and the key path or
 /// constraint it captures is only read and written on the main actor, when
 /// the animation runs.
@@ -34,17 +38,71 @@ public struct CustomProperty: @unchecked Sendable {
     /// A newer animation of the same key on this object takes it over,
     /// whichever view's timeline runs it.
     let target: ObjectIdentifier?
-    let transformation: Builder
+    /// The properties written together under one `key`, each of which a newer
+    /// animation can take over on its own: the sides of a `.frame`. Empty for
+    /// a property that writes its `key` alone.
+    let parts: [CustomProperty]
+    /// The keys the property writes, each of which a newer animation can take
+    /// over on its own: the parts' keys, or `key` alone. `.frame` writes
+    /// position and size as `.x`, `.y`, `.width` and `.height`, so a later
+    /// `.x` takes only the position.
+    let keys: [Property.Key]
+    let builder: Builder
 
     init(
         key: Property.Key, name: String, isMotion: Bool, target: ObjectIdentifier? = nil,
-        transformation: @escaping Builder
+        builder: @escaping Builder
     ) {
         self.key = key
         self.name = name
         self.isMotion = isMotion
         self.target = target
-        self.transformation = transformation
+        self.parts = []
+        self.keys = [key]
+        self.builder = builder
+    }
+
+    /// A property that writes `parts` together, in order.
+    init(key: Property.Key, name: String, isMotion: Bool, parts: [CustomProperty]) {
+        self.key = key
+        self.name = name
+        self.isMotion = isMotion
+        self.target = nil
+        self.parts = parts
+        self.keys = parts.map(\.key)
+        self.builder = { view, colorMode in
+            let transformations = parts.map { $0.transformation(for: view, defaultColorInterpolation: colorMode) }
+            return { view, factor in
+                for transformation in transformations { transformation(view, factor) }
+            }
+        }
+    }
+
+    /// The object whose `keys` the property writes: the view, or the
+    /// constraint of a `.constant`, which any view's timeline can animate.
+    @MainActor
+    func owner(on view: PlatformView) -> ObjectIdentifier {
+        target ?? ObjectIdentifier(view)
+    }
+
+    /// Builds the per-frame transformation, capturing the view's current value
+    /// as the starting point; one that does nothing when there is nothing to animate.
+    @MainActor
+    func transformation(for view: PlatformView, defaultColorInterpolation: ColorInterpolation)
+        -> Property.Transformation
+    {
+        builder(view, defaultColorInterpolation) ?? { _, _ in }
+    }
+
+    /// One transformation per key in `keys`, in the same order.
+    @MainActor
+    func transformations(for view: PlatformView, defaultColorInterpolation: ColorInterpolation)
+        -> [Property.Transformation]
+    {
+        guard !parts.isEmpty else {
+            return [transformation(for: view, defaultColorInterpolation: defaultColorInterpolation)]
+        }
+        return parts.map { $0.transformation(for: view, defaultColorInterpolation: defaultColorInterpolation) }
     }
 
     fileprivate static let logger = Logger(subsystem: "Kinieta", category: "Property")

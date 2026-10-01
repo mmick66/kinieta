@@ -84,57 +84,76 @@ public enum Property: Sendable {
         case custom(AnyHashable)
     }
 
-    var key: Key {
+    /// What the property writes and how it animates, the same for built-in
+    /// cases as for ``extended(_:)``. It holds a closure, so an animation
+    /// takes it once when it starts rather than once per member it reads.
+    var descriptor: CustomProperty {
         switch self {
-        case .x: return .x
-        case .y: return .y
-        case .alpha: return .alpha
-        case .width: return .width
-        case .height: return .height
-        case .frame: return .frame
-        case .rotation: return .transform
-        case .background: return .background
-        case .borderColor: return .borderColor
-        case .borderWidth: return .borderWidth
-        case .cornerRadius: return .cornerRadius
-        case .extended(let custom): return custom.key
+        case .x(let to):
+            return CustomProperty(key: .x, name: "x", isMotion: true) { view, _ in
+                Self.lerp(from: view.x, to: to) { $0.x = $1 }
+            }
+        case .y(let to):
+            return CustomProperty(key: .y, name: "y", isMotion: true) { view, _ in
+                Self.lerp(from: view.y, to: to) { $0.y = $1 }
+            }
+        case .width(let to):
+            return CustomProperty(key: .width, name: "width", isMotion: true) { view, _ in
+                Self.lerp(from: view.width, to: to) { $0.width = max($1, 0) }
+            }
+        case .height(let to):
+            return CustomProperty(key: .height, name: "height", isMotion: true) { view, _ in
+                Self.lerp(from: view.height, to: to) { $0.height = max($1, 0) }
+            }
+        case .frame(let target):
+            // Each side on its own, from the frame before the transform. The size is
+            // clamped, not standardised, when an easing overshoots below zero.
+            let to = target.standardized
+            let sides: [Property] = [.x(to.origin.x), .y(to.origin.y), .width(to.size.width), .height(to.size.height)]
+            return CustomProperty(key: .frame, name: "frame", isMotion: true, parts: sides.map(\.descriptor))
+        case .alpha(let to):
+            return CustomProperty(key: .alpha, name: "alpha", isMotion: false) { view, _ in
+                Self.lerp(from: view.alpha, to: to) { $0.alpha = $1 }
+            }
+        case .rotation(let to):
+            return CustomProperty(key: .transform, name: "rotation", isMotion: true) { view, _ in
+                Self.lerp(from: view.rotation, to: to) { $0.rotation = $1 }
+            }
+        case .background(let to, let mode):
+            return CustomProperty(key: .background, name: "background", isMotion: false) { view, defaultMode in
+                let colors = Self.colorInterpolator(
+                    from: view.animatedBackgroundColor, to: to, mode: mode ?? defaultMode, view: view,
+                    name: "background")
+                return { view, factor in view.animatedBackgroundColor = colors(factor) }
+            }
+        case .borderColor(let to, let mode):
+            return CustomProperty(key: .borderColor, name: "borderColor", isMotion: false) { view, defaultMode in
+                let colors = Self.colorInterpolator(
+                    from: view.animatedBorderColor, to: to, mode: mode ?? defaultMode, view: view,
+                    name: "borderColor")
+                return { view, factor in view.animatedBorderColor = colors(factor) }
+            }
+        case .borderWidth(let to):
+            return CustomProperty(key: .borderWidth, name: "borderWidth", isMotion: false) { view, _ in
+                Self.lerp(from: view.animatedBorderWidth, to: to) { $0.animatedBorderWidth = max($1, 0) }
+            }
+        case .cornerRadius(let to):
+            return CustomProperty(key: .cornerRadius, name: "cornerRadius", isMotion: false) { view, _ in
+                Self.lerp(from: view.animatedCornerRadius, to: to) { $0.animatedCornerRadius = max($1, 0) }
+            }
+        case .extended(let custom):
+            return custom
         }
     }
 
-    /// The keys the property writes, each of which a newer animation can take
-    /// over on its own. `.frame` writes position and size as `.x`, `.y`,
-    /// `.width` and `.height`, so a later `.x` takes only the position.
-    var keys: [Key] {
-        if case .frame = self { return [.x, .y, .width, .height] }
-        return [key]
-    }
-
-    /// The object whose `keys` the property writes: the view, or the
-    /// constraint of a `.constant`, which any view's timeline can animate.
-    @MainActor
-    func owner(on view: PlatformView) -> ObjectIdentifier {
-        if case .extended(let custom) = self, let target = custom.target { return target }
-        return ObjectIdentifier(view)
-    }
+    var key: Key { descriptor.key }
 
     /// The name used in descriptions and log messages.
-    var name: String {
-        switch self {
-        case .extended(let custom): return custom.name
-        case .rotation: return "rotation"
-        default: return String(describing: key)
-        }
-    }
+    var name: String { descriptor.name }
 
     /// Whether the property moves, resizes or rotates something. Under
     /// Reduce Motion these snap; fades and colour changes still animate.
-    var isMotion: Bool {
-        switch self {
-        case .x, .y, .width, .height, .frame, .rotation: return true
-        case .alpha, .background, .borderColor, .borderWidth, .cornerRadius: return false
-        case .extended(let custom): return custom.isMotion
-        }
-    }
+    var isMotion: Bool { descriptor.isMotion }
 
     /// Applies an eased progress factor to a view.
     typealias Transformation = (PlatformView, CGFloat) -> Void
@@ -144,61 +163,12 @@ public enum Property: Sendable {
     /// timeline is built.
     @MainActor
     func transformation(for view: PlatformView, defaultColorInterpolation: ColorInterpolation) -> Transformation {
-        switch self {
-        case .x(let to):
-            return lerp(from: view.x, to: to) { $0.x = $1 }
-        case .y(let to):
-            return lerp(from: view.y, to: to) { $0.y = $1 }
-        case .alpha(let to):
-            return lerp(from: view.alpha, to: to) { $0.alpha = $1 }
-        case .width(let to):
-            return lerp(from: view.width, to: to) { $0.width = max($1, 0) }
-        case .height(let to):
-            return lerp(from: view.height, to: to) { $0.height = max($1, 0) }
-        case .frame:
-            let parts = transformations(for: view, defaultColorInterpolation: defaultColorInterpolation)
-            return { view, factor in
-                for part in parts { part(view, factor) }
-            }
-        case .rotation(let to):
-            return lerp(from: view.rotation, to: to) { $0.rotation = $1 }
-        case .background(let to, let mode):
-            let colors = Self.colorInterpolator(
-                from: view.animatedBackgroundColor, to: to, mode: mode ?? defaultColorInterpolation, view: view,
-                name: name)
-            return { view, factor in view.animatedBackgroundColor = colors(factor) }
-        case .borderColor(let to, let mode):
-            let colors = Self.colorInterpolator(
-                from: view.animatedBorderColor, to: to, mode: mode ?? defaultColorInterpolation, view: view,
-                name: name)
-            return { view, factor in view.animatedBorderColor = colors(factor) }
-        case .borderWidth(let to):
-            return lerp(from: view.animatedBorderWidth, to: to) { $0.animatedBorderWidth = max($1, 0) }
-        case .cornerRadius(let to):
-            return lerp(from: view.animatedCornerRadius, to: to) { $0.animatedCornerRadius = max($1, 0) }
-        case .extended(let custom):
-            return custom.transformation(view, defaultColorInterpolation) ?? { _, _ in }
-        }
+        descriptor.transformation(for: view, defaultColorInterpolation: defaultColorInterpolation)
     }
 
-    /// One transformation per key in `keys`, in the same order.
-    @MainActor
-    func transformations(for view: PlatformView, defaultColorInterpolation: ColorInterpolation) -> [Transformation] {
-        guard case .frame(let target) = self else {
-            return [transformation(for: view, defaultColorInterpolation: defaultColorInterpolation)]
-        }
-        // Each side on its own, from the frame before the transform. The size is
-        // clamped, not standardised, when an easing overshoots below zero.
-        let to = target.standardized
-        return [
-            lerp(from: view.x, to: to.origin.x) { $0.x = $1 },
-            lerp(from: view.y, to: to.origin.y) { $0.y = $1 },
-            lerp(from: view.width, to: to.size.width) { $0.width = max($1, 0) },
-            lerp(from: view.height, to: to.size.height) { $0.height = max($1, 0) },
-        ]
-    }
-
-    private func lerp<T: Interpolatable>(from: T, to: T, apply: @escaping (PlatformView, T) -> Void) -> Transformation {
+    private static func lerp<T: Interpolatable>(
+        from: T, to: T, apply: @escaping (PlatformView, T) -> Void
+    ) -> Transformation {
         return { view, factor in
             apply(view, from.interpolated(to: to, progress: factor))
         }
