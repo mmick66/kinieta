@@ -404,6 +404,8 @@ xcodebuild docbuild -scheme Kinieta -destination 'generic/platform=iOS Simulator
 xcodebuild docbuild -scheme Kinieta -destination 'platform=macOS'
 ```
 
+Per-frame cost benchmarks (`Tests/KinietaTests/Benchmarks.swift`) time 1,000 views animating four properties, a 10,000-step timeline, 500 nested timelines, `Bezier.progress(at:)` and LCH colour interpolation, and print the best of 10 runs in nanoseconds per frame, step or call. Timings depend on the machine, so they are not a pass/fail test: they run only with `KINIETA_BENCH=1`, and normal test runs and CI skip them. `scripts/bench.sh` sets it and runs them in release mode, on the Mac (`NSView`) by default or on the pinned iOS Simulator (`UIView`) with `scripts/bench.sh ios`. Compare a change by running it before and after on the same idle machine.
+
 ## License
 
 MIT. See [LICENSE](LICENSE).

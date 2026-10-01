@@ -75,7 +75,15 @@ TEST_RUNNER_SNAPSHOT_TESTING_RECORD=all xcodebuild -scheme Kinieta \
 # Build the DocC catalog for UIKit and for AppKit; neither should produce warnings
 xcodebuild docbuild -scheme Kinieta -destination 'generic/platform=iOS Simulator'
 xcodebuild docbuild -scheme Kinieta -destination 'platform=macOS'
+
+# Per-frame cost benchmarks in release mode (Tests/KinietaTests/Benchmarks.swift): ns per frame,
+# step or call, best of 10 runs. Run before and after a refactor on the same idle machine.
+scripts/bench.sh                     # macOS host, on NSView
+scripts/bench.sh ios                 # iOS Simulator, on UIView; `macos ios` runs both
 ```
+
+The benchmarks are not pass/fail and run only with `KINIETA_BENCH=1`, which `scripts/bench.sh`
+sets, so normal test runs and CI skip them.
 
 The tvOS build (`-destination 'generic/platform=tvOS Simulator' build`), the visionOS tests
 (Apple Vision Pro / visionOS 26.5 simulator) and the optional `pod lib lint` job run in CI only

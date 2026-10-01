@@ -789,9 +789,13 @@ struct EngineTests {
     @Test func deprecatedThenPropertyStillSeals() {
         let k = Kinieta(for: makeView()).animate(.x(1), duration: 1).wait(1)
         defer { k.cancel() }
+        #if DEBUG
         let calls = ignoredCalls { _ = k.deprecatedThen.deprecatedThen }
-        #expect(descriptions(k) == ["Group (1)"])
         #expect(calls.count == 1 && calls.first?.site == nil)
+        #else
+        _ = k.deprecatedThen.deprecatedThen
+        #endif
+        #expect(descriptions(k) == ["Group (1)"])
     }
 
     @Test func repeatAppendsCopiesOfTheWholeChain() {
