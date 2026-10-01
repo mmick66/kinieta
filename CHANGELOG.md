@@ -8,6 +8,16 @@ All notable changes to Kinieta are documented here. The format follows
 
 ### Added
 
+- `animate(_:duration:delay:easing:)` takes the delay and the easing with the
+  animation, after the duration as in UIKit's
+  `animate(withDuration:delay:options:)`, so each step is complete as written:
+  `view.animate(.x(250), duration: 0.5, delay: 0.2, easing: .inOut(.cubic))`.
+  On `UIView`, `NSView` and `Kinieta`, with a variadic list or an array. The
+  defaults, no delay and linear easing, behave as before. The parameters build
+  the same step as the chain calls `easing(_:)` and `delay(_:)`, which still
+  work: an easing chained afterwards replaces the parameter, and a delay
+  chained afterwards adds to it, as a second call of either does.
+
 - `Bezier.progress(at:)` returns the eased progress at a time fraction, and
   `Bezier.Point(x:y:)` creates a control point with labelled coordinates, as
   `CGPoint` does.

@@ -842,6 +842,127 @@ struct EngineTests {
         #expect(block != nil)
     }
 
+    // MARK: animate(_:duration:delay:easing:)
+
+    /// The pause and the eased animation of a step `delay` wraps; nil for any other step.
+    private func delayedAnimation(_ type: ActionType?) -> (delay: TimeInterval, spec: AnimationSpec)? {
+        guard case .sequence(let inner, _)? = type, inner.count == 2,
+            case .pause(let delay, _) = inner[0], case .animation(let spec) = inner[1]
+        else { return nil }
+        return (delay, spec)
+    }
+
+    @Test func animateDefaultsToNoDelayAndLinearEasing() {
+        let k = Kinieta(for: makeView()).animate(.x(1), duration: 1)
+        defer { k.cancel() }
+        guard case .animation(let spec)? = k.timeline.first else {
+            Issue.record("expected an Animation"); return
+        }
+        #expect(spec.easing == Easing.linear.bezier)
+        #expect(spec.duration == 1)
+    }
+
+    @Test func animateParametersBuildTheStepTheChainCallsBuild() {
+        let view = makeView()
+        let parameters = Kinieta(for: view).animate(.x(1), .alpha(0), duration: 1, delay: 0.5, easing: .in(.cubic))
+        let chain = Kinieta(for: view).animate(.x(1), .alpha(0), duration: 1).easing(.in(.cubic)).delay(0.5)
+        defer {
+            parameters.cancel()
+            chain.cancel()
+        }
+        guard let built = delayedAnimation(parameters.timeline.first),
+            let chained = delayedAnimation(chain.timeline.first)
+        else {
+            Issue.record("expected a pause and an animation in a sequence"); return
+        }
+        #expect(descriptions(parameters) == ["Sequence (2)"])
+        #expect(built.delay == chained.delay && built.delay == 0.5)
+        #expect(built.spec.easing == chained.spec.easing && built.spec.easing == Easing.in(.cubic).bezier)
+        #expect(built.spec.properties.map(\.name) == ["x", "alpha"])
+        #expect(built.spec.duration == chained.spec.duration)
+    }
+
+    @Test func animateArrayTakesTheSameParameters() {
+        let k = Kinieta(for: makeView()).animate([.x(1)], duration: 1, delay: 0.25, easing: .out(.back))
+        defer { k.cancel() }
+        let step = delayedAnimation(k.timeline.first)
+        #expect(step?.delay == 0.25)
+        #expect(step?.spec.easing == Easing.out(.back).bezier)
+    }
+
+    @Test func animateWithAZeroNegativeOrNaNDelayAddsNoPause() {
+        let k = Kinieta(for: makeView())
+            .animate(.x(1), duration: 1, delay: 0)
+            .animate(.x(2), duration: 1, delay: -1)
+            .animate(.x(3), duration: 1, delay: .nan)
+        defer { k.cancel() }
+        #expect(descriptions(k) == ["Animation (x)", "Animation (x)", "Animation (x)"])
+    }
+
+    @Test func animateWithAnInfiniteDelayHoldsTheTimeline() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        let handle = view.animate(.x(100), duration: 1, delay: .infinity)
+        defer { handle.cancel() }
+        frames.step(1000)
+        #expect(view.frame.origin.x == 0)
+        #expect(handle.isRunning && !frames.isRunning)
+    }
+
+    @Test func animateDelaysThenEasesFrameByFrame() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        var completed = false
+        let handle = view.animate(.x(100), duration: 1, delay: 0.5, easing: .in(.cubic))
+            .onComplete { completed = true }
+        frames.step(0.5)
+        #expect(view.frame.origin.x == 0)  // still delayed
+        frames.step(0.5)
+        #expect(approx(view.frame.origin.x, 100 * Easing.in(.cubic).bezier.progress(at: 0.5)))
+        frames.step(0.5)
+        #expect(approx(view.frame.origin.x, 100))
+        #expect(handle.state == .finished && completed)
+    }
+
+    @Test func aPostfixEasingReplacesTheEasingParameter() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        let handle = view.animate(.x(100), duration: 1, delay: 0.5, easing: .in(.cubic)).easeOut(.back)
+        #expect(delayedAnimation(handle.timeline.first)?.spec.easing == Easing.out(.back).bezier)
+        frames.step(0.75)
+        #expect(approx(view.frame.origin.x, 100 * Easing.out(.back).bezier.progress(at: 0.25)))
+        frames.step(0.75)
+        #expect(handle.state == .finished)
+    }
+
+    @Test func aPostfixDelayAddsToTheDelayParameter() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        let handle = view.animate(.x(100), duration: 1, delay: 0.5).delay(0.25)
+        frames.step(0.75)
+        #expect(view.frame.origin.x == 0)  // both delays still running
+        frames.step(0.5)
+        #expect(approx(view.frame.origin.x, 50))
+        frames.step(0.5)
+        #expect(handle.state == .finished)
+    }
+
+    @Test func aPostfixEasingStillReachesAnAnimationDelayedTwice() {
+        let k = Kinieta(for: makeView()).animate(.x(1), duration: 1, delay: 0.5).delay(0.25).easeIn()
+        defer { k.cancel() }
+        guard case .sequence(let outer, _)? = k.timeline.first,
+            let inner = delayedAnimation(outer.last)
+        else {
+            Issue.record("expected a delayed step inside a delay"); return
+        }
+        #expect(outer.first?.description == "Pause (0.25)")
+        #expect(inner.delay == 0.5 && inner.spec.easing == Easing.in().bezier)
+    }
+
     // MARK: Frame driver
 
     @Test func engineRunsTheDriverOnlyWhileActionsAreRegistered() {

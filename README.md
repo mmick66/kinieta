@@ -127,11 +127,17 @@ Custom key paths count as fades for [Reduce Motion](#reduce-motion) and keep ani
 
 ### Easing
 
-Apply an easing to the previous animation. The default is linear.
+Pass an easing with the animation it shapes. The default is linear.
 
 ```swift
-view.animate(.x(250), duration: 0.5).easeIn()             // quad
-view.animate(.x(250), duration: 0.5).easeOut(.cubic)
+view.animate(.x(250), duration: 0.5, easing: .in())       // quad
+view.animate(.x(250), duration: 0.5, easing: .out(.cubic))
+view.animate(.x(250), duration: 0.5, easing: .inOut(.back))
+```
+
+The chain calls `easeIn`, `easeOut`, `easeInOut` and `easing(_:)` apply an easing to the previous animation instead, and replace one passed as a parameter:
+
+```swift
 view.animate(.x(250), duration: 0.5).easeInOut(.back)
 view.animate(.x(250), duration: 0.5).easing(.inOut(.expo))
 ```
@@ -140,28 +146,30 @@ Curves: `.sine`, `.quad`, `.cubic`, `.quart`, `.quint`, `.expo` and `.back`. For
 
 ```swift
 let snap = Bezier(0.16, 0.73, 0.89, 0.24)
-view.animate(.x(250), duration: 1.0).easing(.custom(snap))
+view.animate(.x(250), duration: 1.0, easing: .custom(snap))
 ```
 
 Each curve is baked into a lookup table when it is made and solved at time `x`, exactly like CSS `cubic-bezier()`: `snap.progress(at: 0.3)` is the eased progress 30% of the way through the duration. The presets are baked once and shared, so easing costs no allocation; make a custom `Bezier` once and reuse it. Curves such as `back` overshoot on purpose.
 
 ### Sequencing
 
-Chained calls run one after another. `wait` inserts a pause; `delay` postpones the previous action; `repeat` appends copies of the whole chain, including the actions already running or done.
+Chained calls run one after another. An animation's `delay:` postpones its start; `wait` inserts a pause; `repeat` appends copies of the whole chain, including the actions already running or done.
 
 ```swift
-view.animate(.x(250), .y(500), duration: 0.5).easeInOut(.cubic)
+view.animate(.x(250), .y(500), duration: 0.5, easing: .inOut(.cubic))
     .wait(0.5)
-    .animate(.x(300), .y(200), duration: 0.5).easeInOut(.cubic)
-    .animate(.x(0), .y(0), duration: 0.5).delay(0.2)
+    .animate(.x(300), .y(200), duration: 0.5, easing: .inOut(.cubic))
+    .animate(.x(0), .y(0), duration: 0.5, delay: 0.2)
     .repeat(times: 1)
 ```
+
+`animate(_:duration:delay:easing:)` takes its parameters in the order of UIKit's `animate(withDuration:delay:options:)`: the duration, the delay, then how to animate. It builds the same step as the chain calls `animate(_:duration:)`, `easing(_:)` and `delay(_:)`, which still work: `delay(_:)` postpones the previous action, including a `wait` or a `Kinieta.group`, and adds to a delay passed as a parameter, as a second `delay(_:)` does.
 
 `repeatForever()` replays the whole chain the same way, over and over until you cancel the handle: a spinner, a pulsing badge, a breathing placeholder. The loop is a single step that replays one copy of the chain, so it costs the same however long it runs.
 
 ```swift
-let pulse = badge.animate(.alpha(0.3), duration: 0.8).easeInOut(.sine)
-    .animate(.alpha(1), duration: 0.8).easeInOut(.sine)
+let pulse = badge.animate(.alpha(0.3), duration: 0.8, easing: .inOut(.sine))
+    .animate(.alpha(1), duration: 0.8, easing: .inOut(.sine))
     .repeatForever()
 
 pulse.cancel()  // stops it where it is
@@ -169,15 +177,15 @@ pulse.cancel()  // stops it where it is
 
 A looping timeline never finishes: `finished()` returns once it is cancelled or its view is deallocated, and a `Kinieta.group` that runs it never calls its completion. Completion blocks inside the chain run on every cycle. Nothing can follow the loop, so a chain call made after `repeatForever()` does nothing and, in debug builds, logs a warning. A cycle that takes no time, such as one of zero durations or one that snaps under Reduce Motion, plays once per frame rather than hanging the app. Pausing, cancelling, grouping and interrupting work as on any other timeline; each cycle starts its animations anew, so it takes back a property that a newer animation took over during the previous one. `repeat(times:)` makes its copies at once and stops at 10,000 of them, with a warning; use `repeatForever()` to loop for good.
 
-Durations are in seconds. A negative or NaN duration is treated as zero and logs a warning, so it never skips ahead or stalls the timeline. `wait(.infinity)` and `delay(.infinity)` hold the timeline until you cancel it; an infinite `animate` duration is treated as zero.
+Durations and delays are in seconds. A negative or NaN one is treated as zero and logs a warning, so it never skips ahead or stalls the timeline. `wait(.infinity)`, `delay(.infinity)` and `animate(_:duration:delay:)` with `delay: .infinity` hold the timeline until you cancel it; an infinite `animate` duration is treated as zero.
 
 ### Parallel actions
 
 `parallel()` gathers everything added since the last `then()` or `parallel()` and runs it together.
 
 ```swift
-view.animate(.x(200), duration: 1.0).easeInOut(.cubic)
-    .animate(.alpha(0), duration: 0.2).delay(0.8).easeOut()
+view.animate(.x(200), duration: 1.0, easing: .inOut(.cubic))
+    .animate(.alpha(0), duration: 0.2, delay: 0.8, easing: .out())
     .parallel()
     .onComplete { print("moved and faded") }
 ```
@@ -331,7 +339,7 @@ easing(_:) follows a wait, not an animation; ignoring it (MyApp/CardView.swift:4
 
 | Call | Ignored when | Fix |
 | --- | --- | --- |
-| `easing`, `easeIn`, `easeOut`, `easeInOut` | the previous step is not an animation: a `wait`, `parallel()`, `then()` or `Kinieta.group` | put the easing straight after the `animate` it shapes; inside a `parallel()` block, ease each animation before `parallel()` |
+| `easing`, `easeIn`, `easeOut`, `easeInOut` | the previous step is not an animation: a `wait`, `parallel()`, `then()` or `Kinieta.group` | pass it as the `easing:` parameter of the `animate` it shapes, or chain it straight after that `animate`; inside a `parallel()` block, ease each animation before `parallel()` |
 | `delay`, `onComplete`, easing | the timeline is empty, or every action in it has already started | chain it straight after the action, before the next frame |
 | `parallel()`, `then()` | nothing was added since the last `then()` or `parallel()`, the timeline is empty, or everything has started | drop the extra call |
 | `repeat(times:)` | `times` is zero or negative, or the timeline is empty | pass 1 or more; a finished timeline forgets its actions, so repeat before it ends |

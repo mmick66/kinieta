@@ -144,25 +144,40 @@ public final class Kinieta {
 
     // MARK: - Building the timeline
 
-    /// Animates `properties` to their values over `duration` seconds. A zero
-    /// duration sets them on the next frame.
+    /// Animates `properties` to their values over `duration` seconds, after
+    /// `delay` seconds, shaped by `easing`. A zero duration sets them on the
+    /// next frame.
     ///
-    /// A negative, NaN or infinite duration is treated as zero and logs a warning.
+    /// ```swift
+    /// handle.animate(.x(250), duration: 0.5, delay: 0.2, easing: .inOut(.cubic))
+    /// ```
+    ///
+    /// The parameters build the same step as the chain calls:
+    /// `animate(.x(250), duration: 0.5).easing(.inOut(.cubic)).delay(0.2)`. So
+    /// ``easing(_:file:line:)`` called afterwards replaces `easing`, and
+    /// ``delay(_:file:line:)`` called afterwards adds to `delay`, as a second
+    /// call of either does.
+    ///
+    /// A negative, NaN or infinite duration is treated as zero and logs a
+    /// warning. `delay` accepts the same times as ``wait(_:file:line:)``.
     ///
     /// A group handle has no view to animate: calling this on one does nothing
     /// and, in debug builds, logs a warning. Animate the grouped timelines instead.
     @discardableResult
     public func animate(
-        _ properties: Property..., duration: TimeInterval = 0, file: StaticString = #fileID, line: UInt = #line
+        _ properties: Property..., duration: TimeInterval = 0, delay: TimeInterval = 0, easing: Easing = .linear,
+        file: StaticString = #fileID, line: UInt = #line
     ) -> Kinieta {
-        animate(properties, duration: duration, file: file, line: line)
+        animate(properties, duration: duration, delay: delay, easing: easing, file: file, line: line)
     }
 
-    /// Animates `properties` to their values over `duration` seconds. Same as
-    /// ``animate(_:duration:file:line:)-(Property...,_,_,_)`` with an array.
+    /// Animates `properties` to their values over `duration` seconds, after
+    /// `delay` seconds, shaped by `easing`. Same as
+    /// ``animate(_:duration:delay:easing:file:line:)-(Property...,_,_,_,_,_)`` with an array.
     @discardableResult
     public func animate(
-        _ properties: [Property], duration: TimeInterval = 0, file: StaticString = #fileID, line: UInt = #line
+        _ properties: [Property], duration: TimeInterval = 0, delay: TimeInterval = 0, easing: Easing = .linear,
+        file: StaticString = #fileID, line: UInt = #line
     ) -> Kinieta {
         guard !isGroup else {
             Kinieta.ignored(
@@ -171,8 +186,12 @@ public final class Kinieta {
             return self
         }
         let duration = Kinieta.sanitized(duration, in: "animate(duration:)", allowsInfinity: false)
+        let delay = Kinieta.sanitized(delay, in: "animate(delay:)", allowsInfinity: true)
         editUnstarted("animate(_:duration:)", file: file, line: line) {
-            $0.add(.animation(AnimationSpec(view, properties, duration: duration)))
+            let animation = ActionType.animation(
+                AnimationSpec(view, properties, duration: duration, easing: easing.bezier))
+            // The shape `delay(_:)` builds, so a later `easing(_:)` still reaches the animation.
+            $0.add(delay > 0 ? .sequence([.pause(delay), animation]) : animation)
         }
         return self
     }

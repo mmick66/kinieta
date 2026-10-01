@@ -11,18 +11,28 @@ import AppKit
 // `UIView`, or `NSView` on native macOS.
 public extension PlatformView {
 
-    /// Starts a timeline that animates `properties` over `duration` seconds.
-    /// Chain further calls on the returned handle to extend it.
+    /// Starts a timeline that animates `properties` over `duration` seconds,
+    /// after `delay` seconds, shaped by `easing`. Chain further calls on the
+    /// returned handle to extend it.
+    ///
+    /// ```swift
+    /// view.animate(.x(250), duration: 0.5, delay: 0.2, easing: .inOut(.cubic))
+    /// ```
     @discardableResult
-    func animate(_ properties: Property..., duration: TimeInterval = 0) -> Kinieta {
-        Kinieta(view: self).animate(properties, duration: duration)
+    func animate(
+        _ properties: Property..., duration: TimeInterval = 0, delay: TimeInterval = 0, easing: Easing = .linear
+    ) -> Kinieta {
+        Kinieta(view: self).animate(properties, duration: duration, delay: delay, easing: easing)
     }
 
-    /// Starts a timeline that animates `properties` over `duration` seconds.
-    /// Same as ``animate(_:duration:)-(Property...,_)`` with an array.
+    /// Starts a timeline that animates `properties` over `duration` seconds,
+    /// after `delay` seconds, shaped by `easing`. Same as
+    /// ``animate(_:duration:delay:easing:)-(Property...,_,_,_)`` with an array.
     @discardableResult
-    func animate(_ properties: [Property], duration: TimeInterval = 0) -> Kinieta {
-        Kinieta(view: self).animate(properties, duration: duration)
+    func animate(
+        _ properties: [Property], duration: TimeInterval = 0, delay: TimeInterval = 0, easing: Easing = .linear
+    ) -> Kinieta {
+        Kinieta(view: self).animate(properties, duration: duration, delay: delay, easing: easing)
     }
 
     /// Starts a timeline with a pause, for chaining an animation after a delay.

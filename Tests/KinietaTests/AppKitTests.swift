@@ -80,6 +80,26 @@ struct AppKitTests {
         #expect(approx(view.alphaValue, 0.2) && handle.state == .finished)
     }
 
+    @Test func animateTakesADelayAndAnEasing() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = makeView()
+        let handle = view.animate([.x(100)], duration: 1, delay: 0.5, easing: .in(.cubic))
+            .animate(.alpha(0.2), duration: 0.5, delay: 0.5)
+        frames.step(0.5)
+        #expect(approx(view.frame.origin.x, 0))  // still delayed
+        frames.step(0.5)
+        #expect(approx(view.frame.origin.x, 100 * Easing.in(.cubic).bezier.progress(at: 0.5)))
+        frames.step(0.5)
+        #expect(approx(view.frame.origin.x, 100))
+        frames.step(0.5)
+        #expect(approx(view.alphaValue, 1))  // the second delay
+        frames.step(0.25)
+        #expect(approx(view.alphaValue, 0.6))
+        frames.step(0.25)
+        #expect(approx(view.alphaValue, 0.2) && handle.state == .finished)
+    }
+
     @Test func aNewerAnimationTakesThePropertyOver() {
         let frames = ManualFrameDriver.install()
         defer { frames.uninstall() }

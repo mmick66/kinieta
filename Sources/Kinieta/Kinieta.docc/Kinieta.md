@@ -51,12 +51,18 @@ API with `NSView` and `NSColor` where UIKit has `UIView` and `UIColor`.
 
 ### Starting a timeline
 
-Call `animate(_:duration:)` or `wait(_:)` on any `UIView`; both return a ``Kinieta`` handle.
+Call `animate(_:duration:delay:easing:)` or `wait(_:)` on any `UIView`; both
+return a ``Kinieta`` handle. An animation's `delay` postpones its start and its
+``Easing`` shapes it; they default to none and ``Easing/linear``.
 
-Durations are in seconds. A negative or NaN duration is treated as zero and
-logs a warning. Only `wait(_:)` and `delay(_:)` accept `.infinity`, which holds
-the timeline until it is cancelled; an infinite animation duration is treated
-as zero.
+```swift
+view.animate(.x(250), duration: 0.5, delay: 0.2, easing: .inOut(.cubic))
+```
+
+Durations and delays are in seconds. A negative or NaN one is treated as zero
+and logs a warning. Only waits and delays accept `.infinity`, which holds the
+timeline until it is cancelled; an infinite animation duration is treated as
+zero.
 
 - ``Property``
 
