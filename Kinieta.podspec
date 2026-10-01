@@ -1,8 +1,8 @@
 Pod::Spec.new do |s|
 
   s.name         = "Kinieta"
-  s.version      = "1.1.0"
-  s.summary      = "A timeline animation engine for UIKit with a typed, chainable API. Prefer Swift Package Manager; CocoaPods support ends after 1.1."
+  s.version      = "2.0.0"
+  s.summary      = "A timeline animation engine for UIKit with a typed, chainable API. Prefer Swift Package Manager; CocoaPods trunk stays at 1.0.0."
 
   s.description  = <<-DESC
 A timeline animation engine for UIKit with a typed, chainable API.

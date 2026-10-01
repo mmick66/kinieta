@@ -6,6 +6,18 @@ All notable changes to Kinieta are documented here. The format follows
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-10-01
+
+The composition release. A timeline can now be a value: `Step` and a result
+builder compose animations, waits and calls, and `Kinieta.run` plays one
+timeline over several views under one handle. `animate` takes its delay and
+easing as parameters. A newer animation takes a property over from an older
+one, any key path or constraint constant can animate, and Kinieta runs on
+tvOS, Mac Catalyst and visionOS, with experimental support for macOS. The APIs
+deprecated during this cycle are removed: see Removed. The module rename
+planned for 2.0 is postponed to a later major release. CocoaPods trunk stays at
+1.0.0; use Swift Package Manager.
+
 ### Added
 
 - `Step` composes a timeline as one value instead of a chain of calls that
@@ -179,9 +191,10 @@ All notable changes to Kinieta are documented here. The format follows
   movement in it still finishes on its first frame. Set
   `Engine.shared.reduceMotionBehavior = .snapAll` for 1.0's behaviour, which
   snapped every property. The example app shows the setting and can switch it.
-- CocoaPods: this release, not 1.0.0, is the final podspec release. It is
-  published to trunk before trunk becomes read-only in December 2026. Use
-  Swift Package Manager.
+- CocoaPods: no release after 1.0.0 is pushed to trunk, which becomes
+  read-only in December 2026. The podspec stays in the repository, so a
+  Podfile can take a release from its tag with `:git` and `:tag`. Use Swift
+  Package Manager.
 - Faster timelines. The preset easings are baked once and shared instead of
   per call, and timelines are built and run in linear time: a 10,000-step
   timeline builds and runs about 45 times faster (3.3 s to 0.07 s in a debug

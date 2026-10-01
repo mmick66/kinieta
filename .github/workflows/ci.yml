@@ -152,8 +152,9 @@ jobs:
       - name: Test
         run: swift test
 
-  # Catches podspec regressions, such as a dropped privacy bundle, until 1.1.0,
-  # the final CocoaPods release. Optional: a failure here does not fail the run.
+  # Catches podspec regressions, such as a dropped privacy bundle, for Podfiles
+  # that take the podspec from a release tag; trunk stays at 1.0.0. Optional:
+  # a failure here does not fail the run.
   # `pod lib lint` builds for every platform the podspec declares (iOS, tvOS
   # and macOS), on a simulator where there is one, so the tvOS runtime is
   # installed if the runner lacks it.

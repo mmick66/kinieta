@@ -51,4 +51,4 @@ Add the package with Swift Package Manager:
 https://github.com/mmick66/kinieta
 ```
 
-1.1.0 is the final CocoaPods release.
+CocoaPods trunk stays at 1.0.0; later releases are published for Swift Package Manager.

@@ -38,15 +38,15 @@ https://github.com/mmick66/kinieta
 Or in `Package.swift`:
 
 ```swift
-.package(url: "https://github.com/mmick66/kinieta", from: "1.0.0")
+.package(url: "https://github.com/mmick66/kinieta", from: "2.0.0")
 ```
 
 ### CocoaPods
 
-1.1.0 is the final CocoaPods release: CocoaPods trunk becomes read-only in December 2026. Until 1.1.0 is published there, trunk has 1.0.0, which lacks the privacy manifest and the experimental macOS support. Prefer Swift Package Manager.
+CocoaPods trunk has 1.0.0, the last version published there: trunk becomes read-only in December 2026, and later releases are not pushed to it. 1.0.0 lacks the privacy manifest, the experimental macOS support and everything since. Prefer Swift Package Manager, or point the Podfile at a release tag:
 
 ```ruby
-pod 'Kinieta', '~> 1.0'
+pod 'Kinieta', :git => 'https://github.com/mmick66/kinieta.git', :tag => '2.0.0'
 ```
 
 ## Usage
