@@ -96,7 +96,7 @@ label.animate(.custom(\UILabel.textColor, to: .systemPink), duration: 0.5)   // 
 button.animate(.custom(\.tintColor, to: .systemGreen), duration: 0.5)
 ```
 
-The starting value is read when the animation starts, like every property. Colours animate exactly like `.background`: through `Engine.shared.colorInterpolation`, resolved against the view's own traits, with the target assigned as given. An optional key path whose current value is `nil` fades a colour in from clear and switches any other value on the first frame. A key path rooted in a subclass, such as `\UILabel.textColor`, does nothing on a view of another class and logs a warning. Listing the same key path twice in one animation keeps the last value, like the built-in properties. `.custom` and `.constant` are main-actor functions, like `animate`.
+The starting value is read when the animation starts, like every property. Colours animate exactly like `.background`: through `Engine.shared.colorInterpolation`, or the `interpolation:` you pass, such as `.custom(\UILabel.textColor, to: .systemPink, interpolation: .hsb)`, resolved against the view's own traits, with the target assigned as given; other values ignore `interpolation:`. An optional key path whose current value is `nil` fades a colour in from clear and switches any other value on the first frame. A key path rooted in a subclass, such as `\UILabel.textColor`, does nothing on a view of another class and logs a warning. Listing the same key path twice in one animation keeps the last value, like the built-in properties. `.custom` and `.constant` are main-actor functions, like `animate`.
 
 The value must conform to `Interpolatable`. `CGFloat`, `Double`, `Float`, `CGPoint`, `CGSize`, `CGRect`, `CGAffineTransform`, `UIColor` and `CGColor` do; conform your own types with one method:
 
@@ -112,7 +112,7 @@ extension CGVector: Interpolatable {
 
 Progress runs from 0 to 1, and past either end under an overshooting easing such as `back`.
 
-A `CGColor`, such as `\.layer.shadowColor`, animates like a `UIColor`, through the engine's colour interpolation.
+A `CGColor`, such as `\.layer.shadowColor`, animates like a `UIColor`, through the engine's colour interpolation or the `interpolation:` you pass.
 
 A `CGAffineTransform` is not blended entry by entry, which would shrink a view halfway through a quarter turn. Like Core Animation, Kinieta splits each end into a translation, a rotation, a scale on each axis and a shear, interpolates those and puts them back together:
 
@@ -334,10 +334,11 @@ Nothing has to be cancelled. The older animation keeps its duration, so its comp
 
 ### Colour
 
-Colours interpolate through the perceptual CIE LCH space by default, with hue taking the shorter arc. Choose per property or change the engine default. The endpoints are assigned exactly as given, so a dynamic colour such as `.systemBackground` keeps adapting to Dark Mode after the animation, and a Display P3 colour keeps its gamut. The frames in between resolve dynamic colours against the view's own traits, and follow them if the appearance changes mid-animation. The frames in between are clipped to sRGB only when both endpoints are in sRGB; between Display P3 colours they stay in Display P3, so a wide-gamut animation keeps its saturation on the way instead of jumping to it on the last frame. Fading to or from `.clear` fades alpha instead of passing through black.
+Colours interpolate through the perceptual CIE LCH space by default, with hue taking the shorter arc. Choose per property, with the `interpolation:` that `.background`, `.borderColor` and `.custom` take, or change the engine default. The endpoints are assigned exactly as given, so a dynamic colour such as `.systemBackground` keeps adapting to Dark Mode after the animation, and a Display P3 colour keeps its gamut. The frames in between resolve dynamic colours against the view's own traits, and follow them if the appearance changes mid-animation. The frames in between are clipped to sRGB only when both endpoints are in sRGB; between Display P3 colours they stay in Display P3, so a wide-gamut animation keeps its saturation on the way instead of jumping to it on the last frame. Fading to or from `.clear` fades alpha instead of passing through black.
 
 ```swift
 view.animate(.background(.systemBlue, interpolation: .rgb), duration: 1.0)
+view.animate(.custom(\.layer.shadowColor, to: UIColor.systemBlue.cgColor, interpolation: .hsb), duration: 1.0)
 Engine.shared.colorInterpolation = .hsb   // .rgb, .hsb or .lch
 ```
 

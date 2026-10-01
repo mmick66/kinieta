@@ -43,7 +43,7 @@ flipped. `.rotation` sets `frameRotation` about the view's centre, and the
 layer properties, such as ``Property/background(_:interpolation:)`` and
 ``Property/cornerRadius(_:)``, give a view without a layer one. Where a
 signature names the view or colour type, such as
-``Property/custom(_:to:isMotion:)-(ReferenceWritableKeyPath<Root,Value>,_,_)``,
+``Property/custom(_:to:interpolation:isMotion:)-(ReferenceWritableKeyPath<Root,Value>,_,_,_)``,
 this documentation shows the platform it was built for: AppKit has the same
 API with `NSView` and `NSColor` where UIKit has `UIView` and `UIColor`.
 
@@ -78,8 +78,8 @@ result builder. One step can run on many views, and one timeline from
 
 ### Animating anything else
 
-``Property/custom(_:to:isMotion:)-(ReferenceWritableKeyPath<Root,Value>,_,_)`` animates any
-writable key path of a view to an ``Interpolatable`` value, and
+``Property/custom(_:to:interpolation:isMotion:)-(ReferenceWritableKeyPath<Root,Value>,_,_,_)``
+animates any writable key path of a view to an ``Interpolatable`` value, and
 ``Property/constant(of:to:)`` animates an Auto Layout constraint's constant,
 laying out its views every frame so a constrained view does not snap back.
 

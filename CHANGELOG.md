@@ -72,7 +72,7 @@ All notable changes to Kinieta are documented here. The format follows
   from the display link of the screen the latest animated view's window is
   on, else the main screen's, and follow that window to another screen; with
   no screen at all a timer drives them, so animations still finish. `NSColor`
-  and `CGColor` conform to `Interpolatable` on macOS too. `Property.custom(_:to:isMotion:)` takes key
+  and `CGColor` conform to `Interpolatable` on macOS too. `Property.custom(_:to:interpolation:isMotion:)` takes key
   paths rooted in `NSView` or a subclass, such as `\.layer!.shadowOpacity` or
   `\NSBox.fillColor`, with colours interpolated like `.background`; a key path
   to `frameRotation` or `frameCenterRotation` shares `.rotation`'s key and
@@ -93,11 +93,13 @@ All notable changes to Kinieta are documented here. The format follows
   "Interrupting" in the README. In the example app, pressing Play again
   continues from where the views are, and an Interrupting row retargets a
   moving square.
-- `Property.custom(_:to:isMotion:)` animates any writable key path of a
+- `Property.custom(_:to:interpolation:isMotion:)` animates any writable key path of a
   view, such as `\.layer.shadowOpacity`, `\.tintColor` or
   `\UILabel.textColor`, to an `Interpolatable` value. Colours go through the
-  engine's colour interpolation like `.background`. Pass `isMotion: true` to
-  snap it under Reduce Motion.
+  engine's colour interpolation like `.background`, or through
+  `interpolation:`, as in `.custom(\.layer.shadowColor, to: color,
+  interpolation: .rgb)`, which overrides it for that property; other values
+  ignore it. Pass `isMotion: true` to snap it under Reduce Motion.
 - `Property.constant(of:to:)` animates an `NSLayoutConstraint`'s constant and
   lays out the constraint's views every frame, so a view placed by Auto Layout
   can animate without snapping back on the next layout pass. It snaps under

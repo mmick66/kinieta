@@ -263,6 +263,39 @@ struct CustomPropertyTests {
         #expect(approx(mid.red, 0.5) && approx(mid.green, 0) && approx(mid.blue, 0.5))
     }
 
+    @Test func anInterpolationOverridesTheEngineForEachColourKeyPath() throws {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = ColorView()
+        view.color = .red
+        view.solid = .red
+        view.layer.shadowColor = UIColor.red.cgColor
+        let blue = UIColor.blue.cgColor
+        view.animate(
+            .custom(\ColorView.color, to: .blue, interpolation: .rgb),
+            .custom(\ColorView.solid, to: .blue, interpolation: .rgb),
+            .custom(\.layer.shadowColor, to: blue, interpolation: .rgb), duration: 1)
+        frames.step(0.5)
+        // Straight through sRGB, where the engine's LCH would pass through neither.
+        let shadow = try #require(view.layer.shadowColor.map(UIColor.init(cgColor:)))
+        for color in [view.color, view.solid, shadow] {
+            let mid = try #require(color.flatMap(ColorMath.extractComponents(of:)))
+            #expect(approx(mid.red, 0.5) && approx(mid.green, 0) && approx(mid.blue, 0.5), "\(mid)")
+        }
+        frames.step(0.5)
+        #expect(view.color == .blue && view.solid == .blue)
+        #expect(view.layer.shadowColor === blue)
+    }
+
+    @Test func aValueOtherThanAColourIgnoresTheInterpolation() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let view = UIView()
+        view.animate(.custom(\.alpha, to: 0, interpolation: .hsb), duration: 1)
+        frames.step(0.25)
+        #expect(approx(view.alpha, 0.75))
+    }
+
     @Test func anImplicitlyUnwrappedColourAnimates() throws {
         let frames = ManualFrameDriver.install()
         defer { frames.uninstall() }
@@ -453,5 +486,6 @@ private final class VectorView: UIView {
 
 private final class ColorView: UIView {
     var color: UIColor?
+    var solid: UIColor = .clear
 }
 #endif

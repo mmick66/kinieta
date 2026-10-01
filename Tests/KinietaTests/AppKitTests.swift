@@ -512,6 +512,26 @@ struct AppKitTests {
         #expect(view.layer?.shadowColor === blue)
     }
 
+    @Test func anInterpolationOverridesTheEngineForEachColourKeyPath() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let red = NSColor(srgbRed: 1, green: 0, blue: 0, alpha: 1)
+        let blue = NSColor(srgbRed: 0, green: 0, blue: 1, alpha: 1)
+        let box = NSBox()
+        box.fillColor = red
+        box.wantsLayer = true
+        box.layer?.shadowColor = red.cgColor
+        box.animate(
+            .custom(\NSBox.fillColor, to: blue, interpolation: .rgb),
+            .custom(\.layer!.shadowColor, to: blue.cgColor, interpolation: .rgb), duration: 1)
+        frames.step(0.5)
+        // Straight through sRGB, where the engine's LCH would pass through neither.
+        #expect(same(ColorMath.extractComponents(of: box.fillColor), rgb(0.5, 0, 0.5)))
+        #expect(same(components(of: box.layer?.shadowColor), rgb(0.5, 0, 0.5)))
+        frames.step(0.5)
+        #expect(box.fillColor === blue)
+    }
+
     @Test func aSubclassKeyPathOnAnotherViewDoesNothing() {
         let frames = ManualFrameDriver.install()
         defer { frames.uninstall() }
