@@ -51,4 +51,4 @@ Add the package with Swift Package Manager:
 https://github.com/mmick66/kinieta
 ```
 
-1.0.0 is also the final CocoaPods release.
+1.1.0 is the final CocoaPods release.
