@@ -2,7 +2,7 @@ import AppKit
 import Kinieta
 
 /// The macOS gallery: the iOS demo's easing tracks, colour spaces, composed
-/// timeline, controls, interrupting and Auto Layout rows, animating `NSView`s.
+/// timeline, steps, controls, interrupting and Auto Layout rows, animating `NSView`s.
 ///
 /// Geometry is in each track's coordinates, from the bottom left: a 32 pt
 /// square at `y` 6 sits in the middle of a 44 pt track.
@@ -16,6 +16,9 @@ final class DemoViewController: NSViewController {
     private let timelineRow = NSView()
     private var timelineSquares: [NSView] = []
     private let timelineStatus = NSTextField(labelWithString: "Idle")
+    private let stepsRow = NSView()
+    private var stepsSquares: [NSView] = []
+    private let stepsStatus = NSTextField(labelWithString: "Idle")
     private var running: [Kinieta] = []
     private let controlsTrack = TrackView()
     private let controlsSquare = NSView()
@@ -155,6 +158,20 @@ final class DemoViewController: NSViewController {
         }
         addRow(timelineRow)
         addRow(status(timelineStatus))
+
+        addHeader(
+            "Steps",
+            detail: "One Step value, run on each square with a staggered delay: a hop in parallel with a colour "
+                + "change, then back, played twice. One group completion fires when all four end.")
+        stepsRow.heightAnchor.constraint(equalToConstant: 56).isActive = true
+        for i in 0..<4 {
+            let square = makeSquare(color: pink)
+            square.frame = home.offsetBy(dx: CGFloat(i) * 44, dy: 0)
+            stepsRow.addSubview(square)
+            stepsSquares.append(square)
+        }
+        addRow(stepsRow)
+        addRow(status(stepsStatus))
 
         addHeader(
             "Controls",
@@ -335,8 +352,38 @@ final class DemoViewController: NSViewController {
             self?.timelineStatus.stringValue = "Done: three timelines, one completion"
         }
         running.append(group)
+        playSteps()
         playInterrupt()
         playControls()
+    }
+
+    // MARK: Steps
+
+    /// One step value: its animations take the view each `run` is called on.
+    /// The row is 56 pt tall, so a square hops from `y` 6 to 18, up from the bottom.
+    private func playSteps() {
+        // Write `Step.` on every line: a line that starts with a dot would continue the one before.
+        let hop = Step.sequence {
+            Step.parallel {
+                Step.sequence {
+                    Step.animate(.y(18), duration: 0.25, easing: .out(.quad))
+                    Step.animate(.y(6), duration: 0.25, easing: .in(.quad))
+                }
+                Step.animate(.cornerRadius(16), .background(cyan), duration: 0.5, easing: .inOut(.cubic))
+            }
+            Step.wait(0.3)
+            Step.animate(.cornerRadius(6), .background(pink), duration: 0.4)
+        }
+        .repeat(times: 1)
+
+        stepsStatus.stringValue = "Running…"
+        let handles = stepsSquares.enumerated().map { index, square in
+            square.run(hop.delay(Double(index) * 0.12))
+        }
+        running.append(
+            Kinieta.group(handles) { [weak self] in
+                self?.stepsStatus.stringValue = "Done: one step, four views"
+            })
     }
 
     // MARK: Interrupting
@@ -493,6 +540,12 @@ final class DemoViewController: NSViewController {
             square.alphaValue = 1
         }
         timelineStatus.stringValue = "Idle"
+        for (i, square) in stepsSquares.enumerated() {
+            square.frame = home.offsetBy(dx: CGFloat(i) * 44, dy: 0)
+            square.layer?.backgroundColor = pink.cgColor
+            square.layer?.cornerRadius = 6
+        }
+        stepsStatus.stringValue = "Idle"
         resetInterrupt()
         resetControls()
     }

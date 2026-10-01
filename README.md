@@ -200,6 +200,56 @@ view.animate(.x(300), duration: 1.0)      // first, on its own
     .parallel()
 ```
 
+### Composing steps
+
+The chain builds a timeline call by call, and some calls edit the one before: `easing`, `delay` and `onComplete` reach back to the previous action, and `parallel()` gathers everything since the last `then()`. A `Step` is a whole timeline, or any part of one, written as a single value instead. `run` plays it:
+
+```swift
+card.run {
+    Step.animate(.alpha(1), duration: 0.3)
+    Step.parallel {
+        Step.animate(.y(40), duration: 0.5, easing: .out(.back))
+        Step.animate(.background(.systemTeal), duration: 0.5)
+            .delay(0.1)
+    }
+    Step.wait(1)
+    Step.animate(.alpha(0), duration: 0.3)
+        .onComplete { card.removeFromSuperview() }
+}
+```
+
+| Step | Does |
+| --- | --- |
+| `Step.animate(_:duration:delay:easing:)` | animates properties, like `view.animate` |
+| `Step.wait(_:)` | waits |
+| `Step.call(_:)` | calls a block, taking no time |
+| `Step.sequence { … }` | runs its steps one after another |
+| `Step.parallel { … }` | runs its steps together, ending when the last one does |
+
+Every step takes the modifiers `.delay(_:)`, `.onComplete(_:)`, `.repeat(times:)` and `.repeatForever()`, each of which returns a new step. Easing has no modifier: it is the `easing:` parameter of `Step.animate`, the only step it applies to. `view.run { … }` runs its steps in sequence, `view.run(step)` runs one step, and `handle.run(step)` appends a step to an existing timeline, as `animate` does.
+
+Write `Step.` on every line. Inside the braces, a line that starts with a dot continues the expression on the line before it, so `.animate(…)` would be read as a call on the previous step, not as a new one. That rule is also what lets a modifier such as `.onComplete` sit on its own line under its step.
+
+A step's animations have no view until it runs: `run` gives them the view it is called on. So one step can run on many views, each animating on its own, and `if`, `switch` and `for` work inside the braces:
+
+```swift
+let rise = Step.animate(.y(0), .alpha(1), duration: 0.4, easing: .out(.cubic))
+
+for (index, cell) in cells.enumerated() {
+    cell.run(rise.delay(Double(index) * 0.05))
+}
+
+badge.run {
+    if isNew {
+        Step.animate(.rotation(degrees: 15), duration: 0.1)
+        Step.animate(.rotation(degrees: 0), duration: 0.1)
+    }
+    Step.animate(.alpha(1), duration: 0.2)
+}
+```
+
+Steps build the same timeline as the chain and play it identically, frame for frame: the chain is the shorthand for a short run of steps on one view. One difference: a step's `.repeat(times:)` keeps one copy of the step with a count instead of copying it, so it has no limit. As with the chain, it plays the step once and then `times` more times. A step's `.onComplete` always adds a block, while a second chained `onComplete` replaces the first. Timelines run with `run` are ordinary handles: pause, cancel, group and await them as below, and a timeline is cancelled when its view is deallocated.
+
 ### Grouping views
 
 `Kinieta.group` runs several timelines together and calls its completion once, when the last one finishes. It returns a handle for the whole group.
@@ -346,6 +396,7 @@ easing(_:) follows a wait, not an animation; ignoring it (MyApp/CardView.swift:4
 | `repeatForever()` | the timeline is empty | chain it after the actions to loop, before the timeline ends |
 | any call | it follows `repeatForever()`, which never ends | put the call before `repeatForever()`, or start a new handle |
 | `animate` | the handle is a `Kinieta.group` handle, which has no view | animate the grouped timelines |
+| `run(_:)` | the handle is a `Kinieta.group` handle and the step animates | run the step on each view, or on the grouped timelines' handles |
 
 Release builds neither check nor log these calls. A cancelled timeline ignores every call without a warning.
 
@@ -353,7 +404,7 @@ Invalid durations and frame rate ranges, and timelines left out of a `Kinieta.gr
 
 ### Name clashes
 
-The module and its main class are both named `Kinieta`, so `Kinieta.Property` names a member of the class, not of the module. If your module has its own `Property`, `Easing` or `Engine`, which shadow Kinieta's, reach Kinieta's through the class, which nests each of them under the same name:
+The module and its main class are both named `Kinieta`, so `Kinieta.Property` names a member of the class, not of the module. If your module has its own `Property`, `Easing`, `Engine` or `Step`, which shadow Kinieta's, reach Kinieta's through the class, which nests each of them under the same name:
 
 ```swift
 struct Property { /* yours */ }
@@ -375,9 +426,9 @@ xcodebuild -scheme Kinieta -destination 'generic/platform=iOS Simulator' BUILD_L
 
 ## Example app
 
-`Example/KinietaDemo.xcodeproj` is a gallery: every easing preset on its own track, the three colour spaces side by side, a composed timeline with a grouped completion, a Controls section that pauses, resumes and cancels one handle and reports when `await finished()` returns, an Interrupting row whose Left and Right buttons take a square's position over mid-flight while its colour change carries on, and an Auto Layout row whose square is centred by a constraint and swings by animating its constant. It lays out within the safe area and replays at the new size when the device rotates, since Kinieta sets frames that Auto Layout does not update; the Auto Layout row instead keeps playing through the rotation. Pressing Play while the gallery runs starts it again from where the views are. Launch it with the `-autoplay` argument to start playing on launch.
+`Example/KinietaDemo.xcodeproj` is a gallery: every easing preset on its own track, the three colour spaces side by side, a composed timeline with a grouped completion, a Steps row that runs one `Step` value on four squares with a staggered delay, a Controls section that pauses, resumes and cancels one handle and reports when `await finished()` returns, an Interrupting row whose Left and Right buttons take a square's position over mid-flight while its colour change carries on, and an Auto Layout row whose square is centred by a constraint and swings by animating its constant. It lays out within the safe area and replays at the new size when the device rotates, since Kinieta sets frames that Auto Layout does not update; the Auto Layout row instead keeps playing through the rotation. Pressing Play while the gallery runs starts it again from where the views are. Launch it with the `-autoplay` argument to start playing on launch.
 
-The `KinietaDemoMac` scheme is the same gallery for native macOS, animating `NSView`s: the easing, colour, timeline, Controls, Interrupting and Auto Layout rows. The window keeps a fixed width, since the targets are computed from the track widths when Play is pressed. It also takes `-autoplay`.
+The `KinietaDemoMac` scheme is the same gallery for native macOS, animating `NSView`s: the easing, colour, timeline, Steps, Controls, Interrupting and Auto Layout rows. The window keeps a fixed width, since the targets are computed from the track widths when Play is pressed. It also takes `-autoplay`.
 
 ## Development
 

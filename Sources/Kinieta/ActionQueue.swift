@@ -28,10 +28,9 @@ struct ActionQueue {
     /// The number of steps left to pop.
     var count: Int { steps.count - next }
 
-    /// `true` when the next step to pop is a call, which takes no time.
+    /// `true` when the next step to pop starts with a call, which takes no time.
     var nextIsCall: Bool {
-        guard !isEmpty, case .call = steps[next] else { return false }
-        return true
+        !isEmpty && steps[next].startsWithCall
     }
 
     mutating func add(_ type: ActionType) {

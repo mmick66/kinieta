@@ -44,11 +44,9 @@ final class SequenceAction: Action {
     /// `true` when no step is left to run.
     private var isDone: Bool { inlined.isEmpty && queue.isEmpty }
 
-    /// `true` when the next step to run is a call, which takes no time.
+    /// `true` when the next step to run starts with a call, which takes no time.
     private var nextIsCall: Bool {
-        guard let step = inlined.last else { return queue.nextIsCall }
-        if case .call = step { return true }
-        return false
+        inlined.last?.startsWithCall ?? queue.nextIsCall
     }
 
     /// The handle whose timeline this is; `nil` for a nested sequence, and
@@ -83,10 +81,21 @@ final class SequenceAction: Action {
     }
 
     /// The next step to run as a live action, opening any sequence it meets.
+    /// A repeat opens one cycle at a time, behind which it waits with one
+    /// cycle fewer, so it runs exactly as that many copies would without
+    /// making them.
     private func popNextAction() -> Action? {
         while let step = inlined.popLast() ?? queue.popFirst() {
-            guard case .sequence(let steps) = step else { return step.makeAction(control: control) }
-            inlined.append(contentsOf: steps.reversed())
+            switch step {
+            case .sequence(let steps):
+                inlined.append(contentsOf: steps.reversed())
+            case .repeating(let count, let steps):
+                guard count > 0 else { continue }
+                if count > 1 { inlined.append(.repeating(count - 1, steps)) }
+                inlined.append(contentsOf: steps.reversed())
+            default:
+                return step.makeAction(control: control)
+            }
         }
         return nil
     }

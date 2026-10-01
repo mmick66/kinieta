@@ -40,6 +40,33 @@ public extension PlatformView {
     func wait(_ time: TimeInterval) -> Kinieta {
         Kinieta(view: self).wait(time)
     }
+
+    /// Starts a timeline that runs `step`, with its animations on this view.
+    ///
+    /// Every animation in `step` runs on this view, so the same step can run
+    /// on several views at once, each animating independently. The timeline
+    /// is cancelled if the view is deallocated. Chain further calls on the
+    /// returned handle to extend it.
+    @discardableResult
+    func run(_ step: Step) -> Kinieta {
+        Kinieta(view: self).run(step)
+    }
+
+    /// Starts a timeline that runs `steps` one after another, with their
+    /// animations on this view. Same as ``run(_:)-(Step)`` with
+    /// ``Step/sequence(_:)``.
+    ///
+    /// ```swift
+    /// badge.run {
+    ///     Step.animate(.alpha(1), duration: 0.2)
+    ///     Step.wait(2)
+    ///     Step.animate(.alpha(0), duration: 0.2)
+    /// }
+    /// ```
+    @discardableResult
+    func run(@StepBuilder _ steps: () -> [Step]) -> Kinieta {
+        Kinieta(view: self).run(Step.sequence(steps))
+    }
 }
 
 // MARK: - Geometry helpers used by the interpolators

@@ -8,6 +8,22 @@ All notable changes to Kinieta are documented here. The format follows
 
 ### Added
 
+- `Step` composes a timeline as one value instead of a chain of calls that
+  edit earlier ones: `Step.animate(_:duration:delay:easing:)`, `Step.wait(_:)`,
+  `Step.call(_:)`, and `Step.sequence { … }` and `Step.parallel { … }` with
+  the `StepBuilder` result builder, which takes `if`, `switch` and `for`. Every
+  step has the modifiers `delay(_:)`, `onComplete(_:)`, `repeat(times:)` and
+  `repeatForever()`. `view.run { … }` and `view.run(step)` start a timeline,
+  and `handle.run(step)` appends to one. A step's animations take the view it
+  runs on, so one step can run on many views; the timeline it builds is the
+  chain's, and plays frame for frame the same. A step's `repeat(times:)`
+  stores the step once with a count, so unlike the chain's it makes no copies
+  and has no cap. Steps are written `Step.` on every line, since a line that
+  starts with a dot continues the one before. `Kinieta.Step` names it in a
+  module with its own `Step`. See "Composing steps" in the README and the
+  DocC article "Composing timelines from steps". The example apps have a
+  Steps row.
+
 - `animate(_:duration:delay:easing:)` takes the delay and the easing with the
   animation, after the duration as in UIKit's
   `animate(withDuration:delay:options:)`, so each step is complete as written:

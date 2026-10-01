@@ -11,8 +11,8 @@ import os
 
 /// A handle to one view's timeline.
 ///
-/// Every call on `UIView.animate` or `UIView.wait` creates a handle whose
-/// timeline starts on the next frame. Chain further calls to extend it, then
+/// Every call on `UIView.animate`, `UIView.wait` or `UIView.run` creates a
+/// handle whose timeline starts on the next frame. Chain further calls to extend it, then
 /// keep the handle to `cancel()`, `pause()`, `resume()` or `await finished()`.
 ///
 /// A handle can be extended at any time. Actions added to a running timeline
@@ -235,6 +235,33 @@ public final class Kinieta {
         if time >= 0 && (time.isFinite || allowsInfinity) { return time }
         logger.warning("\(call, privacy: .public) was given \(time, privacy: .public) seconds; using 0")
         return 0
+    }
+
+    /// Appends `step` to the timeline, with its animations on the handle's view.
+    ///
+    /// The step plays after the actions already in the timeline, as one more
+    /// action. Added to a finished timeline it starts the timeline again; a
+    /// chain call made afterwards acts on it as on any other action, except
+    /// that ``onComplete(_:file:line:)`` always adds a block after the step
+    /// rather than replacing one the step ends with.
+    ///
+    /// A group handle has no view: running a step that animates on one does
+    /// nothing and, in debug builds, logs a warning. A step that only waits
+    /// or calls blocks runs.
+    @discardableResult
+    public func run(_ step: Step, file: StaticString = #fileID, line: UInt = #line) -> Kinieta {
+        guard !isGroup || !step.action.hasUnboundAnimation else {
+            Kinieta.ignored(
+                "run(_:) was given a step that animates, on a group handle, which has no view; ignoring it",
+                file: file, line: line)
+            return self
+        }
+        var action = step.action.bound(to: view)
+        // A step that ends with a call has the shape `onComplete(_:)` builds,
+        // so a later `onComplete(_:)` would replace the call. Wrapped, it adds one.
+        if action.completed != nil { action = .sequence([action]) }
+        editUnstarted("run(_:)", file: file, line: line) { $0.add(action) }
+        return self
     }
 
     /// Seals everything before it into one step, so a following `parallel()`

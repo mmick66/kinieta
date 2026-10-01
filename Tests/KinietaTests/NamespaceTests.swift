@@ -10,6 +10,7 @@ private struct Property {}
 private struct Easing {}
 private struct Engine {}
 private struct Bezier {}
+private struct Step {}
 
 /// A module with its own `Property`, `Easing` or `Engine` spells Kinieta's as
 /// `Kinieta.Property`, `Kinieta.Easing` and `Kinieta.Engine`.
@@ -26,6 +27,7 @@ struct NamespaceTests {
         #expect(Easing.self != Kinieta.Easing.self)
         #expect(Engine.self != Kinieta.Engine.self)
         #expect(Bezier.self != Kinieta.Bezier.self)
+        #expect(Step.self != Kinieta.Step.self)
     }
 
     @Test func kinietasTypesAnimateThroughTheClassName() {
@@ -43,6 +45,21 @@ struct NamespaceTests {
         frames.step(0.5)
         #expect(view.alpha == 0)
         #expect(completions == 1)
+    }
+
+    @Test func kinietasStepsRunThroughTheClassName() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let fade: Kinieta.Step = Kinieta.Step.animate(.alpha(0), duration: 1)
+        let view = UIView()
+        view.run {
+            fade
+            Kinieta.Step.animate(.alpha(1), duration: 1)
+        }
+        frames.step(1)
+        #expect(view.alpha == 0)
+        frames.step(0.5)
+        #expect(view.alpha == 0.5)
     }
 
     @Test func aGroupTakesAKinietaCompletion() {

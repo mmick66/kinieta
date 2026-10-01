@@ -24,6 +24,7 @@ public typealias Block = () -> Void
 @_documentation(visibility: internal) public typealias _KinietaColorInterpolation = ColorInterpolation
 @_documentation(visibility: internal) public typealias _KinietaEngine = Engine
 @_documentation(visibility: internal) public typealias _KinietaReduceMotionBehavior = ReduceMotionBehavior
+@_documentation(visibility: internal) public typealias _KinietaStep = Step
 
 /// The library's types under the name of the class, so `Kinieta.Property`
 /// still means Kinieta's `Property` in a module that declares its own.
@@ -48,6 +49,8 @@ extension Kinieta {
     public typealias Engine = _KinietaEngine
     /// Kinieta's `ReduceMotionBehavior`.
     public typealias ReduceMotionBehavior = _KinietaReduceMotionBehavior
+    /// Kinieta's `Step`.
+    public typealias Step = _KinietaStep
 }
 
 // Completion blocks were plain `() -> Void` before 1.1. A stored closure of

@@ -66,6 +66,15 @@ zero.
 
 - ``Property``
 
+### Composing timelines from steps
+
+A ``Step`` is a timeline, or a part of one, written as a single value with a
+result builder. One step can run on many views.
+
+- <doc:ComposingTimelinesFromSteps>
+- ``Step``
+- ``StepBuilder``
+
 ### Animating anything else
 
 ``Property/custom(_:to:isMotion:)-(ReferenceWritableKeyPath<Root,Value>,_,_)`` animates any

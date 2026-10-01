@@ -39,7 +39,7 @@ final class PropertyAnimation: Action {
     private var appliedFrame: Int?
 
     init(_ spec: AnimationSpec) {
-        self.target = spec.target
+        self.target = spec.target ?? ViewRef(nil)
         self.easing = spec.easing ?? .linear
 
         // The last property listed for a key wins, so `.frame(…), .x(…)` takes

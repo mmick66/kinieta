@@ -40,14 +40,16 @@ struct ViewRef {
 
 /// An animation waiting to run: which view, what to change, and how.
 struct AnimationSpec {
-    var target: ViewRef
+    /// `nil` until the animation is bound to a view: a ``Step`` animation
+    /// gets the view it runs on; see `ActionType.bound(to:)`.
+    var target: ViewRef?
     var properties: [Property]
     var duration: TimeInterval
     /// `nil` means linear.
     var easing: Bezier?
 
     init(_ view: PlatformView?, _ properties: [Property], duration: TimeInterval, easing: Bezier? = nil) {
-        self.target = ViewRef(view)
+        self.target = view.map(ViewRef.init)
         self.properties = properties
         self.duration = duration
         self.easing = easing
@@ -72,6 +74,10 @@ enum ActionType: CustomStringConvertible {
     /// between its children is what keeps it from running once the timeline
     /// is cancelled or has lost its view.
     case call(Kinieta.Completion)
+    /// Plays its steps `count` times, one cycle after another, from one copy
+    /// of them. A sequence runs the cycles in line, as if they were copies:
+    /// see `SequenceAction`. Made by `Step.repeat(times:)`.
+    case repeating(Int, [ActionType])
 
     /// A step that `onComplete` follows with a call reads as the step it completes.
     var description: String {
@@ -91,6 +97,49 @@ enum ActionType: CustomStringConvertible {
             return "Loop (\(types.count))"
         case .call:
             return "Call"
+        case .repeating(let count, let types):
+            return "Repeat (\(count) × \(types.count))"
+        }
+    }
+
+    /// `true` when the first thing this step runs is a call, which takes no time.
+    var startsWithCall: Bool {
+        switch self {
+        case .call: return true
+        case .sequence(let types): return types.first?.startsWithCall ?? false
+        case .repeating(let count, let types): return count > 0 && types.first?.startsWithCall == true
+        case .animation, .pause, .group, .timelines, .loop: return false
+        }
+    }
+
+    /// The same step with every animation that has no view yet bound to
+    /// `view`. Animations already bound keep their view.
+    func bound(to view: PlatformView?) -> ActionType {
+        switch self {
+        case .animation(var spec):
+            guard spec.target == nil else { return self }
+            spec.target = ViewRef(view)
+            return .animation(spec)
+        case .pause, .call, .timelines:
+            return self
+        case .group(let types):
+            return .group(types.map { $0.bound(to: view) })
+        case .sequence(let types):
+            return .sequence(types.map { $0.bound(to: view) })
+        case .loop(let types):
+            return .loop(types.map { $0.bound(to: view) })
+        case .repeating(let count, let types):
+            return .repeating(count, types.map { $0.bound(to: view) })
+        }
+    }
+
+    /// `true` if the step holds an animation with no view to run on.
+    var hasUnboundAnimation: Bool {
+        switch self {
+        case .animation(let spec): return spec.target == nil
+        case .pause, .call, .timelines: return false
+        case .group(let types), .sequence(let types), .loop(let types), .repeating(_, let types):
+            return types.contains { $0.hasUnboundAnimation }
         }
     }
 
@@ -128,6 +177,8 @@ enum ActionType: CustomStringConvertible {
             return .group(replay)
         case .loop(let types):
             return .loop(types.map { $0.replacingTimelines(with: replay) })
+        case .repeating(let count, let types):
+            return .repeating(count, types.map { $0.replacingTimelines(with: replay) })
         }
     }
 
@@ -146,7 +197,7 @@ enum ActionType: CustomStringConvertible {
             guard let last = types.popLast(), let eased = last.withEasing(bezier) else { return nil }
             types.append(eased)
             return .sequence(types)
-        case .pause, .group, .timelines, .loop, .call:
+        case .pause, .group, .timelines, .loop, .call, .repeating:
             return nil
         }
     }
@@ -171,6 +222,9 @@ enum ActionType: CustomStringConvertible {
             return LoopAction(types, control: control)
         case .call(let block):
             return CallAction(block)
+        case .repeating:
+            // A sequence opens it and plays its cycles in line.
+            return SequenceAction([self], control: control)
         }
     }
 }

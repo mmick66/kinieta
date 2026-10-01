@@ -56,7 +56,7 @@ extension ActionType {
         case .group:
             return "parallel() or then()"
         case .sequence(let types):
-            // Only `delay` and `onComplete` put a sequence in a timeline's queue.
+            // Only `delay`, `onComplete` and `run` put a sequence in a timeline's queue.
             if let (step, _) = completed { return step.callName }
             return "delayed " + (types.last?.callName ?? "step")
         case .timelines:
@@ -65,6 +65,8 @@ extension ActionType {
             return "repeatForever()"
         case .call:
             return "onComplete(_:)"
+        case .repeating:
+            return "repeated step"
         }
     }
 }
