@@ -139,3 +139,14 @@ names the view or colour type is declared once per platform. Linux builds an emp
 - Tests drive the engine frame by frame with `ManualFrameDriver` rather than waiting on real time.
   Every suite that touches `Engine.shared` takes `@Suite(.serialized, .usesSharedEngine)`, which
   runs its tests alone among all such suites.
+- Public API follows the [Swift API Design Guidelines](https://www.swift.org/documentation/api-design-guidelines/);
+  design new API against them rather than reviewing it afterwards. Kinieta enforces: every public
+  declaration has a doc comment that opens with a summary; methods without side effects read as
+  noun phrases and methods with side effects as verbs (the chain DSL, `then()`, `parallel()`,
+  `easing(_:)`, is the established exception); a first argument that forms a prepositional phrase
+  is labelled at the preposition, and a weakly typed argument, such as a bare `Double`, is labelled
+  by its role; shipped API is renamed through `@available(*, deprecated, renamed:)` and removed in
+  2.0, while API not yet in a tag is renamed freely. Settled, so not to be raised again: imperative
+  names for the chain DSL, a `make` prefix for `Kinieta.group` or `Easing.in`/`out` (static-member
+  precedent), labels on `Bezier`'s four control points (CSS precedent), and `.background` rather
+  than `.backgroundColor` (SwiftUI precedent).
