@@ -2,7 +2,8 @@ import AppKit
 import Kinieta
 
 /// The macOS gallery: the iOS demo's easing tracks, colour spaces, composed
-/// timeline, steps, controls, interrupting and Auto Layout rows, animating `NSView`s.
+/// timeline, one timeline over several views, steps, controls, interrupting and
+/// Auto Layout rows, animating `NSView`s.
 ///
 /// Geometry is in each track's coordinates, from the bottom left: a 32 pt
 /// square at `y` 6 sits in the middle of a 44 pt track.
@@ -16,6 +17,9 @@ final class DemoViewController: NSViewController {
     private let timelineRow = NSView()
     private var timelineSquares: [NSView] = []
     private let timelineStatus = NSTextField(labelWithString: "Idle")
+    private let runRow = NSView()
+    private var runSquares: [NSView] = []
+    private let runStatus = NSTextField(labelWithString: "Idle")
     private let stepsRow = NSView()
     private var stepsSquares: [NSView] = []
     private let stepsStatus = NSTextField(labelWithString: "Idle")
@@ -148,7 +152,9 @@ final class DemoViewController: NSViewController {
         addRow(labelled("lch, Display P3 red to green", wideSwatch))
 
         addHeader(
-            "Timeline", detail: "The first square moves, then the other two move together, then one completion fires.")
+            "Timeline",
+            detail: "Kinieta.group of three handles that are already running: the first square moves, then the "
+                + "other two move together, then one completion fires.")
         timelineRow.heightAnchor.constraint(equalToConstant: 44).isActive = true
         for (i, color) in [pink, cyan, .systemIndigo].enumerated() {
             let square = makeSquare(color: color)
@@ -158,6 +164,20 @@ final class DemoViewController: NSViewController {
         }
         addRow(timelineRow)
         addRow(status(timelineStatus))
+
+        addHeader(
+            "One timeline, several views",
+            detail: "The same moves built from scratch with Kinieta.run: each square's step is bound with "
+                + "square.step, two of them in a Step.parallel, then a Step.call.")
+        runRow.heightAnchor.constraint(equalToConstant: 44).isActive = true
+        for (i, color) in [pink, cyan, .systemIndigo].enumerated() {
+            let square = makeSquare(color: color)
+            square.frame = home.offsetBy(dx: CGFloat(i) * 44, dy: 0)
+            runRow.addSubview(square)
+            runSquares.append(square)
+        }
+        addRow(runRow)
+        addRow(status(runStatus))
 
         addHeader(
             "Steps",
@@ -352,9 +372,28 @@ final class DemoViewController: NSViewController {
             self?.timelineStatus.stringValue = "Done: three timelines, one completion"
         }
         running.append(group)
+        playRun()
         playSteps()
         playInterrupt()
         playControls()
+    }
+
+    // MARK: One timeline, several views
+
+    /// The Timeline row's moves as one value: no handle per square to group.
+    private func playRun() {
+        let width = runRow.bounds.width
+        let squares = runSquares
+        runStatus.stringValue = "Running…"
+        running.append(
+            Kinieta.run {
+                squares[0].step(.x(width - 38), duration: 1.0, easing: .inOut(.cubic))
+                Step.parallel {
+                    squares[1].step(.x(width - 82), .alpha(0.3), duration: 0.8, easing: .out(.back))
+                    squares[2].step(.x(width - 126), .alpha(0.3), duration: 0.8, easing: .out(.back))
+                }
+                Step.call { [weak self] in self?.runStatus.stringValue = "Done: one timeline, three views" }
+            })
     }
 
     // MARK: Steps
@@ -540,6 +579,11 @@ final class DemoViewController: NSViewController {
             square.alphaValue = 1
         }
         timelineStatus.stringValue = "Idle"
+        for (i, square) in runSquares.enumerated() {
+            square.frame = home.offsetBy(dx: CGFloat(i) * 44, dy: 0)
+            square.alphaValue = 1
+        }
+        runStatus.stringValue = "Idle"
         for (i, square) in stepsSquares.enumerated() {
             square.frame = home.offsetBy(dx: CGFloat(i) * 44, dy: 0)
             square.layer?.backgroundColor = pink.cgColor

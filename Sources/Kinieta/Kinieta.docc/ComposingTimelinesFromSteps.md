@@ -73,6 +73,39 @@ Kinieta.group(cells.enumerated().map { index, cell in
 
 The timeline is cancelled when its view is deallocated, as with `animate`.
 
+### One timeline, several views
+
+`step` on a view makes a `Step.animate` already bound to that view, and
+``Kinieta/run(_:)-(()->[Step])`` runs steps on a timeline of its own, with no
+view, so one timeline moves several views with one handle:
+
+```swift
+Kinieta.run {
+    Step.parallel {
+        card.step(.x(374), duration: 1, easing: .inOut(.cubic))
+        badge.step(.rotation(degrees: 360), .alpha(0), duration: 1.2)
+    }
+    Step.call { print("both finished") }
+}
+```
+
+``Kinieta/run(_:)-(Step)`` runs a single step. The handle pauses, resumes,
+cancels, extends and awaits like any other, and its ``Kinieta/view`` is `nil`.
+A step made with `view.step` keeps its view wherever it runs: `run` on another
+view binds only the animations that have none.
+
+Build a timeline over several views from scratch with `Kinieta.run`; combine
+handles that are already running with
+``Kinieta/group(_:completion:)-([Kinieta],_)``.
+
+A view deallocated while the timeline runs is skipped rather than cancelling
+it: its animations do nothing but still take their time, so the other views
+keep animating and later steps run on schedule. A ``Step/call(_:)`` or
+``Step/onComplete(_:)`` block after it still runs, so capture views weakly in
+it. A plain ``Step/animate(_:duration:delay:easing:)-(Property...,_,_,_)`` has
+no view in `Kinieta.run`: in debug builds it logs a warning, and it waits out
+its duration, so the steps around it keep their timing.
+
 ### Steps and the chain
 
 A step builds the same timeline as the chain and plays it identically, frame
@@ -95,4 +128,6 @@ view. Two modifiers differ:
 
 ### Running steps
 
+- ``Kinieta/run(_:)-(()->[Step])``
+- ``Kinieta/run(_:)-(Step)``
 - ``Kinieta/run(_:file:line:)``

@@ -2,8 +2,9 @@ import Kinieta
 import UIKit
 
 /// A gallery of what Kinieta does: every easing preset on its own track, the
-/// three colour interpolation modes side by side, a composed timeline, one
-/// `Step` value run on several views, one handle driven by Pause, Resume and Cancel buttons, a square whose movement
+/// three colour interpolation modes side by side, a composed timeline grouped
+/// from three handles and the same moves run as one timeline with `Kinieta.run`,
+/// one `Step` value run on several views, one handle driven by Pause, Resume and Cancel buttons, a square whose movement
 /// newer animations take over mid-flight, and a view placed by Auto Layout
 /// that animates its constraint.
 final class DemoViewController: UIViewController {
@@ -16,6 +17,9 @@ final class DemoViewController: UIViewController {
     private let timelineRow = UIView()
     private var timelineSquares: [UIView] = []
     private let timelineStatus = UILabel()
+    private let runRow = UIView()
+    private var runSquares: [UIView] = []
+    private let runStatus = UILabel()
     private let stepsRow = UIView()
     private var stepsSquares: [UIView] = []
     private let stepsStatus = UILabel()
@@ -155,7 +159,9 @@ final class DemoViewController: UIViewController {
         stack.addArrangedSubview(labelled("lch, Display P3 red to green", wideSwatch))
 
         addHeader(
-            "Timeline", detail: "The first square moves, then the other two move together, then one completion fires.")
+            "Timeline",
+            detail: "Kinieta.group of three handles that are already running: the first square moves, then the "
+                + "other two move together, then one completion fires.")
         timelineRow.heightAnchor.constraint(equalToConstant: 44).isActive = true
         for i in 0..<3 {
             let square = makeSquare(color: [pink, cyan, .systemIndigo][i])
@@ -168,6 +174,23 @@ final class DemoViewController: UIViewController {
         timelineStatus.textColor = .secondaryLabel
         timelineStatus.text = "Idle"
         stack.addArrangedSubview(timelineStatus)
+
+        addHeader(
+            "One timeline, several views",
+            detail: "The same moves built from scratch with Kinieta.run: each square's step is bound with "
+                + "square.step, two of them in a Step.parallel, then a Step.call.")
+        runRow.heightAnchor.constraint(equalToConstant: 44).isActive = true
+        for i in 0..<3 {
+            let square = makeSquare(color: [pink, cyan, .systemIndigo][i])
+            square.frame = CGRect(x: 6 + CGFloat(i) * 44, y: 6, width: 32, height: 32)
+            runRow.addSubview(square)
+            runSquares.append(square)
+        }
+        stack.addArrangedSubview(runRow)
+        runStatus.font = .preferredFont(forTextStyle: .footnote)
+        runStatus.textColor = .secondaryLabel
+        runStatus.text = "Idle"
+        stack.addArrangedSubview(runStatus)
 
         addHeader(
             "Steps",
@@ -388,9 +411,28 @@ final class DemoViewController: UIViewController {
             self?.timelineStatus.text = "Done: three timelines, one completion"
         }
         running.append(group)
+        playRun()
         playSteps()
         playInterrupt()
         playControls()
+    }
+
+    // MARK: One timeline, several views
+
+    /// The Timeline row's moves as one value: no handle per square to group.
+    private func playRun() {
+        let width = runRow.bounds.width
+        let squares = runSquares
+        runStatus.text = "Running…"
+        running.append(
+            Kinieta.run {
+                squares[0].step(.x(width - 38), duration: 1.0, easing: .inOut(.cubic))
+                Step.parallel {
+                    squares[1].step(.x(width - 82), .alpha(0.3), duration: 0.8, easing: .out(.back))
+                    squares[2].step(.x(width - 126), .alpha(0.3), duration: 0.8, easing: .out(.back))
+                }
+                Step.call { [weak self] in self?.runStatus.text = "Done: one timeline, three views" }
+            })
     }
 
     // MARK: Steps
@@ -630,6 +672,11 @@ final class DemoViewController: UIViewController {
             square.alpha = 1
         }
         timelineStatus.text = "Idle"
+        for (i, square) in runSquares.enumerated() {
+            square.frame = CGRect(x: 6 + CGFloat(i) * 44, y: 6, width: 32, height: 32)
+            square.alpha = 1
+        }
+        runStatus.text = "Idle"
         for (i, square) in stepsSquares.enumerated() {
             square.frame = CGRect(x: 6 + CGFloat(i) * 44, y: 18, width: 32, height: 32)
             square.backgroundColor = pink

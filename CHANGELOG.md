@@ -24,6 +24,16 @@ All notable changes to Kinieta are documented here. The format follows
   DocC article "Composing timelines from steps". The example apps have a
   Steps row.
 
+- `Kinieta.run { … }` and `Kinieta.run(step)` run one timeline over several
+  views, with one handle and no view of its own, and `view.step(…)` makes a
+  `Step.animate` already bound to that view, which it keeps wherever it runs.
+  A view deallocated mid-timeline is skipped: its animations do nothing but
+  take their time, and later steps, call steps included, still run. A
+  `Step.animate` with no view logs a warning in debug builds and waits out its
+  duration, on a `Kinieta.run` timeline as with `run(step)` on a group handle.
+  `Kinieta.group` stays, to combine handles that are already running;
+  the README explains which to use. The example apps show both forms.
+
 - `animate(_:duration:delay:easing:)` takes the delay and the easing with the
   animation, after the duration as in UIKit's
   `animate(withDuration:delay:options:)`, so each step is complete as written:

@@ -32,7 +32,8 @@ import AppKit
 #if canImport(UIKit) || os(macOS)
 
 /// A weak reference to the view an action targets, so a pending timeline never
-/// keeps a view alive. An animation whose view has gone finishes immediately.
+/// keeps a view alive. An animation whose view has gone animates nothing but
+/// still takes its duration.
 struct ViewRef {
     weak var view: PlatformView?
     init(_ view: PlatformView?) { self.view = view }
@@ -143,6 +144,26 @@ enum ActionType: CustomStringConvertible {
         }
     }
 
+    /// The same step with every animation that has no view replaced by a
+    /// pause of its duration, so the steps around it keep their timing. Used
+    /// by a handle that has no view to bind them to.
+    func pausingUnboundAnimations() -> ActionType {
+        switch self {
+        case .animation(let spec):
+            return spec.target == nil ? .pause(spec.duration) : self
+        case .pause, .call, .timelines:
+            return self
+        case .group(let types):
+            return .group(types.map { $0.pausingUnboundAnimations() })
+        case .sequence(let types):
+            return .sequence(types.map { $0.pausingUnboundAnimations() })
+        case .loop(let types):
+            return .loop(types.map { $0.pausingUnboundAnimations() })
+        case .repeating(let count, let types):
+            return .repeating(count, types.map { $0.pausingUnboundAnimations() })
+        }
+    }
+
     /// The step `onComplete` wrapped and the block it follows it with, or `nil`
     /// if this is not such a step.
     var completed: (step: ActionType, block: Kinieta.Completion)? {
@@ -239,7 +260,9 @@ final class TimelineControl {
     var isCancelled = false
     var isPaused = false
 
-    /// The view of the timeline, if it has one. Once the view is deallocated
+    /// The view of the timeline, if it has one; a timeline from
+    /// `Kinieta.group` or `Kinieta.run` has none, and goes on when a view it
+    /// animates is deallocated. Once the view is deallocated
     /// the timeline cancels itself before running anything else and calls
     /// `onViewLost`, so its handle can end as cancelled.
     var target: ViewRef?

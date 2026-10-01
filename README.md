@@ -6,7 +6,7 @@
 
 A timeline animation engine for UIKit with a typed, chainable API.
 
-- **Timelines.** Animations run one after another, side by side, or grouped across views with a single completion.
+- **Timelines.** Animations run one after another, side by side, and across several views: in one timeline, or as a group of timelines with a single completion.
 - **Typed properties.** `.x(250)`, `.background(.systemPink)`, `.rotation(degrees: 30)`. Wrong types are compile errors. Anything else through a key path, `.custom(\.layer.shadowOpacity, to: 0.4)`, or an Auto Layout constraint, `.constant(of: leading, to: 120)`.
 - **Real easing.** Cubic Bézier curves with the same semantics as CSS and cubic-bezier.com, plus presets from sine to back.
 - **Perceptual colour.** Colours interpolate through LCH by default, so pink to cyan never passes through grey.
@@ -250,9 +250,29 @@ badge.run {
 
 Steps build the same timeline as the chain and play it identically, frame for frame: the chain is the shorthand for a short run of steps on one view. One difference: a step's `.repeat(times:)` keeps one copy of the step with a count instead of copying it, so it has no limit. As with the chain, it plays the step once and then `times` more times. A step's `.onComplete` always adds a block, while a second chained `onComplete` replaces the first. Timelines run with `run` are ordinary handles: pause, cancel, group and await them as below, and a timeline is cancelled when its view is deallocated.
 
+### One timeline over several views
+
+`view.step(…)` makes a `Step.animate` that is already bound to `view`, and `Kinieta.run` runs steps on a timeline of its own, with no view: so one timeline can move several views, with one handle and no grouping.
+
+```swift
+Kinieta.run {
+    Step.parallel {
+        card.step(.x(374), duration: 1, easing: .inOut(.cubic))
+        badge.step(.rotation(degrees: 360), .alpha(0), duration: 1.2)
+    }
+    Step.call { print("both finished") }
+}
+```
+
+`Kinieta.run { … }` runs its steps in sequence and `Kinieta.run(step)` runs one step. The handle pauses, resumes, cancels, extends and awaits like any other; its `view` is `nil`. A step made with `view.step` keeps its view wherever it runs: `run` on another view binds only the animations that have none.
+
+A view deallocated while the timeline runs is skipped, not a reason to cancel: its animations do nothing but still take their time, so the other views keep animating and every later step runs on schedule. That includes `Step.call` and `.onComplete` blocks after it, so capture views weakly in them. A plain `Step.animate` inside `Kinieta.run` has no view to animate: in debug builds it logs a warning, and it waits out its duration, so the timing of the steps around it does not change.
+
 ### Grouping views
 
 `Kinieta.group` runs several timelines together and calls its completion once, when the last one finishes. It returns a handle for the whole group.
+
+Use `Kinieta.run` to build a timeline over several views from scratch, and `Kinieta.group` to combine handles that are already running, such as ones made in different places or by `view.run`.
 
 ```swift
 let slide = card.animate(.x(374), duration: 1.0).easeInOut(.cubic)
@@ -271,7 +291,7 @@ Kinieta.group(slide, spin)
     .onComplete { print("a second later") }
 ```
 
-The group handle has no view of its own, so `animate` on it does nothing and, in debug builds, logs a warning; animate the grouped timelines instead.
+The group handle has no view of its own, so `animate` on it does nothing and, in debug builds, logs a warning; animate the grouped timelines instead, or run a step bound with `view.step`.
 
 The group handle controls its members: `cancel()` cancels every timeline in the group (their `finished()` calls return), and `pause()` and `resume()` pause and resume them all. A member can still be cancelled or paused on its own, but cannot resume while its group is paused. If you let go of a paused group handle, its members leave the group, still paused: resume or cancel each on its own handle. If you let go of a running group handle, the group keeps driving its members; if it is waiting forever, as after `delay(.infinity)`, they wait with it until each is cancelled on its own handle.
 
@@ -395,8 +415,8 @@ easing(_:) follows a wait, not an animation; ignoring it (MyApp/CardView.swift:4
 | `repeat(times:)` | `times` is zero or negative, or the timeline is empty | pass 1 or more; a finished timeline forgets its actions, so repeat before it ends |
 | `repeatForever()` | the timeline is empty | chain it after the actions to loop, before the timeline ends |
 | any call | it follows `repeatForever()`, which never ends | put the call before `repeatForever()`, or start a new handle |
-| `animate` | the handle is a `Kinieta.group` handle, which has no view | animate the grouped timelines |
-| `run(_:)` | the handle is a `Kinieta.group` handle and the step animates | run the step on each view, or on the grouped timelines' handles |
+| `animate` | the handle comes from `Kinieta.group` or `Kinieta.run`, which has no view | animate the grouped timelines, or run a step made with `view.step` |
+| `Kinieta.run`, `run(_:)` | a `Step.animate` in the step has no view, as on a timeline from `Kinieta.run` or `Kinieta.group`; it waits out its duration instead. `Kinieta.run` logs no file and line | make it with `view.step`, or run the step on the view |
 
 Release builds neither check nor log these calls. A cancelled timeline ignores every call without a warning.
 
@@ -426,9 +446,9 @@ xcodebuild -scheme Kinieta -destination 'generic/platform=iOS Simulator' BUILD_L
 
 ## Example app
 
-`Example/KinietaDemo.xcodeproj` is a gallery: every easing preset on its own track, the three colour spaces side by side, a composed timeline with a grouped completion, a Steps row that runs one `Step` value on four squares with a staggered delay, a Controls section that pauses, resumes and cancels one handle and reports when `await finished()` returns, an Interrupting row whose Left and Right buttons take a square's position over mid-flight while its colour change carries on, and an Auto Layout row whose square is centred by a constraint and swings by animating its constant. It lays out within the safe area and replays at the new size when the device rotates, since Kinieta sets frames that Auto Layout does not update; the Auto Layout row instead keeps playing through the rotation. Pressing Play while the gallery runs starts it again from where the views are. Launch it with the `-autoplay` argument to start playing on launch.
+`Example/KinietaDemo.xcodeproj` is a gallery: every easing preset on its own track, the three colour spaces side by side, a composed timeline with a grouped completion next to the same moves run as one timeline with `Kinieta.run`, a Steps row that runs one `Step` value on four squares with a staggered delay, a Controls section that pauses, resumes and cancels one handle and reports when `await finished()` returns, an Interrupting row whose Left and Right buttons take a square's position over mid-flight while its colour change carries on, and an Auto Layout row whose square is centred by a constraint and swings by animating its constant. It lays out within the safe area and replays at the new size when the device rotates, since Kinieta sets frames that Auto Layout does not update; the Auto Layout row instead keeps playing through the rotation. Pressing Play while the gallery runs starts it again from where the views are. Launch it with the `-autoplay` argument to start playing on launch.
 
-The `KinietaDemoMac` scheme is the same gallery for native macOS, animating `NSView`s: the easing, colour, timeline, Steps, Controls, Interrupting and Auto Layout rows. The window keeps a fixed width, since the targets are computed from the track widths when Play is pressed. It also takes `-autoplay`.
+The `KinietaDemoMac` scheme is the same gallery for native macOS, animating `NSView`s: the easing, colour, timeline, one-timeline, Steps, Controls, Interrupting and Auto Layout rows. The window keeps a fixed width, since the targets are computed from the track widths when Play is pressed. It also takes `-autoplay`.
 
 ## Development
 

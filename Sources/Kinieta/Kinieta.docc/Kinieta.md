@@ -69,7 +69,8 @@ zero.
 ### Composing timelines from steps
 
 A ``Step`` is a timeline, or a part of one, written as a single value with a
-result builder. One step can run on many views.
+result builder. One step can run on many views, and one timeline from
+``Kinieta/run(_:)-(()->[Step])`` can animate several views.
 
 - <doc:ComposingTimelinesFromSteps>
 - ``Step``

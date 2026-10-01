@@ -15,7 +15,7 @@ import AppKit
 /// over: this one stops writing it and keeps animating the rest. Its duration
 /// is unchanged, so the timeline it belongs to keeps its schedule, and runs
 /// the completion block that follows it on time, even when every property
-/// has been taken.
+/// has been taken. The same holds when its view is deallocated.
 @MainActor
 final class PropertyAnimation: Action {
 
@@ -83,22 +83,23 @@ final class PropertyAnimation: Action {
     }
 
     func update(_ frame: Engine.Frame) -> ActionResult {
-        // The view was deallocated: there is nothing left to animate.
-        guard let view = target.view else {
-            end()
-            return .finished(overshoot: frame.duration)
-        }
+        // The view was deallocated: nothing is left to animate, but the
+        // duration is unchanged, as when every property has been taken over.
+        // Only a timeline without a view of its own, or a step bound to
+        // another view than its timeline's, gets here: a timeline whose view
+        // has gone is cancelled before it updates anything.
+        let view = target.view
+        if view == nil { end() }
 
         guard duration > 0 else {
-            apply(1.0, to: view)
+            if let view { apply(1.0, to: view) }
             end()
             return .finished(overshoot: frame.duration)
         }
 
         let total = elapsed + frame.duration
         elapsed = min(total, duration)
-        let progress = easing.progress(at: elapsed / duration)
-        apply(CGFloat(progress), to: view)
+        if let view { apply(CGFloat(easing.progress(at: elapsed / duration)), to: view) }
 
         if elapsed >= duration {
             end()

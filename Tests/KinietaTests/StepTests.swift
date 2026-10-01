@@ -336,6 +336,195 @@ struct StepTests {
         #expect(!completed)
     }
 
+    // MARK: - Timelines over several views
+
+    @Test func twoViewsInParallelThenACall() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let (card, badge) = (makeView(), makeView())
+        var log: [String] = []
+        let handle = Kinieta.run {
+            Step.parallel {
+                card.step(.x(100), duration: 1)
+                badge.step(.alpha(0), .y(50), duration: 0.5)
+            }
+            Step.call { log.append("both finished") }
+        }
+        #expect(handle.view == nil)
+        frames.step(0.5)
+        #expect(approx(card.x, 50))
+        #expect(badge.alpha == 0 && approx(badge.y, 50))
+        #expect(log.isEmpty)
+        frames.step(0.5)
+        #expect(approx(card.x, 100))
+        #expect(log == ["both finished"])
+        #expect(handle.state == .finished)
+    }
+
+    @Test func aViewReleasedBeforeItsStepIsSkippedOnSchedule() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let kept = makeView()
+        var log: [String] = []
+        weak var released: PlatformView?
+        // AppKit autoreleases a layer-backed view's layer, which holds on to the view.
+        let handle = autoreleasepool {
+            let gone = makeView()
+            released = gone
+            return Kinieta.run {
+                kept.step(.x(100), duration: 0.5)
+                gone.step(.x(100), duration: 0.5)
+                kept.step(.y(100), duration: 0.5)
+                Step.call { log.append("done") }
+            }
+        }
+        #expect(released == nil)
+        frames.step(0.5)
+        #expect(approx(kept.x, 100))
+        frames.step(0.5)  // the released view's step: nothing moves, and it takes its time
+        #expect(kept.y == 0)
+        frames.step(0.25)
+        #expect(approx(kept.y, 50))
+        frames.step(0.25)
+        #expect(approx(kept.y, 100))
+        #expect(log == ["done"])
+        #expect(handle.state == .finished)
+    }
+
+    @Test func aViewReleasedMidAnimationFromACompletionBlockIsSkipped() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let kept = makeView()
+        var gone: PlatformView? = autoreleasepool { makeView() }
+        weak var released = gone
+        var log: [String] = []
+        let handle = autoreleasepool {
+            Kinieta.run {
+                Step.parallel {
+                    gone!.step(.x(100), duration: 1)
+                    kept.step(.x(100), duration: 1)
+                    Step.wait(0.5).onComplete { gone = nil }
+                }
+                kept.step(.y(100), duration: 0.5)
+                Step.call { log.append("done") }
+            }
+        }
+        autoreleasepool { frames.step(0.5) }
+        #expect(released == nil)
+        #expect(handle.isRunning)
+        #expect(approx(kept.x, 50))
+        frames.step(0.5)
+        #expect(approx(kept.x, 100))
+        #expect(kept.y == 0)
+        frames.step(0.25)
+        #expect(approx(kept.y, 50))
+        frames.step(0.25)
+        #expect(log == ["done"])
+        #expect(handle.state == .finished)
+    }
+
+    @Test func anAnimationWithoutAViewIsTimedAsAPause() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        #if DEBUG
+        let previous = Kinieta.ignoredCallSink
+        defer { Kinieta.ignoredCallSink = previous }
+        var ignored: [IgnoredCall] = []
+        Kinieta.ignoredCallSink = { ignored.append($0) }
+        #endif
+
+        let view = makeView()
+        var log: [String] = []
+        let handle = Kinieta.run {
+            Step.animate(.x(100), duration: 0.5, delay: 0.25)
+            view.step(.x(100), duration: 0.5)
+            Step.call { log.append("done") }
+        }
+        #if DEBUG
+        #expect(
+            ignored == [
+                IgnoredCall(
+                    message: "Kinieta.run(_:) was given an animation without a view; timing it as a pause", site: nil)
+            ])
+        #endif
+        frames.step(0.75)
+        #expect(view.x == 0)
+        frames.step(0.25)
+        #expect(approx(view.x, 50))
+        frames.step(0.25)
+        #expect(log == ["done"])
+        #expect(handle.state == .finished)
+    }
+
+    @Test func aCallStepCanPauseTheTimeline() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let (first, second) = (makeView(), makeView())
+        var handle: Kinieta?
+        handle = Kinieta.run {
+            first.step(.x(100), duration: 0.5)
+            Step.call { handle?.pause() }
+            second.step(.x(100), duration: 0.5)
+        }
+        frames.step(0.5)
+        #expect(approx(first.x, 100))
+        #expect(handle?.state == .paused)
+        frames.step(0.5)
+        #expect(second.x == 0)
+        handle?.resume()
+        frames.step(0.25)
+        #expect(approx(second.x, 50))
+        frames.step(0.25)
+        #expect(handle?.state == .finished)
+    }
+
+    @Test func aCallStepCanCancelTheTimeline() async {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let (first, second) = (makeView(), makeView())
+        var log: [String] = []
+        var handle: Kinieta?
+        handle = Kinieta.run {
+            first.step(.x(100), duration: 0.5)
+            Step.call { handle?.cancel() }
+            second.step(.x(100), duration: 0.5)
+            Step.call { log.append("after") }
+        }
+        frames.step(0.5)
+        #expect(handle?.state == .cancelled)
+        await handle?.finished()
+        frames.step(1)
+        #expect(approx(first.x, 100) && second.x == 0)
+        #expect(log.isEmpty)
+    }
+
+    @Test func aStepBoundWithViewStepKeepsItsViewOnAnotherView() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let (first, second) = (makeView(), makeView())
+        let handle = second.run {
+            first.step(.x(100), duration: 0.5)
+            Step.animate(.y(100), duration: 0.5)
+        }
+        #expect(handle.view === second)
+        frames.step(0.5)
+        #expect(approx(first.x, 100) && second.x == 0)
+        frames.step(0.5)
+        #expect(approx(second.y, 100) && first.y == 0)
+    }
+
+    @Test func viewStepTakesItsDelayAndEasing() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let (stepView, chainView) = (makeView(), makeView())
+        Kinieta.run(stepView.step([.x(100)], duration: 1, delay: 0.5, easing: .inOut(.cubic)))
+        chainView.animate(.x(100), duration: 1, delay: 0.5, easing: .inOut(.cubic))
+        for _ in 0..<8 {
+            frames.step(0.2)
+            #expect(stepView.x == chainView.x)
+        }
+    }
+
     // MARK: - The builder
 
     @Test func ifAndElseChooseTheirSteps() {
@@ -541,7 +730,7 @@ struct StepTests {
 
     // Ignored calls are reported in debug builds only.
     #if DEBUG
-    @Test func runOnAGroupHandleIgnoresAnimationsButRunsCalls() {
+    @Test func runOnAGroupHandleTimesAnimationsWithoutAViewAsPauses() {
         let frames = ManualFrameDriver.install()
         defer { frames.uninstall() }
         let previous = Kinieta.ignoredCallSink
@@ -550,19 +739,40 @@ struct StepTests {
         Kinieta.ignoredCallSink = { ignored.append($0) }
 
         var log: [String] = []
-        let view = makeView()
+        let (view, other) = (makeView(), makeView())
         let group = Kinieta.group(view.animate(.x(100), duration: 0.5))
+        let line: UInt = #line + 1
         group.run(Step.animate(.y(100), duration: 0.5))
-        group.run(Step.wait(0.5).onComplete { log.append("waited") })
+        group.run(other.step(.y(100), duration: 0.5).onComplete { log.append("other") })
         #expect(
-            ignored.map(\.message) == [
-                "run(_:) was given a step that animates, on a group handle, which has no view; ignoring it"
+            ignored == [
+                IgnoredCall(
+                    message:
+                        "run(_:) was given an animation without a view, on a handle that has none; timing it as a pause",
+                    site: IgnoredCall.Site(fileID: #fileID, line: line))
             ])
         frames.step(0.5)
         frames.step(0.5)
-        #expect(log == ["waited"])
-        #expect(view.y == 0)
+        #expect(view.y == 0 && other.y == 0)
+        frames.step(0.5)
+        #expect(approx(other.y, 100))
+        #expect(log == ["other"])
         #expect(group.state == .finished)
+    }
+
+    @Test func animateOnARunHandleIsIgnored() {
+        let frames = ManualFrameDriver.install()
+        defer { frames.uninstall() }
+        let previous = Kinieta.ignoredCallSink
+        defer { Kinieta.ignoredCallSink = previous }
+        var ignored: [IgnoredCall] = []
+        Kinieta.ignoredCallSink = { ignored.append($0) }
+
+        let handle = Kinieta.run(Step.wait(0.5))
+        handle.animate(.x(100), duration: 0.5)
+        #expect(ignored.map(\.message) == ["animate(_:duration:) was called on a handle without a view; ignoring it"])
+        frames.step(0.5)
+        #expect(handle.state == .finished)
     }
 
     @Test func runAfterRepeatForeverIsIgnored() {

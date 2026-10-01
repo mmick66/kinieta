@@ -9,11 +9,13 @@ import AppKit
 #if canImport(UIKit) || os(macOS)
 import os
 
-/// A handle to one view's timeline.
+/// A handle to a timeline: one view's, or one over several views.
 ///
 /// Every call on `UIView.animate`, `UIView.wait` or `UIView.run` creates a
-/// handle whose timeline starts on the next frame. Chain further calls to extend it, then
-/// keep the handle to `cancel()`, `pause()`, `resume()` or `await finished()`.
+/// handle whose timeline starts on the next frame, as do ``run(_:)-(Step)``,
+/// for a timeline over several views, and
+/// ``group(_:completion:)-([Kinieta],_)``. Chain further calls to extend it,
+/// then keep the handle to `cancel()`, `pause()`, `resume()` or `await finished()`.
 ///
 /// A handle can be extended at any time. Actions added to a running timeline
 /// play after the ones already there; actions added to a finished timeline
@@ -53,6 +55,9 @@ public final class Kinieta {
     /// before anything else in it runs, even while it is paused or waiting
     /// forever: no further completion blocks are called, `state` becomes
     /// `.cancelled` and ``finished()`` returns.
+    ///
+    /// `nil` for a handle from ``run(_:)-(Step)`` or
+    /// ``group(_:completion:)-([Kinieta],_)``, which has no view of its own.
     public private(set) weak var view: UIView?
     #else
     /// The view this timeline animates. Held weakly: a timeline never keeps a
@@ -60,6 +65,9 @@ public final class Kinieta {
     /// before anything else in it runs, even while it is paused or waiting
     /// forever: no further completion blocks are called, `state` becomes
     /// `.cancelled` and ``finished()`` returns.
+    ///
+    /// `nil` for a handle from ``run(_:)-(Step)`` or
+    /// ``group(_:completion:)-([Kinieta],_)``, which has no view of its own.
     public private(set) weak var view: NSView?
     #endif
 
@@ -88,8 +96,8 @@ public final class Kinieta {
     private var children: [Kinieta] = []
     /// The action running this group handle's members; `nil` for an ordinary timeline.
     private var members: GroupAction?
-    /// `true` for a handle made by `group`, which has no view of its own.
-    private var isGroup = false
+    /// `false` for a handle made by `group` or `run`, which has no view of its own.
+    private let hasView: Bool
 
     #if canImport(UIKit)
     /// Creates an empty timeline for `view` and registers it with the engine.
@@ -111,6 +119,7 @@ public final class Kinieta {
 
     init(view: PlatformView?) {
         self.view = view
+        hasView = view != nil
         mainSequence = SequenceAction()
         mainSequence.handle = self
         mainSequence.completion = { [weak self] in self?.finish(as: .finished) }
@@ -161,8 +170,10 @@ public final class Kinieta {
     /// A negative, NaN or infinite duration is treated as zero and logs a
     /// warning. `delay` accepts the same times as ``wait(_:file:line:)``.
     ///
-    /// A group handle has no view to animate: calling this on one does nothing
-    /// and, in debug builds, logs a warning. Animate the grouped timelines instead.
+    /// A handle from ``group(_:completion:)-([Kinieta],_)`` or
+    /// ``run(_:)-(Step)`` has no view to animate: calling this on one does
+    /// nothing and, in debug builds, logs a warning. Animate the grouped
+    /// timelines, or run a step bound to a view with `view.step(…)`, instead.
     @discardableResult
     public func animate(
         _ properties: Property..., duration: TimeInterval = 0, delay: TimeInterval = 0, easing: Easing = .linear,
@@ -179,9 +190,9 @@ public final class Kinieta {
         _ properties: [Property], duration: TimeInterval = 0, delay: TimeInterval = 0, easing: Easing = .linear,
         file: StaticString = #fileID, line: UInt = #line
     ) -> Kinieta {
-        guard !isGroup else {
+        guard hasView else {
             Kinieta.ignored(
-                "animate(_:duration:) was called on a group handle, which has no view; ignoring it",
+                "animate(_:duration:) was called on a handle without a view; ignoring it",
                 file: file, line: line)
             return self
         }
@@ -245,18 +256,33 @@ public final class Kinieta {
     /// that ``onComplete(_:file:line:)`` always adds a block after the step
     /// rather than replacing one the step ends with.
     ///
-    /// A group handle has no view: running a step that animates on one does
-    /// nothing and, in debug builds, logs a warning. A step that only waits
-    /// or calls blocks runs.
+    /// A handle from ``group(_:completion:)-([Kinieta],_)`` or
+    /// ``run(_:)-(Step)`` has no view: its animations run on the views they
+    /// were bound to with `view.step(…)`. One that has none animates nothing
+    /// and, in debug builds, logs a warning; it waits out its duration
+    /// instead, so the steps after it keep their timing.
     @discardableResult
     public func run(_ step: Step, file: StaticString = #fileID, line: UInt = #line) -> Kinieta {
-        guard !isGroup || !step.action.hasUnboundAnimation else {
-            Kinieta.ignored(
-                "run(_:) was given a step that animates, on a group handle, which has no view; ignoring it",
-                file: file, line: line)
-            return self
+        append(
+            step, file: file, line: line,
+            unbound: "run(_:) was given an animation without a view, on a handle that has none; timing it as a pause")
+    }
+
+    /// Appends `step` for `run`. On a handle without a view, an animation
+    /// that has none is reported with `unbound` and becomes a pause.
+    private func append(
+        _ step: Step, file: StaticString?, line: UInt, unbound: @autoclosure () -> String
+    ) -> Kinieta {
+        var action: ActionType
+        if hasView {
+            action = step.action.bound(to: view)
+        } else {
+            action = step.action
+            if action.hasUnboundAnimation {
+                Kinieta.ignored(unbound(), file: file, line: line)
+                action = action.pausingUnboundAnimations()
+            }
         }
-        var action = step.action.bound(to: view)
         // A step that ends with a call has the shape `onComplete(_:)` builds,
         // so a later `onComplete(_:)` would replace the call. Wrapped, it adds one.
         if action.completed != nil { action = .sequence([action]) }
@@ -638,7 +664,6 @@ public final class Kinieta {
         // Register the group before taking its members off the engine, so the
         // engine never empties and restarts its clock in between.
         let handle = Kinieta(view: nil)
-        handle.isGroup = true
         for child in members { child.owner = handle }
         Engine.shared.remove(members.map { $0.mainSequence })
         let action = GroupAction(running: members.map { $0.mainSequence })
@@ -655,6 +680,52 @@ public final class Kinieta {
     @discardableResult
     public static func group(_ handles: Kinieta..., completion: Completion? = nil) -> Kinieta {
         group(handles, completion: completion)
+    }
+
+    // MARK: - Timelines over several views
+
+    /// Starts a timeline that runs `step` over the views its animations were
+    /// bound to with `view.step(…)`, and returns one handle for all of it.
+    ///
+    /// The timeline has no view of its own, so ``view`` is `nil`. A view
+    /// deallocated while it runs is skipped rather than cancelling the
+    /// timeline: its animations do nothing but still take their duration,
+    /// and every later step runs on time. A ``Step/call(_:)`` or
+    /// ``Step/onComplete(_:)`` block therefore runs even after the views it
+    /// follows have gone, so capture them weakly in it.
+    ///
+    /// An animation made with ``Step/animate(_:duration:delay:easing:)-(Property...,_,_,_)``
+    /// has no view here: it animates nothing and, in debug builds, logs a
+    /// warning. It waits out its duration instead, so the steps after it keep
+    /// their timing.
+    ///
+    /// Pause, resume, cancel, extend and await the handle as any other.
+    /// Use this to build a timeline over several views from scratch;
+    /// ``group(_:completion:)-([Kinieta],_)`` combines handles that are
+    /// already running.
+    @discardableResult
+    public static func run(_ step: Step) -> Kinieta {
+        Kinieta(view: nil).append(
+            step, file: nil, line: 0,
+            unbound: "Kinieta.run(_:) was given an animation without a view; timing it as a pause")
+    }
+
+    /// Starts a timeline that runs `steps` one after another over the views
+    /// their animations were bound to with `view.step(…)`. Same as
+    /// ``run(_:)-(Step)`` with ``Step/sequence(_:)``.
+    ///
+    /// ```swift
+    /// Kinieta.run {
+    ///     Step.parallel {
+    ///         card.step(.x(374), duration: 1, easing: .inOut(.cubic))
+    ///         badge.step(.rotation(degrees: 360), .alpha(0), duration: 1.2)
+    ///     }
+    ///     Step.call { print("both finished") }
+    /// }
+    /// ```
+    @discardableResult
+    public static func run(@StepBuilder _ steps: () -> [Step]) -> Kinieta {
+        run(Step.sequence(steps))
     }
 }
 

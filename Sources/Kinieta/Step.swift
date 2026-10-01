@@ -35,7 +35,19 @@ import os
 ///
 /// A step's animations have no view until it runs: `run` binds them to the
 /// view it is called on, so one step value can run on many views, each
-/// animating independently.
+/// animating independently. A step made with `view.step(…)` is bound to its
+/// view from the start, so one timeline can animate several views, run
+/// with ``Kinieta/run(_:)-(Step)``:
+///
+/// ```swift
+/// Kinieta.run {
+///     Step.parallel {
+///         card.step(.x(374), duration: 1, easing: .inOut(.cubic))
+///         badge.step(.rotation(degrees: 360), .alpha(0), duration: 1.2)
+///     }
+///     Step.call { print("both finished") }
+/// }
+/// ```
 ///
 /// Each modifier returns a new step and leaves the original as it was.
 public struct Step {
@@ -90,7 +102,10 @@ extension Step {
     /// A step that calls `block` and takes no time.
     ///
     /// The block runs on the frame the step before it ends. It does not run
-    /// once the timeline has been cancelled or its view deallocated.
+    /// once the timeline has been cancelled or its view deallocated. A
+    /// timeline from ``Kinieta/run(_:)-(Step)`` has no view of its own, so
+    /// the block runs even after the views it follows have gone: capture
+    /// them weakly.
     public static func call(_ block: @escaping Kinieta.Completion) -> Step {
         Step(.call(block))
     }
@@ -140,8 +155,9 @@ extension Step {
     /// The step, followed by a call to `block` when it ends.
     ///
     /// The block runs on the frame the step ends, and not at all once the
-    /// timeline has been cancelled or its view deallocated. Calling this
-    /// twice runs both blocks, in order.
+    /// timeline has been cancelled or its view deallocated; see ``call(_:)``
+    /// for a timeline without a view. Calling this twice runs both blocks,
+    /// in order.
     public func onComplete(_ block: @escaping Kinieta.Completion) -> Step {
         // Always a new call, never `ActionType.withCompletion`: the step may be
         // a `sequence` that ends with a call of its own, and that would replace it.
@@ -177,8 +193,8 @@ extension Step {
     }
 }
 
-/// Builds the steps of ``Step/sequence(_:)``, ``Step/parallel(_:)`` and
-/// `run`, one per line, from `if`, `if`-`else`, `switch` and `for` as well
+/// Builds the steps of ``Step/sequence(_:)``, ``Step/parallel(_:)``,
+/// ``Kinieta/run(_:)-(()->[Step])`` and `view.run`, one per line, from `if`, `if`-`else`, `switch` and `for` as well
 /// as single steps.
 @resultBuilder
 public enum StepBuilder {

@@ -67,6 +67,41 @@ public extension PlatformView {
     func run(@StepBuilder _ steps: () -> [Step]) -> Kinieta {
         Kinieta(view: self).run(Step.sequence(steps))
     }
+
+    /// A step that animates `properties` of this view to their values over
+    /// `duration` seconds, after `delay` seconds, shaped by `easing`.
+    ///
+    /// It is ``Step/animate(_:duration:delay:easing:)-(Property...,_,_,_)``
+    /// already bound to this view, which it keeps wherever it runs: with
+    /// `Kinieta.run`, which has no view of its own, or with `run` on another
+    /// view, which binds only the animations that have no view yet. That is
+    /// how one timeline animates several views:
+    ///
+    /// ```swift
+    /// Kinieta.run {
+    ///     Step.parallel {
+    ///         card.step(.x(374), duration: 1, easing: .inOut(.cubic))
+    ///         badge.step(.rotation(degrees: 360), .alpha(0), duration: 1.2)
+    ///     }
+    ///     Step.call { print("both finished") }
+    /// }
+    /// ```
+    ///
+    /// The step holds the view weakly.
+    func step(
+        _ properties: Property..., duration: TimeInterval = 0, delay: TimeInterval = 0, easing: Easing = .linear
+    ) -> Step {
+        step(properties, duration: duration, delay: delay, easing: easing)
+    }
+
+    /// A step that animates `properties` of this view to their values over
+    /// `duration` seconds, after `delay` seconds, shaped by `easing`. Same as
+    /// ``step(_:duration:delay:easing:)-(Property...,_,_,_)`` with an array.
+    func step(
+        _ properties: [Property], duration: TimeInterval = 0, delay: TimeInterval = 0, easing: Easing = .linear
+    ) -> Step {
+        Step(Step.animate(properties, duration: duration, delay: delay, easing: easing).action.bound(to: self))
+    }
 }
 
 // MARK: - Geometry helpers used by the interpolators

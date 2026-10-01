@@ -2274,7 +2274,7 @@ struct EngineTests {
         let calls = ignoredCalls { group.animate(.y(1), duration: 1) }
         #expect(
             calls.map(\.message) == [
-                "animate(_:duration:) was called on a group handle, which has no view; ignoring it"
+                "animate(_:duration:) was called on a handle without a view; ignoring it"
             ])
     }
 
