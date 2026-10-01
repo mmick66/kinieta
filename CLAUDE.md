@@ -117,6 +117,9 @@ names the view or colour type is declared once per platform. Linux builds an emp
 - `Kinieta.swift`: the public handle. Each handle owns a `TimelineAction` (its timeline) and
   exposes the chain API (`easing`, `delay`, `then()`, `parallel()`, `repeat`, `onComplete`),
   control (`cancel`, `pause`, `resume`, `finished()`) and `Kinieta.group`.
+- `GroupMembership.swift`: a group handle's members. Cancel, pause and resume cascade to them, a
+  member extended after it finished rejoins the group or leaves it, and a group handle released
+  while paused hands its members to the engine.
 - Actions: the `Action` protocol, with `TimelineAction` (a handle's root: owns the
   `TimelineControl` and the handle back-reference, runs a `SequenceAction` and finishes the
   handle), `SequenceAction` (one after another), `GroupAction` (together), `LoopAction`

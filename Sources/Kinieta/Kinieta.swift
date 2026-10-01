@@ -91,13 +91,18 @@ public final class Kinieta {
     private(set) var waiters: [Int: CheckedContinuation<Void, Never>] = [:]
     private var nextWaiter = 0
 
-    /// The group driving this timeline, if any. A timeline is driven either by
-    /// the engine or by exactly one group, never both.
+    /// What a handle drives: its own timeline, or that and the timelines of a group.
+    private enum Role {
+        /// A timeline of its own, on a view or, from `run`, over several.
+        case timeline
+        /// A handle from `group`, whose timeline runs the timelines of `membership`.
+        case group(GroupMembership)
+    }
+
+    private var role: Role = .timeline
+    /// The group handle driving this timeline, if any. A timeline is driven
+    /// either by the engine or by exactly one group, never both.
     private weak var owner: Kinieta?
-    /// The timelines this group handle drives. Empty for an ordinary timeline.
-    private var children: [Kinieta] = []
-    /// The action running this group handle's members; `nil` for an ordinary timeline.
-    private var members: GroupAction?
     /// `false` for a handle made by `group` or `run`, which has no view of its own.
     private let hasView: Bool
 
@@ -144,13 +149,21 @@ public final class Kinieta {
     /// of their own that can still resume or cancel them: the engine takes over
     /// the ones the group was still running, and they keep their state.
     deinit {
-        let orphaned = state == .paused ? members : nil
-        Task { @MainActor in
-            for case let timeline as TimelineAction in orphaned?.releaseMembers() ?? [] {
-                timeline.handle?.leaveReleasedGroup()
+        let orphaned: GroupMembership? =
+            switch role {
+            case .group(let membership) where state == .paused: membership
+            default: nil
             }
+        Task { @MainActor in
+            orphaned?.releaseMembers()
             Engine.shared.refreshDriver()
         }
+    }
+
+    /// The timelines this handle runs as a group; `nil` unless it is a group handle.
+    private var membership: GroupMembership? {
+        guard case .group(let membership) = role else { return nil }
+        return membership
     }
 
     // MARK: - Building the timeline
@@ -410,7 +423,7 @@ public final class Kinieta {
     /// The timeline so far as steps that can run again: a group handle's live
     /// group is replaced by what its timelines hold now.
     private func replayableTimeline() -> [ActionType] {
-        let replay = children.map { ActionType.sequence($0.timeline) }
+        let replay = membership?.replay ?? []
         return timeline.map { $0.replacingTimelines(with: replay) }
     }
 
@@ -460,19 +473,18 @@ public final class Kinieta {
     /// leaves the group and the engine drives it.
     private func restart() {
         state = .running
-        if let owner, owner.members?.adopt(root) == true {
+        if let owner, owner.membership?.adopt(self) == true {
             if owner.isPaused { pause() }
             Engine.shared.refreshDriver()
             return
         }
-        owner?.children.removeAll { $0 === self }
         owner = nil
         Engine.shared.add(root)
     }
 
     /// Hands this timeline to the engine after its group handle was released
     /// while paused. Does nothing if it has since joined another group or ended.
-    private func leaveReleasedGroup() {
+    func leaveReleasedGroup() {
         guard owner == nil, state == .running || state == .paused else { return }
         Engine.shared.add(root)
     }
@@ -557,12 +569,12 @@ public final class Kinieta {
 
     /// Cancels this timeline and those in it, adding their roots to
     /// `cancelled` for the caller to take off the engine.
-    private func cancel(collecting cancelled: inout [Action]) {
+    func cancel(collecting cancelled: inout [Action]) {
         guard state == .running || state == .paused else { return }
         root.control.isCancelled = true  // also stops it when a group is driving it
         cancelled.append(root)
         finish(as: .cancelled)
-        for child in children { child.cancel(collecting: &cancelled) }
+        membership?.cancel(collecting: &cancelled)
     }
 
     /// Holds the timeline where it is. Pausing a group handle also pauses every
@@ -576,7 +588,7 @@ public final class Kinieta {
         guard state == .running else { return }
         root.control.isPaused = true
         state = .paused
-        for child in children { child.pause() }
+        membership?.pause()
         Engine.shared.refreshDriver()
     }
 
@@ -587,7 +599,7 @@ public final class Kinieta {
         guard state == .paused, owner?.isPaused != true else { return }
         root.control.isPaused = false
         state = .running
-        for child in children { child.resume() }
+        membership?.resume()
         Engine.shared.refreshDriver()
     }
 
@@ -624,7 +636,7 @@ public final class Kinieta {
         // Drop what has run: a completion block that captures this handle, or
         // an owner of it, would otherwise keep both alive.
         mainSequence.clear()
-        members = nil
+        membership?.end()
         let pending = waiters.values
         waiters = [:]
         for waiter in pending { waiter.resume() }
@@ -669,8 +681,7 @@ public final class Kinieta {
         for child in members { child.owner = handle }
         Engine.shared.remove(members.map(\.root))
         let action = GroupAction(running: members.map(\.root))
-        handle.children = members
-        handle.members = action
+        handle.role = .group(GroupMembership(members, runningIn: action))
         handle.editUnstarted("group(_:completion:)", file: nil, line: 0) {
             $0.add(completion.map { ActionType.timelines(action).withCompletion($0) } ?? .timelines(action))
         }
